@@ -1,0 +1,401 @@
+class_name Painter
+extends RefCounted
+
+const SHADOW_OFFSET := Vector2(4, 7)
+const ELLIPSE_POINTS := 20
+
+
+static func ellipse(center: Vector2, radii: Vector2, points: int = ELLIPSE_POINTS) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	for i in points:
+		var angle := TAU * i / points
+		result.append(center + Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
+	return result
+
+
+static func polygon(center: Vector2, radius: float, sides: int, rotation: float = 0.0) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	for i in sides:
+		result.append(center + Vector2.from_angle(rotation + TAU * i / sides) * radius)
+	return result
+
+
+static func glow(ci: CanvasItem, center: Vector2, radius: float, color: Color, strength: float = 1.0) -> void:
+	ci.draw_circle(center, radius * 2.2, Color(color, 0.07 * strength))
+	ci.draw_circle(center, radius * 1.5, Color(color, 0.16 * strength))
+	ci.draw_circle(center, radius, Color(color, 0.9 * strength))
+	ci.draw_circle(center, radius * 0.45, Color(AppTheme.ENERGY_CORE, strength))
+
+
+static func shadow(ci: CanvasItem, center: Vector2, radius: float, lift: float = 1.0) -> void:
+	ci.draw_colored_polygon(ellipse(center + SHADOW_OFFSET * lift, Vector2(radius, radius * 0.75)), AppTheme.SHADOW)
+
+
+static func bar(ci: CanvasItem, center: Vector2, width: float, ratio: float, color: Color, height: float = 6.0) -> void:
+	var origin := center - Vector2(width * 0.5, height * 0.5)
+	ci.draw_rect(Rect2(origin - Vector2(2, 2), Vector2(width + 4, height + 4)), Color(0, 0, 0, 0.65))
+	ci.draw_rect(Rect2(origin, Vector2(width * clampf(ratio, 0.0, 1.0), height)), color)
+
+
+static func hp_color(ratio: float) -> Color:
+	return AppTheme.HP_LOW.lerp(AppTheme.HP_GOOD, clampf(ratio * 1.4 - 0.2, 0.0, 1.0))
+
+
+static func building(ci: CanvasItem, kind: String, center: Vector2, radius: float, time: float, fill: float = 0.0, aim: float = -PI / 2.0, light: float = 1.0) -> void:
+	match kind:
+		GameConfig.CORE:
+			_core(ci, center, radius, time, fill)
+		GameConfig.SOLAR:
+			_solar(ci, center, radius, time, light)
+		GameConfig.RELAY:
+			_relay(ci, center, radius, time, fill)
+		GameConfig.BATTERY:
+			_battery(ci, center, radius, fill)
+		GameConfig.ZAPPER:
+			_zapper(ci, center, radius, time, fill)
+		GameConfig.LASER:
+			_laser(ci, center, radius, aim, fill)
+		GameConfig.TESLA:
+			_tesla(ci, center, radius, time, fill)
+		GameConfig.PLASMA:
+			_plasma(ci, center, radius, aim, fill)
+		GameConfig.SHIELD:
+			_shield(ci, center, radius, time, fill)
+		GameConfig.EXPORTER:
+			_exporter(ci, center, radius, time, fill)
+		GameConfig.HEALER:
+			_healer(ci, center, radius, time, fill)
+		GameConfig.BULWARK:
+			_bulwark(ci, center, radius, time, fill)
+		GameConfig.NEST:
+			_nest(ci, center, radius, time)
+		GameConfig.CAMP:
+			_camp(ci, center, radius, time)
+		GameConfig.TURRET:
+			_turret(ci, center, radius, aim)
+
+
+static func _base(ci: CanvasItem, center: Vector2, radius: float, sides: int = 8) -> void:
+	shadow(ci, center, radius)
+	ci.draw_colored_polygon(polygon(center, radius, sides, PI / sides), AppTheme.METAL_DEEP)
+	ci.draw_colored_polygon(polygon(center, radius * 0.84, sides, PI / sides), AppTheme.METAL_DARK)
+
+
+static func _core(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	shadow(ci, center, radius)
+	ci.draw_colored_polygon(polygon(center, radius, 6, PI / 6.0), AppTheme.METAL_DEEP)
+	ci.draw_colored_polygon(polygon(center, radius * 0.86, 6, PI / 6.0), AppTheme.METAL_DARK)
+	var outline := polygon(center, radius * 0.86, 6, PI / 6.0)
+	outline.append(outline[0])
+	ci.draw_polyline(outline, Color(AppTheme.ENERGY, 0.8), 3.0, true)
+	ci.draw_arc(center, radius * 0.62, -PI / 2.0, -PI / 2.0 + TAU * clampf(fill, 0.0, 1.0), 40, AppTheme.ENERGY, 5.0, true)
+	var pulse := 1.0 + 0.08 * sin(time * 4.0)
+	glow(ci, center, radius * 0.34 * pulse, AppTheme.ENERGY)
+
+
+static func _solar(ci: CanvasItem, center: Vector2, radius: float, time: float, light: float) -> void:
+	shadow(ci, center, radius)
+	var half := radius * 0.9
+	ci.draw_rect(Rect2(center - Vector2(half, half), Vector2(half, half) * 2.0), AppTheme.METAL_DARK)
+	var inner := half * 0.86
+	ci.draw_rect(Rect2(center - Vector2(inner, inner), Vector2(inner, inner) * 2.0), AppTheme.SOLAR_CELL.lerp(Color("#3d74d9"), light * 0.5))
+	var line := Color(AppTheme.SOLAR_LINE, 0.55)
+	for i in range(1, 3):
+		var offset := -inner + inner * 2.0 * i / 3.0
+		ci.draw_line(center + Vector2(offset, -inner), center + Vector2(offset, inner), line, 1.5)
+		ci.draw_line(center + Vector2(-inner, offset), center + Vector2(inner, offset), line, 1.5)
+	if light > 0.05:
+		var sweep := fposmod(time * 0.35 + center.x * 0.001, 1.0) * 2.0 - 0.5
+		var a := center + Vector2(-inner + inner * 2.0 * sweep, -inner)
+		ci.draw_line(a, a + Vector2(-inner * 0.6, inner * 2.0).limit_length(inner * 1.2), Color(1, 1, 1, 0.35 * light), 4.0)
+		ci.draw_circle(center + Vector2(inner, -inner) * 0.7, 3.0, Color(AppTheme.GOLD, light))
+
+
+static func _relay(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	shadow(ci, center, radius * 0.9)
+	ci.draw_circle(center, radius, AppTheme.METAL_DEEP)
+	for i in 3:
+		var tip := center + Vector2.from_angle(-PI / 2.0 + TAU * i / 3.0) * radius
+		ci.draw_line(center, tip, AppTheme.METAL, 4.0, true)
+		ci.draw_circle(tip, 3.5, AppTheme.METAL)
+	glow(ci, center, radius * (0.3 + 0.12 * fill) * (1.0 + 0.1 * sin(time * 6.0 + center.y)), AppTheme.ENERGY, 0.5 + fill * 0.5)
+
+
+static func _battery(ci: CanvasItem, center: Vector2, radius: float, fill: float) -> void:
+	shadow(ci, center, radius)
+	var size := Vector2(radius * 1.3, radius * 1.85)
+	var rect := Rect2(center - size * 0.5, size)
+	ci.draw_rect(rect, AppTheme.METAL_DEEP)
+	ci.draw_rect(Rect2(center + Vector2(-size.x * 0.22, -size.y * 0.5 - 6.0), Vector2(size.x * 0.44, 6.0)), AppTheme.METAL)
+	var inner := rect.grow(-4.0)
+	ci.draw_rect(inner, Color("#0d1a14"))
+	var level := clampf(fill, 0.0, 1.0)
+	var filled := Rect2(inner.position + Vector2(0, inner.size.y * (1.0 - level)), Vector2(inner.size.x, inner.size.y * level))
+	ci.draw_rect(filled, AppTheme.SUCCESS.lerp(AppTheme.ENERGY, level * 0.4))
+	for i in range(1, 4):
+		var y := inner.position.y + inner.size.y * i / 4.0
+		ci.draw_line(Vector2(inner.position.x, y), Vector2(inner.end.x, y), Color(0, 0, 0, 0.35), 2.0)
+	ci.draw_rect(rect, AppTheme.METAL, false, 2.0)
+
+
+static func _zapper(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	_base(ci, center, radius)
+	for i in 3:
+		ci.draw_arc(center, radius * (0.72 - i * 0.14), 0.0, TAU, 24, Color(AppTheme.ENERGY, 0.25 + i * 0.15), 2.5, true)
+	var flicker := 0.85 + 0.15 * sin(time * 23.0 + center.x)
+	glow(ci, center, radius * 0.28 * flicker, AppTheme.building_color(GameConfig.ZAPPER), 0.35 + fill * 0.65)
+
+
+static func _laser(ci: CanvasItem, center: Vector2, radius: float, aim: float, fill: float) -> void:
+	_base(ci, center, radius, 6)
+	var direction := Vector2.from_angle(aim)
+	ci.draw_line(center, center + direction * radius * 1.15, AppTheme.METAL_DEEP, 10.0, true)
+	ci.draw_line(center, center + direction * radius * 1.1, AppTheme.METAL, 6.0, true)
+	ci.draw_circle(center, radius * 0.5, AppTheme.METAL)
+	ci.draw_circle(center, radius * 0.32, AppTheme.METAL_DARK)
+	glow(ci, center + direction * radius * 1.1, 4.0, AppTheme.building_color(GameConfig.LASER), 0.3 + fill * 0.7)
+
+
+static func _tesla(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	_base(ci, center, radius, 10)
+	var color := AppTheme.building_color(GameConfig.TESLA)
+	for i in 3:
+		ci.draw_circle(center, radius * (0.7 - i * 0.16), color.darkened(0.55 - i * 0.15))
+	if fill > 0.2:
+		for i in 3:
+			var angle := time * 7.0 + i * 2.1 + sin(time * 13.0 + i) * 0.8
+			var from := center + Vector2.from_angle(angle) * radius * 0.25
+			var to := center + Vector2.from_angle(angle + 0.4) * radius * 0.95
+			ci.draw_line(from, to, Color(color.lightened(0.4), 0.8), 1.5, true)
+	glow(ci, center, radius * 0.24, color, 0.4 + fill * 0.6)
+
+
+static func _plasma(ci: CanvasItem, center: Vector2, radius: float, aim: float, fill: float) -> void:
+	_base(ci, center, radius, 8)
+	var direction := Vector2.from_angle(aim)
+	var muzzle := center + direction * radius * 0.25
+	ci.draw_circle(muzzle, radius * 0.55, AppTheme.METAL_DEEP)
+	ci.draw_circle(muzzle, radius * 0.45, AppTheme.METAL)
+	ci.draw_circle(muzzle, radius * 0.3, Color("#1a0d05"))
+	ci.draw_circle(muzzle, radius * 0.22, Color(AppTheme.PLASMA_ORANGE, 0.3 + fill * 0.7))
+
+
+static func _shield(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	_base(ci, center, radius, 8)
+	var color := AppTheme.SHIELD_BLUE
+	ci.draw_circle(center, radius * 0.62, Color(color, 0.35 + 0.5 * fill))
+	ci.draw_arc(center, radius * 0.62, -2.6, -1.0, 12, Color(1, 1, 1, 0.6), 3.0, true)
+	ci.draw_arc(center, radius * 0.75, time * 2.0, time * 2.0 + PI * 0.6, 16, Color(color, 0.8), 2.0, true)
+
+
+static func _exporter(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	_base(ci, center, radius, 6)
+	for i in 3:
+		var tip := center + Vector2.from_angle(-PI / 2.0 + TAU * i / 3.0 + PI / 3.0) * radius * 0.78
+		ci.draw_line(center, tip, AppTheme.METAL, 3.0, true)
+	var spin := absf(cos(time * (1.5 + 3.0 * fill)))
+	ci.draw_colored_polygon(ellipse(center, Vector2(radius * 0.5 * maxf(spin, 0.2), radius * 0.5), 16), AppTheme.GOLD_DARK)
+	ci.draw_colored_polygon(ellipse(center, Vector2(radius * 0.38 * maxf(spin, 0.15), radius * 0.38), 16), AppTheme.GOLD.lerp(Color.WHITE, 0.2 * fill))
+	ci.draw_arc(center, radius * 0.7, -PI / 2.0, -PI / 2.0 + TAU * clampf(fill, 0.0, 1.0), 24, AppTheme.ENERGY, 3.0, true)
+
+
+static func _healer(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	_base(ci, center, radius, 8)
+	var color := AppTheme.building_color(GameConfig.HEALER)
+	var pulse := 1.0 + 0.08 * sin(time * 3.0)
+	ci.draw_circle(center, radius * 0.6, AppTheme.METAL)
+	ci.draw_circle(center, radius * 0.5, Color(color, 0.25 + 0.55 * fill))
+	var arm := radius * 0.36 * pulse
+	var width := radius * 0.16
+	ci.draw_rect(Rect2(center - Vector2(arm, width), Vector2(arm * 2.0, width * 2.0)), Color.WHITE)
+	ci.draw_rect(Rect2(center - Vector2(width, arm), Vector2(width * 2.0, arm * 2.0)), Color.WHITE)
+	ci.draw_arc(center, radius * 0.72, time * 1.5, time * 1.5 + PI * 0.5, 12, Color(color, 0.8), 2.5, true)
+	ci.draw_arc(center, radius * 0.72, time * 1.5 + PI, time * 1.5 + PI * 1.5, 12, Color(color, 0.8), 2.5, true)
+
+
+static func _bulwark(ci: CanvasItem, center: Vector2, radius: float, _time: float, _fill: float) -> void:
+	var color := AppTheme.building_color(GameConfig.BULWARK)
+	var half := Vector2(radius, radius)
+	ci.draw_rect(Rect2(center - half + SHADOW_OFFSET * 0.6, half * 2.0), AppTheme.SHADOW)
+	ci.draw_rect(Rect2(center - half, half * 2.0), AppTheme.METAL_DEEP)
+	ci.draw_rect(Rect2(center - half * 0.86, half * 1.72), AppTheme.METAL_DARK)
+	var brick := radius * 0.86
+	for row in 2:
+		var y := center.y - brick + brick * row
+		ci.draw_line(Vector2(center.x - brick, y + brick), Vector2(center.x + brick, y + brick), AppTheme.METAL_DEEP, 2.0)
+		var x := center.x + (brick * 0.5 if row == 0 else -brick * 0.5)
+		ci.draw_line(Vector2(x, y), Vector2(x, y + brick), AppTheme.METAL_DEEP, 2.0)
+	ci.draw_rect(Rect2(center - Vector2(radius * 0.86, radius * 0.86), Vector2(radius * 1.72, radius * 0.22)), Color(color, 0.85))
+	for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		ci.draw_circle(center + corner * radius * 0.7, radius * 0.08, AppTheme.METAL)
+
+
+static func _nest(ci: CanvasItem, center: Vector2, radius: float, time: float) -> void:
+	shadow(ci, center, radius * 1.05)
+	var points := PackedVector2Array()
+	for i in 24:
+		var angle := TAU * i / 24.0
+		var wobble := 1.0 + 0.08 * sin(angle * 5.0 + time * 2.0) + 0.05 * sin(angle * 3.0 - time * 1.3)
+		points.append(center + Vector2.from_angle(angle) * radius * wobble)
+	ci.draw_colored_polygon(points, AppTheme.NEST_FLESH)
+	ci.draw_circle(center, radius * 0.55, AppTheme.NEST_FLESH.darkened(0.3))
+	ci.draw_circle(center, radius * 0.32, Color("#1a0612"))
+	for i in 7:
+		var angle := TAU * i / 7.0 + 0.4
+		var spot := center + Vector2.from_angle(angle) * radius * 0.75
+		var pulse := 0.5 + 0.5 * sin(time * 3.0 + i)
+		ci.draw_circle(spot, radius * (0.09 + 0.04 * pulse), AppTheme.NEST_SPOT.lightened(pulse * 0.3))
+
+
+static func _camp(ci: CanvasItem, center: Vector2, radius: float, time: float) -> void:
+	shadow(ci, center, radius)
+	for i in 14:
+		var bag := center + Vector2.from_angle(TAU * i / 14.0) * radius * 0.92
+		ci.draw_colored_polygon(ellipse(bag, Vector2(9, 7)), AppTheme.CAMP_CANVAS.lightened(0.15 * (i % 2)))
+	ci.draw_circle(center, radius * 0.8, Color("#4a4a30"))
+	for offset: Vector2 in [Vector2(-0.35, -0.2), Vector2(0.35, -0.15), Vector2(0.0, 0.32)]:
+		var tent := center + offset * radius
+		var size := radius * 0.32
+		ci.draw_colored_polygon(PackedVector2Array([tent + Vector2(-size, size * 0.7), tent + Vector2(size, size * 0.7), tent + Vector2(0, -size * 0.8)]), AppTheme.CAMP_CANVAS)
+		ci.draw_line(tent + Vector2(0, -size * 0.8), tent + Vector2(0, size * 0.7), AppTheme.CAMP_DARK, 2.0)
+	var pole := center + Vector2(radius * 0.05, -radius * 0.1)
+	ci.draw_line(pole, pole + Vector2(0, -radius * 0.9), Color("#d8d0b0"), 3.0)
+	var wave := sin(time * 5.0) * 4.0
+	var top := pole + Vector2(0, -radius * 0.9)
+	ci.draw_colored_polygon(PackedVector2Array([top, top + Vector2(radius * 0.5, 6 + wave), top + Vector2(0, 16)]), AppTheme.ENEMY_RED)
+
+
+static func _turret(ci: CanvasItem, center: Vector2, radius: float, aim: float) -> void:
+	shadow(ci, center, radius)
+	ci.draw_colored_polygon(polygon(center, radius, 4, PI / 4.0), AppTheme.TANK_DARK)
+	ci.draw_colored_polygon(polygon(center, radius * 0.8, 4, PI / 4.0), AppTheme.TANK)
+	var direction := Vector2.from_angle(aim)
+	ci.draw_line(center, center + direction * radius * 1.3, Color("#22261a"), 9.0, true)
+	ci.draw_circle(center, radius * 0.5, AppTheme.ENEMY_RED.darkened(0.35))
+	ci.draw_circle(center, radius * 0.22, AppTheme.ENEMY_RED)
+
+
+static func enemy(ci: CanvasItem, kind: String, center: Vector2, radius: float, heading: Vector2, time: float, night: float) -> void:
+	var lift := 3.0 if GameConfig.enemy(kind).get("class", "") == GameConfig.CLASS_AIR else 1.0
+	shadow(ci, center, radius, lift)
+	ci.draw_set_transform(center, heading.angle(), Vector2.ONE)
+	match kind:
+		"crawler":
+			_bug(ci, radius, time, AppTheme.BUG_RED, AppTheme.BUG_DARK, 3)
+		"beetle":
+			_bug(ci, radius, time, AppTheme.BEETLE, AppTheme.BEETLE_SHELL, 3)
+			ci.draw_line(Vector2(-radius * 0.8, 0), Vector2(radius * 0.5, 0), Color(0, 0, 0, 0.5), 2.0)
+		"behemoth":
+			_bug(ci, radius, time, AppTheme.BEHEMOTH, Color("#8a3a2a"), 4)
+			for i in 5:
+				var spike := Vector2.from_angle(PI * 0.6 + PI * 0.8 * i / 4.0) * radius
+				ci.draw_colored_polygon(PackedVector2Array([spike * 0.8 + spike.orthogonal().normalized() * 5.0, spike * 1.35, spike * 0.8 - spike.orthogonal().normalized() * 5.0]), Color("#e8d8c0"))
+		"wasp":
+			_wasp(ci, radius, time)
+		"soldier":
+			_soldier(ci, radius, AppTheme.SOLDIER, AppTheme.SOLDIER_HELMET)
+		"saboteur":
+			_soldier(ci, radius, AppTheme.SABOTEUR, Color("#16161f"))
+			ci.draw_line(Vector2(radius * 0.2, -radius * 0.25), Vector2(radius * 0.5, -radius * 0.25), Color("#c070ff"), 3.0)
+		"tank":
+			_tank(ci, radius)
+		"spitter":
+			_bug(ci, radius, time, AppTheme.SPITTER, AppTheme.SPITTER.darkened(0.35), 3)
+			ci.draw_circle(Vector2(radius * 1.05, 0), radius * 0.3, Color("#d6ff7a"))
+		"drone":
+			_drone(ci, radius, time)
+	var eyes := kind != "tank" and kind != "drone"
+	if eyes:
+		var eye_color := Color(1.0, 0.85, 0.2).lerp(Color(1.0, 0.25, 0.2), night)
+		var eye_x := radius * (0.95 if kind in ["crawler", "beetle", "behemoth", "wasp", "spitter"] else 0.35)
+		for side in [-1.0, 1.0]:
+			var eye := Vector2(eye_x, side * radius * 0.22)
+			if night > 0.2:
+				ci.draw_circle(eye, radius * 0.3, Color(eye_color, 0.25 * night))
+			ci.draw_circle(eye, maxf(radius * 0.1, 1.5), eye_color)
+	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+static func _bug(ci: CanvasItem, radius: float, time: float, body: Color, shell: Color, legs: int) -> void:
+	var swing := sin(time * 18.0) * radius * 0.25
+	for i in legs:
+		var x := radius * (0.5 - float(i) / maxf(legs - 1, 1) * 1.0)
+		var phase := swing if i % 2 == 0 else -swing
+		ci.draw_line(Vector2(x, 0), Vector2(x + phase, radius * 1.15), body.darkened(0.4), 2.5)
+		ci.draw_line(Vector2(x, 0), Vector2(x - phase, -radius * 1.15), body.darkened(0.4), 2.5)
+	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.15, 0), Vector2(radius, radius * 0.8)), body)
+	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.2, 0), Vector2(radius * 0.75, radius * 0.6)), shell)
+	ci.draw_circle(Vector2(radius * 0.8, 0), radius * 0.45, body.darkened(0.35))
+
+
+static func _wasp(ci: CanvasItem, radius: float, time: float) -> void:
+	var flap := 0.5 + 0.5 * absf(sin(time * 40.0))
+	for side in [-1.0, 1.0]:
+		ci.draw_colored_polygon(ellipse(Vector2(0, side * radius * 0.9), Vector2(radius * 0.7, radius * 0.9 * flap)), Color(0.9, 0.95, 1.0, 0.45))
+	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.3, 0), Vector2(radius * 1.1, radius * 0.55)), AppTheme.WASP)
+	for i in 2:
+		var x := -radius * (0.1 + i * 0.5)
+		ci.draw_line(Vector2(x, -radius * 0.5), Vector2(x, radius * 0.5), AppTheme.WASP_DARK, 3.0)
+	ci.draw_circle(Vector2(radius * 0.75, 0), radius * 0.45, AppTheme.WASP_DARK)
+
+
+static func _soldier(ci: CanvasItem, radius: float, body: Color, helmet: Color) -> void:
+	ci.draw_colored_polygon(ellipse(Vector2.ZERO, Vector2(radius * 0.7, radius * 1.1)), body)
+	ci.draw_line(Vector2(radius * 0.2, radius * 0.45), Vector2(radius * 1.5, radius * 0.45), Color("#1b1b1b"), 3.5)
+	ci.draw_circle(Vector2.ZERO, radius * 0.6, helmet)
+	ci.draw_circle(Vector2(-radius * 0.1, -radius * 0.1), radius * 0.2, helmet.lightened(0.2))
+
+
+static func _tank(ci: CanvasItem, radius: float) -> void:
+	var hull := Vector2(radius * 1.25, radius * 0.95)
+	ci.draw_rect(Rect2(-hull.x, -hull.y - 4.0, hull.x * 2.0, 8.0), AppTheme.TANK_DARK)
+	ci.draw_rect(Rect2(-hull.x, hull.y - 4.0, hull.x * 2.0, 8.0), AppTheme.TANK_DARK)
+	ci.draw_rect(Rect2(-hull.x * 0.95, -hull.y * 0.8, hull.x * 1.9, hull.y * 1.6), AppTheme.TANK)
+	ci.draw_line(Vector2.ZERO, Vector2(radius * 1.7, 0), Color("#22261a"), 6.0)
+	ci.draw_circle(Vector2.ZERO, radius * 0.55, AppTheme.TANK.lightened(0.15))
+	ci.draw_circle(Vector2(-radius * 0.1, 0), radius * 0.2, Color("#ff4d6d"))
+
+
+static func _drone(ci: CanvasItem, radius: float, time: float) -> void:
+	for corner in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
+		var arm: Vector2 = corner * radius * 0.85
+		ci.draw_line(Vector2.ZERO, arm, AppTheme.DRONE.darkened(0.4), 3.0)
+		ci.draw_circle(arm, radius * 0.5, Color(0.85, 0.9, 1.0, 0.25 + 0.15 * absf(sin(time * 50.0 + corner.x))))
+	ci.draw_rect(Rect2(-radius * 0.55, -radius * 0.45, radius * 1.1, radius * 0.9), AppTheme.DRONE)
+	ci.draw_circle(Vector2(radius * 0.35, 0), radius * 0.2, Color("#ff4d6d"))
+
+
+static func scout(ci: CanvasItem, center: Vector2, heading: Vector2, time: float, drop: float, working: bool) -> void:
+	var altitude := drop * 150.0
+	var scale := 1.0 + drop * 0.5
+	var radius := GameConfig.SCOUT_RADIUS * scale
+	ci.draw_colored_polygon(ellipse(center + SHADOW_OFFSET * 0.5, Vector2(radius, radius * 0.7) * (1.0 - drop * 0.5)), Color(AppTheme.SHADOW, AppTheme.SHADOW.a * (1.0 - drop * 0.6)))
+	var body := center - Vector2(0, altitude)
+	if drop > 0.0:
+		var sway := sin(time * 2.5) * 6.0 * drop
+		var canopy := body + Vector2(sway, -radius * 4.2)
+		var width := radius * 3.4
+		for side in [-1.0, 1.0]:
+			ci.draw_line(body, canopy + Vector2(side * width * 0.9, 0), Color(1, 1, 1, 0.7), 1.5, true)
+		ci.draw_colored_polygon(ellipse(canopy, Vector2(width, width * 0.55), 24).slice(12, 24) + PackedVector2Array([canopy + Vector2(width, 0)]), AppTheme.CHUTE)
+		for i in 3:
+			var x := canopy.x - width * 0.6 + width * 0.6 * i
+			ci.draw_line(Vector2(x, canopy.y), Vector2(canopy.x + (x - canopy.x) * 0.4, canopy.y - width * 0.5), AppTheme.CHUTE_STRIPE, 2.0, true)
+	ci.draw_set_transform(body, heading.angle(), Vector2(scale, scale))
+	var r := GameConfig.SCOUT_RADIUS
+	ci.draw_colored_polygon(ellipse(Vector2.ZERO, Vector2(r * 0.7, r * 1.1)), AppTheme.SCOUT)
+	var tool := Vector2(r * 1.4, r * 0.45)
+	if working:
+		tool = tool.rotated(sin(time * 14.0) * 0.6)
+	ci.draw_line(Vector2(r * 0.2, r * 0.45), tool, Color("#1b1b1b"), 3.5)
+	ci.draw_circle(Vector2.ZERO, r * 0.6, AppTheme.SCOUT_DARK)
+	ci.draw_circle(Vector2(-r * 0.1, -r * 0.1), r * 0.22, AppTheme.ENERGY)
+	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+static func coin(ci: CanvasItem, center: Vector2, radius: float, time: float) -> void:
+	var squash := absf(cos(time * 6.0))
+	ci.draw_circle(center + Vector2(2, 4), radius, AppTheme.SHADOW)
+	ci.draw_colored_polygon(ellipse(center, Vector2(radius * maxf(squash, 0.25), radius), 14), AppTheme.GOLD_DARK)
+	ci.draw_colored_polygon(ellipse(center, Vector2(radius * maxf(squash, 0.2) * 0.75, radius * 0.75), 14), AppTheme.GOLD)
+	ci.draw_circle(center + Vector2(-radius * 0.25 * squash, -radius * 0.3), radius * 0.18, Color(1, 1, 1, 0.8))
