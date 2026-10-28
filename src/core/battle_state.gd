@@ -35,6 +35,7 @@ var best_combo := 0
 var structures_destroyed := 0
 var roster_version := 0
 var links_version := 0
+var layout_version := 0
 var _next_id := 1
 var _cache_version := -1
 var _players: Array[Building] = []
@@ -83,6 +84,7 @@ func add_building(kind: String, position: Vector2) -> Building:
 	var building := Building.new(next_id(), kind, position)
 	if building.is_player():
 		building.boosts = setup.arsenal.boosts_for(kind)
+		building.hp = building.max_hp()
 	building.elevation = _elevation_of(building)
 	buildings[building.id] = building
 	roster_version += 1
@@ -103,10 +105,12 @@ func move_building(building: Building, position: Vector2) -> void:
 	building.position = LevelMap.footprint_center(building.origin, building.cells())
 	building.elevation = _elevation_of(building)
 	nav.occupy(building)
+	mark_changed()
 
 
 func drive(building: Building, position: Vector2) -> void:
 	building.position = position
+	mark_changed()
 	var cell := map.cell_of(position)
 	if cell == building.origin:
 		return
@@ -123,6 +127,10 @@ func remove_building(id: int) -> void:
 	buildings.erase(id)
 	roster_version += 1
 	nav.release(building)
+
+
+func mark_changed() -> void:
+	layout_version += 1
 
 
 func reinstate(building: Building) -> void:
@@ -236,6 +244,21 @@ func available_kinds() -> Array[String]:
 
 func is_survival() -> bool:
 	return setup.is_survival()
+
+
+func attackers() -> int:
+	var count := 0
+	for enemy in enemies:
+		if enemy.is_attacker():
+			count += 1
+	return count
+
+
+func has_attackers() -> bool:
+	for enemy in enemies:
+		if enemy.is_attacker():
+			return true
+	return false
 
 
 func is_over() -> bool:

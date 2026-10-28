@@ -19,13 +19,13 @@ static func compute_stats(building: Building) -> PackedFloat64Array:
 	var base_cooldown := float(attack(building).get("cooldown", 0.0))
 	if building.is_player():
 		stats[Stat.ATTACK_RANGE] = base_range * multiplier(building, GameConfig.TRACK_RANGE) * high_ground(building) * building.boost(GameConfig.BOOST_RANGE)
-		stats[Stat.DAMAGE] = base_damage * multiplier(building, GameConfig.TRACK_POWER) * building.boost(GameConfig.BOOST_DAMAGE)
+		stats[Stat.DAMAGE] = base_damage * multiplier(building, GameConfig.TRACK_POWER) * multiplier(building, GameConfig.TRACK_OVERCLOCK) * building.boost(GameConfig.BOOST_DAMAGE)
 		stats[Stat.COOLDOWN] = base_cooldown / multiplier(building, GameConfig.TRACK_SPEED)
 	else:
 		stats[Stat.ATTACK_RANGE] = base_range
 		stats[Stat.DAMAGE] = base_damage
 		stats[Stat.COOLDOWN] = base_cooldown
-	stats[Stat.SHOT_ENERGY] = float(attack(building).get("energy", 0.0)) / efficiency(building)
+	stats[Stat.SHOT_ENERGY] = float(attack(building).get("energy", 0.0)) * overclock_energy(building) / efficiency(building)
 	stats[Stat.MAX_HP] = float(building.definition().get("hp", 1.0)) * multiplier(building, GameConfig.TRACK_HULL) * building.boost(GameConfig.BOOST_HP)
 	return stats
 
@@ -36,6 +36,23 @@ static func multiplier(building: Building, track: String) -> float:
 
 static func efficiency(building: Building) -> float:
 	return multiplier(building, GameConfig.TRACK_EFFICIENCY)
+
+
+static func overclock_energy(building: Building) -> float:
+	return pow(float(GameConfig.TRACKS[GameConfig.TRACK_OVERCLOCK].energy), building.level(GameConfig.TRACK_OVERCLOCK))
+
+
+static func transfer_quality(building: Building) -> float:
+	return multiplier(building, GameConfig.TRACK_TRANSFER) * building.boost(GameConfig.BOOST_TRANSFER)
+
+
+static func beam_loss(source: Building, distance: float) -> float:
+	var raw := GameConfig.BEAM_LOSS_PER_CELL * maxf(distance, 0.0) / GameConfig.CELL
+	return clampf(raw / transfer_quality(source), 0.0, GameConfig.BEAM_LOSS_MAX)
+
+
+static func beam_efficiency(source: Building, distance: float) -> float:
+	return 1.0 - beam_loss(source, distance)
 
 
 static func capacity(building: Building) -> float:
@@ -111,6 +128,22 @@ static func shot_energy(building: Building) -> float:
 	return building.stat(Stat.SHOT_ENERGY)
 
 
+static func is_laser(building: Building) -> bool:
+	return str(attack(building).get("mode", "")) == GameConfig.MODE_LASER
+
+
+static func action_energy(building: Building) -> float:
+	if building.healing:
+		return heal_energy(building)
+	if not building.armed:
+		return 0.0
+	return shot_energy(building) * (GameConfig.TICK if is_laser(building) else 1.0)
+
+
+static func is_overloaded(building: Building) -> bool:
+	return building.is_player() and action_energy(building) > capacity(building) + 0.0001
+
+
 static func crit_chance(building: Building) -> float:
 	return GameConfig.CRIT_CHANCE + float(GameConfig.TRACKS[GameConfig.TRACK_CRIT].step) * building.level(GameConfig.TRACK_CRIT)
 
@@ -170,6 +203,14 @@ static func is_maxed(building: Building, track: String) -> bool:
 	return building.level(track) >= max_level(track)
 
 
+static func is_fresh(building: Building) -> bool:
+	return building.plan_spent > 0 and building.plan_spent >= building.spent
+
+
+static func sell_loss(building: Building) -> int:
+	return maxi(building.spent - sell_value(building), 0)
+
+
 static func sell_value(building: Building) -> int:
 	var older := maxi(building.spent - building.plan_spent, 0)
 	return building.plan_spent + int(floor(older * GameConfig.SELL_REFUND * building.hp_ratio()))
@@ -187,6 +228,18 @@ static func move_speed(building: Building) -> float:
 
 static func move_energy(building: Building) -> float:
 	return float(building.definition().get("mobile", GameConfig.EMPTY).get("energy", 0.0)) / efficiency(building)
+
+
+static func export_income(energy_rate: float) -> float:
+	return maxf(energy_rate, 0.0) / GameConfig.ENERGY_PER_COIN
+
+
+static func guard_count(round_number: int) -> int:
+	return mini(GameConfig.GUARD_BASE + maxi(round_number - 1, 0) / GameConfig.GUARD_EVERY, GameConfig.GUARD_MAX)
+
+
+static func guard_ring(post: Building) -> float:
+	return post.half_extent() + GameConfig.GUARD_RING * GameConfig.CELL
 
 
 static func wave_times(level: Dictionary) -> int:

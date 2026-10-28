@@ -28,6 +28,20 @@ func _keys() -> Array[String]:
 		keys.append("REASON_BUILD_%s" % code.to_upper())
 	for code in [EnergyNetwork.MISSING, EnergyNetwork.SAME, EnergyNetwork.NO_SEND, EnergyNetwork.NO_RECEIVE, EnergyNetwork.EXISTS, EnergyNetwork.FULL, EnergyNetwork.RANGE]:
 		keys.append("REASON_LINK_%s" % code.to_upper())
+	for id: String in GameConfig.TECHS:
+		keys.append("TECH_%s" % id.to_upper())
+		keys.append("TECH_%s_INFO" % id.to_upper())
+	for branch in GameConfig.BRANCHES:
+		keys.append("BRANCH_%s" % branch.to_upper())
+	for type in Challenges.TYPES:
+		keys.append("CHALLENGE_%s" % type.to_upper())
+	for key in ["RESULT_CONQUERED", "RESULT_CONQUERED_TEXT", "RESULT_SURVIVED", "RESULT_SURVIVED_TEXT", "RESULT_SURVIVAL_LOST_TEXT",
+			"RESULT_ENDLESS", "RESULT_ENDLESS_TEXT", "RESULT_DEFEAT", "RESULT_DEFEAT_TEXT", "RESULT_DAYS", "RESULT_CHALLENGES", "RESULT_POINTS",
+			"REGION_CONQUERED", "REGION_ENEMY", "REGION_LOCKED", "REGION_LOCKED_INFO", "REGION_ATTACK", "REGION_REPLAY", "REGION_SURVIVAL",
+			"REGION_SURVIVAL_TITLE", "REGION_RECORD", "SURVIVAL_DAYS", "SURVIVAL_ENDLESS", "SKILL_POINTS", "SKILL_POINTS_GAIN", "WORLD_TAGLINE",
+			"WORLD_LOCKED", "WORLD_TECH", "TECH_TITLE", "TECH_HINT", "TECH_BUY", "TECH_OWNED", "TECH_REQUIRES", "TECH_RESET", "TECH_RESET_TITLE",
+			"TECH_RESET_TEXT", "TECH_RESET_CONFIRM", "HUD_DAY_OF", "BANNER_NIGHT_OVER_BURN", "TOAST_BOSS_BURNED"]:
+		keys.append(key)
 	for tier in GameConfig.COMBO_TIERS.size():
 		keys.append("COMBO_TIER_%d" % (tier + 1))
 	for step in Tutorial.ORDER:
@@ -56,6 +70,14 @@ func test_german_differs_where_expected() -> void:
 	assert_ne(Texts.level_info(0), "")
 	assert_eq(Texts.enemy_name("crawler"), "Krabbler")
 	assert_eq(Texts.combo_title(99), Texts.t("COMBO_TIER_7"))
+	assert_eq(Texts.tech_name("laser"), "Laserturm")
+	assert_eq(Texts.branch_name(GameConfig.BRANCH_ECONOMY), "Wirtschaft")
+	assert_eq(Texts.challenge({"id": Challenges.SURVIVE, "value": 5}), "Überlebe 5 Tage im Survival")
+	assert_eq(Texts.challenge({"id": Challenges.CORE, "value": 80}), "Erobere mit mindestens 80 % Kern")
+	assert_eq(Texts.survival_target(10), "10 Tage")
+	assert_eq(Texts.survival_target(0), "Endlos")
+	assert_ne(Texts.tech_info("laser"), "TECH_LASER_INFO")
+	assert_eq(Texts.format("HUD_DAY_WAVE", [Texts.format("HUD_DAY_OF", [2, 5]), 1, 9]), "Tag 2/5 · Welle 1/9")
 	assert_eq(Texts.tutorial(Tutorial.CUT), Texts.t("TUTORIAL_CUT"))
 	TranslationServer.set_locale("en")
 	assert_eq(Texts.building_name(GameConfig.BATTERY), "Storage")

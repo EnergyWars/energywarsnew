@@ -90,7 +90,7 @@ func test_scout_lands_steers_and_boards_the_core() -> void:
 	_frames(screen, 1)
 	assert_eq(state.phase, BattleState.Phase.PLAN)
 	assert_true(state.scout.boarded)
-	assert_eq(screen.build_bar.kinds, GameConfig.available_kinds(0))
+	assert_eq(screen.build_bar.kinds, GameConfig.STARTER_KINDS)
 	assert_false(screen.view.scout_active)
 	assert_false(screen.joystick.visible)
 	assert_false(screen.scout_button.visible)
@@ -600,13 +600,13 @@ func test_planning_card_and_start_button() -> void:
 	assert_eq(screen.view.build_kind, "")
 	_frames(screen, 1)
 	assert_false(screen.hud._prep.visible)
-	assert_eq(BattleHud.day_text(state), Texts.format("HUD_DAY_WAVE", [1, state.waves_sent, Formulas.wave_times(state.level)]))
+	assert_eq(BattleHud.day_text(state), Texts.format("HUD_DAY_WAVE", [Texts.format("HUD_DAY", [1]), state.waves_sent, Formulas.wave_times(state.level)]))
 	BattleFixtures.enemy(screen.battle, "crawler", state.core().position + Vector2(0, -900))
 	screen.battle.spawns.end_night()
 	_frames(screen, 1)
 	assert_true(screen.hud._prep.visible)
 	assert_false(screen.hud._start.visible)
-	assert_eq(screen.hud._prep_label.text, Texts.format("HUD_MOP_UP", [state.enemies.size()]))
+	assert_eq(screen.hud._prep_label.text, Texts.format("HUD_MOP_UP", [state.attackers()]))
 	screen.start_round()
 	assert_eq(state.phase, BattleState.Phase.FIGHT)
 
@@ -672,14 +672,20 @@ func test_victory_shows_result_and_records() -> void:
 		screen.battle.combat.destroy(building)
 	_frames(screen, 3)
 	assert_eq(screen.battle.state.phase, BattleState.Phase.WON)
-	assert_eq(progress.stars_for(0), 3)
+	assert_true(progress.is_conquered(0))
+	assert_true(screen.report.first_conquest)
+	assert_gte(screen.report.points, Challenges.CONQUER_POINTS)
+	assert_eq(progress.skill_points(), screen.report.points)
 	assert_true(FileAccess.file_exists(PROGRESS))
 	_frames(screen, int(BattleScreen.VICTORY_DELAY * 30) + 5)
 	assert_true(screen.overlay is ResultOverlay)
 	var result := screen.overlay as ResultOverlay
+	assert_eq(result.title_key(), "RESULT_CONQUERED")
+	assert_false(result.shows_stars())
 	result._show_star(0)
-	result.next_pressed.emit()
-	assert_signal_emitted_with_parameters(screen, "level_requested", [1])
+	result.retry_pressed.emit()
+	assert_signal_emitted(screen, "retry_requested")
+	result.menu_pressed.emit()
 	screen.toggle_pause()
 	assert_false(screen.paused)
 	screen.handle_back()
@@ -693,7 +699,8 @@ func test_defeat_shows_result() -> void:
 	assert_eq(screen.battle.state.phase, BattleState.Phase.LOST)
 	assert_true(screen.overlay is ResultOverlay)
 	assert_false((screen.overlay as ResultOverlay).won)
-	assert_eq(progress.stars_for(0), 0)
+	assert_eq((screen.overlay as ResultOverlay).title_key(), "RESULT_DEFEAT")
+	assert_false(progress.is_conquered(0))
 
 
 func test_long_fight_survives_all_feedback() -> void:
@@ -757,8 +764,15 @@ func test_reward_director_handles_every_event() -> void:
 		{"type": "fight_started", "round": 1},
 		{"type": "nightfall", "round": 1},
 		{"type": "night_over", "round": 1, "left": 3},
+		{"type": "night_over", "round": 1, "left": 1, "burning": 4},
+		{"type": "burned", "position": position, "kind": "stalker", "boss": false},
+		{"type": "burned", "position": position, "kind": "behemoth", "boss": true},
 		{"type": "round_cleared", "round": 1, "next": 2},
 		{"type": "spawn", "position": position, "kind": "behemoth", "boss": true},
+		{"type": "spawn", "position": position, "kind": "beetle", "boss": false, "guard": true},
+		{"type": "spawn", "position": position, "kind": "beetle", "boss": false, "guard": true},
+		{"type": "guards_ignited", "count": 3},
+		{"type": "upgraded", "id": 1, "track": GameConfig.TRACK_OVERCLOCK, "level": 11, "position": position, "overloaded": true},
 		{"type": "placed", "id": 9, "kind": GameConfig.SOLAR, "position": position},
 		{"type": "link", "source": 1, "target": 2, "from": position, "to": position, "tower": false},
 		{"type": "unlink", "source": 1, "target": 2, "from": position, "to": position, "cause": "cut"},
@@ -798,13 +812,74 @@ func test_celebration_layer_coins_arrive() -> void:
 	assert_eq(CelebrationLayer.bezier(Vector2.ZERO, Vector2(50, 0), Vector2(100, 0), 1.0), Vector2(100, 0))
 
 
-func test_level_select_lists_levels() -> void:
-	progress.record(0, 2, 10, 4)
-	var menu := LevelSelect.new().setup(progress, settings)
+func _world() -> WorldMapScreen:
+	var menu := WorldMapScreen.new().setup(progress, settings)
 	add_child_autofree(menu)
+	return menu
+
+
+func test_world_map_walks_to_regions() -> void:
+	progress.mark_conquered(0)
+	var menu := _world()
 	watch_signals(menu)
-	var cards := menu.find_children("*", "Button", true, false)
-	assert_gt(cards.size(), GameConfig.level_count())
+	menu._process(0.1)
+	assert_eq(menu.panel.index, 0)
+	assert_not_null(menu.panel.campaign_button)
+	assert_not_null(menu.panel.survival_button)
+	assert_gt(menu.map.top_inset, 0.0)
+	assert_eq(menu.map.node_at(menu.map.node_position(1)), 1)
+	assert_eq(menu.map.node_at(Vector2(-500, -500)), -1)
+	menu.map.tap(menu.map.node_position(7))
+	assert_false(menu.map.walker.is_walking())
+	assert_eq(menu.panel.index, 7)
+	assert_null(menu.panel.campaign_button)
+	menu.map.tap(menu.map.node_position(1))
+	assert_true(menu.map.walker.is_walking())
+	assert_true(menu.panel.campaign_button.disabled)
+	for i in 300:
+		menu.map._process(0.05)
+		if not menu.map.walker.is_walking():
+			break
+	assert_eq(menu.map.walker.location, 1)
+	assert_eq(progress.location, 1)
+	assert_false(menu.panel.campaign_button.disabled)
+	assert_null(menu.panel.survival_button)
+	menu.panel.campaign_button.pressed.emit()
+	assert_signal_emitted_with_parameters(menu, "campaign_chosen", [1])
+	menu._on_region_tapped(1)
+	assert_eq(menu.panel.index, 1)
+	menu.map.queue_redraw()
+
+
+func test_region_panel_offers_survival_targets() -> void:
+	progress.mark_conquered(0)
+	var menu := _world()
+	watch_signals(menu)
+	var panel := menu.panel
+	assert_eq(panel.survival_days, GameConfig.SURVIVAL_TARGETS[0])
+	assert_eq(panel.option_buttons.size(), GameConfig.SURVIVAL_TARGETS.size() + 1)
+	assert_eq(panel.status_key(), "REGION_CONQUERED")
+	panel.option_buttons.back().pressed.emit()
+	assert_eq(panel.survival_days, 0)
+	panel.survival_button.pressed.emit()
+	assert_signal_emitted_with_parameters(menu, "survival_chosen", [0, 0])
+	panel.select_days(GameConfig.SURVIVAL_TARGETS[2])
+	panel.survival_button.pressed.emit()
+	assert_signal_emitted_with_parameters(menu, "survival_chosen", [0, GameConfig.SURVIVAL_TARGETS[2]])
+	progress.regions["dawn"].stars = 2
+	panel.show_region(1)
+	assert_eq(panel.status_key(), "REGION_ENEMY")
+	panel.show_region(0)
+	assert_eq(panel.survival_days, GameConfig.SURVIVAL_TARGETS[2])
+	panel.show_region(5)
+	assert_eq(panel.status_key(), "REGION_LOCKED")
+	assert_eq(RegionPanel.survival_options().back(), 0)
+
+
+func test_world_map_settings_and_tech() -> void:
+	progress.mark_conquered(0)
+	var menu := _world()
+	watch_signals(menu)
 	menu._toggle_sound()
 	assert_true(settings.sound)
 	menu._toggle_haptics()
@@ -812,10 +887,81 @@ func test_level_select_lists_levels() -> void:
 	menu._cycle_language()
 	assert_signal_emitted(menu, "locale_changed")
 	settings.set_locale("")
-	var unlocked: Array = cards.filter(func(button: Button) -> bool: return button.custom_minimum_size.y == 112 and not button.disabled)
-	assert_eq(unlocked.size(), 2)
-	unlocked[1].pressed.emit()
-	assert_signal_emitted_with_parameters(menu, "level_chosen", [1])
+	assert_false(menu.handle_back())
+	menu.tech_button.pressed.emit()
+	assert_true(is_instance_valid(menu.tech))
+	menu.open_tech()
+	var tech := menu.tech
+	assert_true(tech.buttons.has("laser"))
+	assert_false((tech.buttons["laser"] as Button).disabled)
+	assert_true((tech.buttons["plasma"] as Button).disabled)
+	assert_true(tech.reset_button.disabled)
+	(tech.buttons["laser"] as Button).pressed.emit()
+	assert_true(progress.has_tech("laser"))
+	assert_eq(progress.skill_points(), 0)
+	assert_true(menu.tech_button.text.contains(Texts.format("WORLD_TECH", [0])))
+	tech.buy("plasma")
+	assert_false(progress.has_tech("plasma"))
+	assert_false(tech.reset_button.disabled)
+	tech.confirm_reset()
+	assert_not_null(tech.dialog)
+	assert_true(menu.handle_back())
+	tech.confirm_reset()
+	tech._reset_confirmed()
+	assert_false(progress.has_tech("laser"))
+	assert_eq(progress.skill_points(), Challenges.CONQUER_POINTS)
+	assert_true(menu.handle_back())
+	assert_true(tech.is_queued_for_deletion())
+	assert_eq(TechOverlay.icon_kind("laser"), GameConfig.LASER)
+	assert_eq(TechOverlay.icon_kind("weapons_1"), GameConfig.ZAPPER)
+	assert_eq(TechOverlay.icon_kind("plating_1"), GameConfig.BULWARK)
+	assert_eq(TechOverlay.icon_kind("funding_1"), GameConfig.CORE)
+	assert_eq(TechOverlay.icon_kind("solar_output"), GameConfig.SOLAR)
+	assert_eq(WorldMapView.faction_of(3), GameConfig.CAMP)
+	assert_eq(WorldMapView.faction_of(0), GameConfig.NEST)
+
+
+func test_survival_battle_screen() -> void:
+	progress.mark_conquered(0)
+	var screen := BattleScreen.new().setup(0, progress, settings, sfx, 0.0, BattleSetup.survival(GameConfig.SURVIVAL_TARGETS[0]))
+	add_child_autofree(screen)
+	assert_false(screen.tutorial.is_active())
+	var state := screen.battle.state
+	assert_true(state.is_survival())
+	BattleFixtures.open_terrain(state)
+	screen.battle.deploy_core(state.map.drop)
+	_frames(screen, 1)
+	assert_eq(BattleHud.day_text(state), Texts.format("HUD_DAY_OF", [1, GameConfig.SURVIVAL_TARGETS[0]]))
+	state.round_number = GameConfig.SURVIVAL_TARGETS[0]
+	screen.start_round()
+	screen.battle.spawns.end_night()
+	state.enemies.clear()
+	_frames(screen, 2)
+	assert_eq(state.phase, BattleState.Phase.WON)
+	assert_eq(progress.stars_for(0), 1)
+	assert_true(progress.is_done(0, Challenges.SURVIVE))
+	_frames(screen, int(BattleScreen.VICTORY_DELAY * 30) + 5)
+	var result := screen.overlay as ResultOverlay
+	assert_eq(result.title_key(), "RESULT_SURVIVED")
+	assert_true(result.shows_stars())
+	result._show_star(0)
+	result._show_star(9)
+
+
+func test_result_overlay_texts() -> void:
+	var report := BattleReport.new()
+	report.survival = true
+	report.days = 12
+	var endless := ResultOverlay.new().setup(report, [] as Array[Array])
+	assert_eq(endless.title_key(), "RESULT_ENDLESS")
+	assert_eq(endless.subtitle(), Texts.format("RESULT_ENDLESS_TEXT", [12]))
+	assert_false(endless.shows_stars())
+	report.target = 15
+	assert_eq(endless.title_key(), "RESULT_DEFEAT")
+	assert_eq(endless.subtitle(), Texts.format("RESULT_SURVIVAL_LOST_TEXT", [12, 15]))
+	report.survival = false
+	assert_eq(endless.subtitle(), Texts.t("RESULT_DEFEAT_TEXT"))
+	add_child_autofree(endless)
 
 
 func test_pause_overlay_toggles_settings() -> void:
@@ -831,10 +977,21 @@ func test_main_switches_screens() -> void:
 	var main: Node = load("res://src/ui/main.gd").new()
 	add_child_autofree(main)
 	main.progress = progress
-	main.start_level(1)
+	main.show_menu()
+	assert_true(main.menu is WorldMapScreen)
+	main.start_campaign(1)
 	assert_false(main.screen is BattleScreen)
-	main.start_level(0)
+	main.start_survival(0, 5)
+	assert_false(main.screen is BattleScreen)
+	main.start_campaign(0)
 	assert_true(main.screen is BattleScreen)
+	assert_false(main.last_rules.is_survival())
+	main.retry()
+	assert_true(main.screen is BattleScreen)
+	progress.mark_conquered(0)
+	main.start_survival(0, 10)
+	assert_true(main.last_rules.is_survival())
+	assert_eq(main.last_rules.days, 10)
 	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	assert_true((main.screen as BattleScreen).paused)
 	(main.screen as BattleScreen).menu_requested.emit()
@@ -970,3 +1127,208 @@ func test_upgrade_rows_preview_energy_draw() -> void:
 	screen.upgrade(zapper.id, GameConfig.TRACK_SPEED)
 	assert_eq(zapper.level(GameConfig.TRACK_SPEED), 1)
 	assert_false(screen.panel._pulse)
+
+
+func _touch(index: int, position: Vector2, pressed: bool) -> InputEventScreenTouch:
+	var touch := InputEventScreenTouch.new()
+	touch.index = index
+	touch.position = position
+	touch.pressed = pressed
+	return touch
+
+
+func _drag(index: int, position: Vector2) -> InputEventScreenDrag:
+	var drag := InputEventScreenDrag.new()
+	drag.index = index
+	drag.position = position
+	return drag
+
+
+func _landed_scout() -> BattleScreen:
+	var screen := _screen()
+	BattleFixtures.open_terrain(screen.battle.state)
+	_frames(screen, int(GameConfig.DROP_TIME * 30) + 3)
+	return screen
+
+
+func test_scout_is_steered_by_dragging_anywhere_on_the_map() -> void:
+	var screen := _landed_scout()
+	var view := screen.view
+	var state := screen.battle.state
+	assert_true(view.scout_active)
+	assert_true(view.can_steer())
+	var anchor := view.view_size() * 0.5
+	view._on_touch(_touch(0, anchor, true))
+	assert_eq(view.gesture, BattleView.Gesture.STEER_PENDING)
+	assert_true(view.is_steering())
+	assert_eq(view.stick_origin, anchor)
+	assert_eq(view.stick_vector, Vector2.ZERO)
+	view._on_drag(_drag(0, anchor + Vector2(0, -200)))
+	assert_eq(view.gesture, BattleView.Gesture.STEER)
+	assert_eq(view.stick_vector, Vector2.UP)
+	assert_eq(view.stick_origin, anchor + Vector2(0, -200 + BattleView.STICK_RADIUS))
+	assert_eq(screen.steering_input(), Vector2.UP)
+	var start := state.scout.position
+	_frames(screen, 30)
+	assert_lt(state.scout.position.y, start.y - 50.0)
+	await wait_process_frames(1)
+	view._on_touch(_touch(0, anchor + Vector2(0, -200), false))
+	assert_eq(view.gesture, BattleView.Gesture.NONE)
+	assert_eq(view.stick_vector, Vector2.ZERO)
+	assert_eq(view.stick_origin, Vector2.INF)
+	assert_eq(screen.steering_input(), Vector2.ZERO)
+
+
+func test_floating_stick_keeps_a_deadzone_and_follows_the_finger() -> void:
+	var screen := _landed_scout()
+	var view := screen.view
+	view.steer_to(Vector2(300, 600))
+	assert_eq(view.stick_origin, Vector2(300, 600))
+	view.steer_to(Vector2(305, 600))
+	assert_eq(view.stick_vector, Vector2.ZERO)
+	view.steer_to(Vector2(345, 600))
+	assert_almost_eq(view.stick_vector.x, 45.0 / BattleView.STICK_RADIUS, 0.0001)
+	view.steer_to(Vector2(300, 900))
+	assert_almost_eq(view.stick_vector.length(), 1.0, 0.0001)
+	assert_almost_eq(view.stick_origin.distance_to(Vector2(300, 900)), BattleView.STICK_RADIUS, 0.0001)
+	view.release_stick()
+	assert_eq(view.stick_point, Vector2.INF)
+	assert_eq(view.stick_vector, Vector2.ZERO)
+
+
+func test_short_tap_while_steering_still_selects_or_clears() -> void:
+	var screen := _landed_scout()
+	var view := screen.view
+	var anchor := view.view_size() * 0.5
+	view._on_touch(_touch(0, anchor, true))
+	assert_eq(view.gesture, BattleView.Gesture.STEER_PENDING)
+	view._on_drag(_drag(0, anchor + Vector2(4, 0)))
+	assert_eq(view.gesture, BattleView.Gesture.STEER_PENDING)
+	view._on_touch(_touch(0, anchor + Vector2(4, 0), false))
+	assert_eq(view.gesture, BattleView.Gesture.NONE)
+	assert_eq(view.selected_id, -1)
+	assert_eq(view.stick_vector, Vector2.ZERO)
+
+
+func test_second_finger_cancels_the_floating_stick() -> void:
+	var screen := _landed_scout()
+	var view := screen.view
+	var anchor := view.view_size() * 0.5
+	view._on_touch(_touch(0, anchor, true))
+	view._on_drag(_drag(0, anchor + Vector2(80, 0)))
+	assert_gt(view.stick_vector.x, 0.5)
+	view._on_touch(_touch(1, anchor + Vector2(0, 150), true))
+	assert_eq(view.gesture, BattleView.Gesture.NONE)
+	assert_eq(view.stick_vector, Vector2.ZERO)
+
+
+func test_rover_is_steered_by_dragging_during_the_fight() -> void:
+	var screen := _deployed(1)
+	var view := screen.view
+	var state := screen.battle.state
+	var core := state.core()
+	var rover := BattleFixtures.add(screen.battle, GameConfig.ROVER, core.position + Vector2(0, -150))
+	rover.energy = Formulas.capacity(rover)
+	screen.battle.connect_buildings(core.id, rover.id)
+	view.select(rover.id)
+	assert_false(view.can_steer())
+	view.begin(core.position, view.view_size() * 0.5)
+	assert_ne(view.gesture, BattleView.Gesture.STEER_PENDING)
+	view.finish(core.position)
+	screen.start_round()
+	view.select(rover.id)
+	_frames(screen, 1)
+	assert_true(view.can_steer())
+	var anchor := view.view_size() * 0.5
+	var start := rover.position
+	view._on_touch(_touch(0, anchor, true))
+	view._on_drag(_drag(0, anchor + Vector2(200, 0)))
+	assert_eq(screen.steering_input(), Vector2.RIGHT)
+	_frames(screen, 20)
+	assert_gt(rover.position.x, start.x + 20.0)
+	assert_eq(rover.steer, Vector2.RIGHT)
+	view.set_mode(BattleView.Mode.CONNECT)
+	assert_false(view.can_steer())
+	_frames(screen, 2)
+	assert_eq(view.gesture, BattleView.Gesture.NONE)
+	assert_eq(view.stick_vector, Vector2.ZERO)
+	assert_eq(rover.steer, Vector2.ZERO)
+	view.set_mode(BattleView.Mode.MOVE)
+	view.set_build_kind(GameConfig.RELAY)
+	assert_false(view.can_steer())
+
+
+func test_status_mode_shows_the_legend_and_back_leaves_it() -> void:
+	var scouting := _screen()
+	_frames(scouting, 2)
+	assert_false(scouting.hud._status_button.visible)
+	scouting.toggle_status()
+	assert_false(scouting.view.status_mode)
+	var screen := _deployed()
+	var state := screen.battle.state
+	_frames(screen, 1)
+	assert_true(screen.hud._status_button.visible)
+	assert_false(screen.hud.legend_visible())
+	screen.hud.status_pressed.emit()
+	assert_true(screen.view.status_mode)
+	assert_true(screen.hud.legend_visible())
+	assert_eq(screen.hud._toast_label.text, Texts.t("TOAST_STATUS_ON"))
+	screen.view.select(state.core_id)
+	screen.handle_back()
+	assert_eq(screen.view.selected_id, -1)
+	assert_true(screen.view.status_mode)
+	screen.handle_back()
+	assert_false(screen.view.status_mode)
+	assert_false(screen.hud.legend_visible())
+	assert_eq(screen.hud._toast_label.text, Texts.t("TOAST_STATUS_OFF"))
+	screen.toggle_status()
+	state.phase = BattleState.Phase.LOST
+	_frames(screen, 2)
+	assert_false(screen.view.status_mode)
+	screen.toggle_status()
+	assert_false(screen.view.status_mode)
+
+
+func test_status_mode_paints_the_supply_chain() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	assert_eq(screen.battle.place(GameConfig.RELAY, core.position + Vector2(0, -224)), BuildRules.OK)
+	var relay: Building = state.of_kind(GameConfig.RELAY)[0]
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, relay.position + Vector2(0, -112))
+	var lonely := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(300, 0))
+	screen.battle.connect_buildings(core.id, relay.id)
+	screen.battle.connect_buildings(relay.id, zapper.id)
+	state.move_building(relay, core.position + Vector2(0, -420))
+	screen.toggle_status()
+	screen.view.select(zapper.id)
+	_frames(screen, 2)
+	await wait_process_frames(2)
+	var audit := screen.battle.audit()
+	assert_true(audit.chain(zapper.id).buildings.has(core.id))
+	assert_eq(audit.verdict(lonely.id), EnergyAudit.Verdict.OFFLINE)
+	assert_true(screen.panel._status.visible)
+	assert_eq(screen.panel._status_title.text, StatusText.summary(audit, zapper))
+	assert_eq(screen.panel._status_values.size(), StatText.status_rows(zapper, audit).size())
+	screen.view.select(relay.id)
+	_frames(screen, 1)
+	assert_true(screen.panel._sell.text.contains(Texts.format("PANEL_SELL_FULL", [relay.spent])))
+	screen.view.select(-1)
+	await wait_process_frames(1)
+
+
+func test_guards_are_painted_and_burn_in_the_planning_phase() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var nest := battle.state.enemy_buildings()[0]
+	battle.start_round()
+	var guard := battle.spawns.spawn_guard(nest)
+	battle.state.fog.cells.fill(FogOfWar.VISIBLE)
+	screen.view.focus(guard.position)
+	screen.view.select(nest.id)
+	_frames(screen, 1)
+	await wait_process_frames(1)
+	battle.spawns.ignite_guards()
+	_frames(screen, 1)
+	await wait_process_frames(1)
+	assert_true(guard.is_burning())

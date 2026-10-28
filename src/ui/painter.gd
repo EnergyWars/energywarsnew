@@ -388,6 +388,15 @@ static func flames(ci: CanvasItem, center: Vector2, radius: float, time: float, 
 		ci.draw_colored_polygon(PackedVector2Array([tongue[0].lerp(tongue[2], 0.3), base.lerp(tongue[1], 0.6), tongue[0].lerp(tongue[2], 0.7)]), Color(AppTheme.FLAME_CORE, 0.9))
 
 
+static func guard(ci: CanvasItem, center: Vector2, radius: float, time: float) -> void:
+	var ring := radius + 6.0
+	for i in 4:
+		var from := time * 1.6 + TAU * i / 4.0
+		ci.draw_arc(center, ring, from, from + TAU / 7.0, 6, Color(AppTheme.WARNING, 0.75), 2.5, true)
+	var tip := center + Vector2(0, -ring - 7.0)
+	ci.draw_colored_polygon(PackedVector2Array([tip + Vector2(-5, -4), tip + Vector2(5, -4), tip + Vector2(0, 3)]), AppTheme.WARNING)
+
+
 static func _soldier(ci: CanvasItem, radius: float, body: Color, helmet: Color) -> void:
 	ci.draw_colored_polygon(ellipse(Vector2.ZERO, Vector2(radius * 0.7, radius * 1.1)), body)
 	ci.draw_line(Vector2(radius * 0.2, radius * 0.45), Vector2(radius * 1.5, radius * 0.45), Color("#1b1b1b"), 3.5)

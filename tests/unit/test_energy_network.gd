@@ -74,9 +74,11 @@ func test_flow_respects_rate_and_space() -> void:
 	battle.network.connect_buildings(solar.id, battery.id)
 	solar.energy = 30.0
 	battle.network.flow(1.0)
-	assert_almost_eq(battery.energy, Formulas.output(solar), 0.001)
+	var link := battle.state.links[0]
+	assert_lt(battle.network.efficiency(link), 1.0)
+	assert_almost_eq(battery.energy, Formulas.output(solar) * battle.network.efficiency(link), 0.001)
 	assert_almost_eq(solar.energy, 30.0 - Formulas.output(solar), 0.001)
-	assert_gt(battle.state.links[0].flow, 0.0)
+	assert_gt(link.flow, 0.0)
 	battery.energy = Formulas.capacity(battery)
 	var before := solar.energy
 	battle.network.flow(0.1)
@@ -92,8 +94,8 @@ func test_flow_splits_between_links() -> void:
 	battle.network.connect_buildings(relay.id, right.id)
 	relay.energy = 10.0
 	battle.network.flow(1.0)
-	assert_almost_eq(left.energy, 5.0, 0.001)
-	assert_almost_eq(right.energy, 5.0, 0.001)
+	assert_almost_eq(left.energy, 5.0 * battle.network.efficiency(battle.state.find_link(relay.id, left.id)), 0.001)
+	assert_almost_eq(right.energy, 5.0 * battle.network.efficiency(battle.state.find_link(relay.id, right.id)), 0.001)
 	assert_almost_eq(relay.energy, 0.0, 0.001)
 
 
@@ -121,3 +123,51 @@ func test_remove_links_of_building() -> void:
 	assert_true(battle.state.links.is_empty())
 	battle.network.remove_link(EnergyLink.new(1, 2), "cut")
 	assert_eq(BattleFixtures.of_type(battle.events.drain(), "unlink").size(), 2)
+
+
+func test_beam_loss_grows_with_distance() -> void:
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -200))
+	var near := BattleFixtures.add(battle, GameConfig.BATTERY, relay.position + Vector2(-112, 0))
+	var far := BattleFixtures.add(battle, GameConfig.BATTERY, relay.position + Vector2(280, 0))
+	battle.network.connect_buildings(relay.id, near.id)
+	battle.network.connect_buildings(relay.id, far.id)
+	var close_link := battle.state.find_link(relay.id, near.id)
+	var long_link := battle.state.find_link(relay.id, far.id)
+	assert_gt(battle.network.loss(long_link), battle.network.loss(close_link))
+	assert_almost_eq(battle.network.loss(close_link), GameConfig.BEAM_LOSS_PER_CELL * battle.network.length(close_link) / GameConfig.CELL, 0.0001)
+	relay.energy = 20.0
+	battle.network.flow(1.0)
+	assert_gt(near.energy, far.energy)
+	assert_almost_eq(near.energy + far.energy, 10.0 * battle.network.efficiency(close_link) + 10.0 * battle.network.efficiency(long_link), 0.001)
+
+
+func test_transfer_upgrades_and_superconductor_reduce_loss() -> void:
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -200))
+	var plain := Formulas.beam_loss(relay, 280.0)
+	relay.set_level(GameConfig.TRACK_TRANSFER, 4)
+	var upgraded := Formulas.beam_loss(relay, 280.0)
+	assert_lt(upgraded, plain)
+	assert_almost_eq(upgraded, plain / Formulas.multiplier(relay, GameConfig.TRACK_TRANSFER), 0.0001)
+	relay.boosts = {GameConfig.BOOST_TRANSFER: 1.25}
+	assert_almost_eq(Formulas.beam_loss(relay, 280.0), upgraded / 1.25, 0.0001)
+	assert_almost_eq(Formulas.beam_efficiency(relay, 280.0), 1.0 - Formulas.beam_loss(relay, 280.0), 0.0001)
+
+
+func test_beam_loss_is_capped_and_never_negative() -> void:
+	assert_eq(Formulas.beam_loss(core, 0.0), 0.0)
+	assert_eq(Formulas.beam_loss(core, -50.0), 0.0)
+	assert_eq(Formulas.beam_loss(core, 100000.0), GameConfig.BEAM_LOSS_MAX)
+	assert_eq(battle.network.loss(EnergyLink.new(9998, 9999)), GameConfig.BEAM_LOSS_MAX)
+	assert_true(is_inf(battle.network.length(EnergyLink.new(9998, 9999))))
+
+
+func test_full_target_wastes_no_energy() -> void:
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -200))
+	var battery := BattleFixtures.add(battle, GameConfig.BATTERY, relay.position + Vector2(224, 0))
+	battle.network.connect_buildings(relay.id, battery.id)
+	var link := battle.state.find_link(relay.id, battery.id)
+	battery.energy = Formulas.capacity(battery) - 1.0
+	relay.energy = 20.0
+	battle.network.flow(1.0)
+	assert_almost_eq(battery.energy, Formulas.capacity(battery), 0.001)
+	assert_almost_eq(relay.energy, 20.0 - 1.0 / battle.network.efficiency(link), 0.001)

@@ -6,10 +6,12 @@ signal speed_pressed
 signal start_pressed
 signal undo_pressed
 signal reset_pressed
+signal status_pressed
 
 const BANNER_TIME := 1.8
 const TOAST_TIME := 1.6
 const COMBO_FADE := 0.6
+const LEGEND_WIDTH := 600.0
 
 var safe_top := 0.0
 var money_roll := RollingNumber.new()
@@ -28,6 +30,8 @@ var _start: Button
 var _undo: Button
 var _reset: Button
 var _stats_button: Button
+var _status_button: Button
+var _legend: PanelContainer
 var stats_panel: EnergyStatsPanel
 var _hint: PanelContainer
 var _hint_label: Label
@@ -57,6 +61,7 @@ func _ready() -> void:
 	_build_top()
 	_build_prep()
 	_build_stats()
+	_build_legend()
 	_build_hint()
 	_build_combo()
 	_build_banner()
@@ -90,6 +95,8 @@ func _build_top() -> void:
 	row.add_child(energy)
 	_stats_button = UiKit.icon_button(Icons.CHART, toggle_stats, 52.0)
 	row.add_child(_stats_button)
+	_status_button = UiKit.icon_button(Icons.NETWORK_CHECK, func() -> void: status_pressed.emit(), 52.0)
+	row.add_child(_status_button)
 	var cycle := UiKit.vbox(0)
 	var cycle_row := UiKit.hbox(2)
 	_cycle_icon = UiKit.icon(Icons.SUN, AppTheme.GOLD, 24)
@@ -141,6 +148,57 @@ func toggle_stats() -> void:
 
 func hide_stats() -> void:
 	stats_panel.visible = false
+
+
+func _build_legend() -> void:
+	_legend = PanelContainer.new()
+	_legend.theme_type_variation = "Card"
+	_legend.add_theme_stylebox_override(&"panel", AppTheme.box(AppTheme.PANEL, AppTheme.RADIUS_CARD, AppTheme.ENERGY, AppTheme.SPACING_SM))
+	_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_legend.visible = false
+	add_child(_legend)
+	var column := UiKit.vbox(AppTheme.SPACING_XS)
+	var flow := HFlowContainer.new()
+	flow.custom_minimum_size = Vector2(LEGEND_WIDTH, 0)
+	flow.add_theme_constant_override(&"h_separation", AppTheme.SPACING_MD)
+	flow.add_theme_constant_override(&"v_separation", AppTheme.SPACING_XS)
+	flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for verdict in StatusText.LEGEND:
+		flow.add_child(_legend_entry(StatusText.icon(verdict), StatusText.color(verdict), StatusText.title(verdict)))
+	flow.add_child(_legend_entry(Icons.SELL, AppTheme.GOLD, Texts.t("STATUS_FRESH")))
+	column.add_child(flow)
+	var hint := UiKit.label(Texts.t("STATUS_HINT"), "Tiny")
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(LEGEND_WIDTH, 0)
+	column.add_child(hint)
+	_legend.add_child(column)
+
+
+func _legend_entry(glyph: String, color: Color, text: String) -> HBoxContainer:
+	var entry := UiKit.hbox(AppTheme.SPACING_XS)
+	entry.add_child(UiKit.icon(glyph, color, 20))
+	entry.add_child(UiKit.label(text, "Tiny"))
+	return entry
+
+
+func legend_visible() -> bool:
+	return _legend.visible
+
+
+func set_status_mode(active: bool) -> void:
+	_legend.visible = active
+	if active:
+		Juice.pop_in(_legend)
+		var box := AppTheme.box(AppTheme.ENERGY, AppTheme.RADIUS_PILL, AppTheme.ENERGY_CORE, AppTheme.SPACING_MD)
+		for style in [&"normal", &"hover", &"pressed"]:
+			_status_button.add_theme_stylebox_override(style, box)
+		for slot in [&"font_color", &"font_hover_color", &"font_pressed_color"]:
+			_status_button.add_theme_color_override(slot, AppTheme.ON_ACCENT)
+	else:
+		for style in [&"normal", &"hover", &"pressed"]:
+			_status_button.remove_theme_stylebox_override(style)
+		for slot in [&"font_color", &"font_hover_color", &"font_pressed_color"]:
+			_status_button.remove_theme_color_override(slot)
 
 
 func _build_hint() -> void:
@@ -205,7 +263,7 @@ func pulse_money() -> void:
 	Juice.pop(_money, 1.25)
 
 
-func refresh(state: BattleState, speed: float, tutorial_text: String, shown_money: int, history: PlanHistory = null) -> void:
+func refresh(state: BattleState, speed: float, tutorial_text: String, shown_money: int, history: PlanHistory = null, audit: EnergyAudit = null) -> void:
 	money_roll.set_target(shown_money)
 	var capacity := maxf(state.storage_capacity(), 1.0)
 	var stored := state.stored_energy()
@@ -229,10 +287,12 @@ func refresh(state: BattleState, speed: float, tutorial_text: String, shown_mone
 	_undo.disabled = not undoable
 	_reset.disabled = not undoable
 	_stats_button.visible = not scouting
+	_status_button.visible = not scouting
 	if scouting:
 		stats_panel.visible = false
+		_legend.visible = false
 	if stats_panel.visible:
-		stats_panel.refresh(state, history.baseline_stats if history != null else null)
+		stats_panel.refresh(state, history.baseline_stats if history != null else null, audit)
 	_prep_icon.text = Icons.SCOUT if scouting else (Icons.SUN if mopping else Icons.FLAG)
 	if scouting:
 		_prep_label.text = Texts.t("HUD_SCOUT")
@@ -240,7 +300,7 @@ func refresh(state: BattleState, speed: float, tutorial_text: String, shown_mone
 		_prep_label.text = Texts.format("HUD_PLAN_CARD", [state.round_number])
 		_start.text = "%s  %s" % [Icons.PLAY, Texts.format("HUD_START", [state.round_number])]
 	elif mopping:
-		_prep_label.text = Texts.format("HUD_MOP_UP", [state.enemies.size()])
+		_prep_label.text = Texts.format("HUD_MOP_UP", [state.attackers()])
 	_hint.visible = not tutorial_text.is_empty()
 	_hint_label.text = tutorial_text
 	if night != _night:
@@ -278,6 +338,9 @@ func _layout() -> void:
 	var top := top_height()
 	_prep.position = Vector2((width - _prep.size.x) * 0.5, top + AppTheme.SPACING_MD)
 	var below := top + AppTheme.SPACING_MD + (_prep.size.y + AppTheme.SPACING_SM if _prep.visible else 0.0)
+	_legend.position = Vector2((width - _legend.size.x) * 0.5, below)
+	if _legend.visible:
+		below += _legend.size.y + AppTheme.SPACING_SM
 	stats_panel.position = Vector2((width - stats_panel.size.x) * 0.5, below)
 	if stats_panel.visible:
 		below += stats_panel.size.y + AppTheme.SPACING_SM

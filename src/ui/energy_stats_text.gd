@@ -1,7 +1,7 @@
 class_name EnergyStatsText
 extends RefCounted
 
-enum Format { GAIN, DRAW, BALANCE, AMOUNT, STORED, FILL_TIME, RESERVE }
+enum Format { GAIN, DRAW, BALANCE, AMOUNT, STORED, FILL_TIME, RESERVE, PERCENT, INCOME }
 
 const ROWS := [
 	{"metric": EnergyStats.Metric.GENERATION_DAY, "key": "STATS_GENERATION_DAY", "format": Format.GAIN, "better": 1},
@@ -11,6 +11,11 @@ const ROWS := [
 	{"metric": EnergyStats.Metric.FILL_TIME, "key": "STATS_FILL_TIME", "format": Format.FILL_TIME, "better": -1},
 	{"metric": EnergyStats.Metric.FIRE_DRAW, "key": "STATS_FIRE_DRAW", "format": Format.DRAW, "better": 0},
 	{"metric": EnergyStats.Metric.EXPORT_DRAW, "key": "STATS_EXPORT_DRAW", "format": Format.DRAW, "better": 0},
+	{"metric": EnergyStats.Metric.EXPORT_INCOME, "key": "STATS_EXPORT_INCOME", "format": Format.INCOME, "better": 1},
+	{"metric": EnergyStats.Metric.BEAM_LOSS, "key": "STATS_BEAM_LOSS", "format": Format.DRAW, "better": -1},
+	{"metric": EnergyStats.Metric.BEAM_EFFICIENCY, "key": "STATS_BEAM_EFFICIENCY", "format": Format.PERCENT, "better": 1},
+	{"metric": EnergyStats.Metric.SUPPLY_DAY, "key": "STATS_SUPPLY_DAY", "format": Format.PERCENT, "better": 1},
+	{"metric": EnergyStats.Metric.SUPPLY_NIGHT, "key": "STATS_SUPPLY_NIGHT", "format": Format.PERCENT, "better": 1},
 	{"metric": EnergyStats.Metric.NET_DAY, "key": "STATS_NET_DAY", "format": Format.BALANCE, "better": 1},
 	{"metric": EnergyStats.Metric.NET_NIGHT, "key": "STATS_NET_NIGHT", "format": Format.BALANCE, "better": 1},
 	{"metric": EnergyStats.Metric.RESERVE_DAY, "key": "STATS_RESERVE_DAY", "format": Format.RESERVE, "better": 1},
@@ -20,6 +25,7 @@ const ROWS := [
 const RATE_STEP := 0.05
 const AMOUNT_STEP := 0.5
 const TIME_STEP := 0.5
+const PERCENT_STEP := 0.005
 
 
 static func value_text(stats: EnergyStats, row: Dictionary) -> String:
@@ -29,6 +35,10 @@ static func value_text(stats: EnergyStats, row: Dictionary) -> String:
 			return "+%.1f/s" % value
 		Format.DRAW:
 			return "%.1f/s" % value
+		Format.PERCENT:
+			return percent(value)
+		Format.INCOME:
+			return Texts.format("STATS_INCOME_VALUE", ["%.2f" % value])
 		Format.BALANCE:
 			return signed_rate(value) + "/s"
 		Format.AMOUNT:
@@ -55,6 +65,10 @@ static func delta_text(stats: EnergyStats, baseline: EnergyStats, row: Dictionar
 	match int(row.format):
 		Format.GAIN, Format.DRAW, Format.BALANCE:
 			return signed_rate(diff) if absf(diff) >= RATE_STEP else ""
+		Format.INCOME:
+			return ("−%.2f" % absf(diff) if diff < 0.0 else "+%.2f" % diff) if absf(diff) >= RATE_STEP * 0.1 else ""
+		Format.PERCENT:
+			return signed_percent(diff) if absf(diff) >= PERCENT_STEP else ""
 		Format.AMOUNT, Format.STORED:
 			return signed_amount(diff) if absf(diff) >= AMOUNT_STEP else ""
 	if absf(diff) < TIME_STEP:
@@ -78,6 +92,15 @@ static func signed_rate(value: float) -> String:
 static func signed_amount(value: float) -> String:
 	var amount := int(round(absf(value)))
 	return ("−%d" % amount) if value < 0.0 else ("+%d" % amount)
+
+
+static func percent(ratio: float) -> String:
+	return "%d%%" % int(round(ratio * 100.0))
+
+
+static func signed_percent(ratio: float) -> String:
+	var points := int(round(absf(ratio) * 100.0))
+	return ("−%d%%" % points) if ratio < 0.0 else ("+%d%%" % points)
 
 
 static func duration(seconds: float) -> String:

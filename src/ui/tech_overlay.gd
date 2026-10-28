@@ -93,7 +93,7 @@ func _row(id: String) -> PanelContainer:
 		var names: Array[String] = []
 		for required in TechTree.missing(progress, id):
 			names.append(Texts.tech_name(required))
-		var needs := UiKit.label(Texts.format("TECH_REQUIRES", [", ".join(names)]), "Tiny")
+		var needs := UiKit.label(Texts.format("TECH_REQUIRES", [", ".join(PackedStringArray(names))]), "Tiny")
 		needs.add_theme_color_override(&"font_color", AppTheme.WARNING)
 		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		texts.add_child(needs)

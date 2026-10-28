@@ -18,6 +18,7 @@ var celebrations: CelebrationLayer
 var sfx: SfxPlayer
 var slowmo := 0.0
 var _hit_budget := 0
+var _guards_announced := false
 
 
 func _init(p_view: BattleView, p_hud: BattleHud, p_celebrations: CelebrationLayer, p_sfx: SfxPlayer) -> void:
@@ -323,6 +324,11 @@ func _on_burned(event: Dictionary) -> void:
 		hud.toast(Texts.format("TOAST_BOSS_BURNED", [Texts.enemy_name(str(event.kind))]), AppTheme.GOLD)
 
 
+func _on_guards_ignited(event: Dictionary) -> void:
+	hud.toast(Texts.format("TOAST_GUARDS_BURN", [int(event.count)]), AppTheme.FLAME)
+	_play(SoundBank.WHOOSH, 0.8)
+
+
 func _on_round_cleared(event: Dictionary) -> void:
 	hud.banner(Texts.format("BANNER_ROUND_CLEARED", [int(event.round)]), Texts.t("BANNER_ROUND_CLEARED_SUB"), AppTheme.SUCCESS, 2.4)
 	_play(SoundBank.FANFARE)
@@ -331,6 +337,12 @@ func _on_round_cleared(event: Dictionary) -> void:
 
 
 func _on_spawn(event: Dictionary) -> void:
+	if bool(event.get("guard", false)):
+		view.fx.burst(event.position, AppTheme.WARNING, 8, 90.0, 5.0, 0.4)
+		if not _guards_announced:
+			_guards_announced = true
+			hud.toast(Texts.t("TOAST_GUARDS"), AppTheme.WARNING)
+		return
 	view.fx.burst(event.position, AppTheme.NEST_SPOT, 6, 90.0, 5.0, 0.35)
 	if bool(event.boss):
 		hud.toast(Texts.t("TOAST_BOSS"), AppTheme.DANGER)
@@ -375,6 +387,8 @@ func _on_upgraded(event: Dictionary) -> void:
 	view.fx.floater(Texts.format("FLOAT_LEVEL", [int(event.level)]), position + Vector2(0, -40), AppTheme.GOLD, 1.3, 1.1)
 	_play(SoundBank.UPGRADE, 1.0 + 0.05 * mini(int(event.level), UPGRADE_PITCH_CAP))
 	_vibrate(25)
+	if bool(event.get("overloaded", false)):
+		hud.toast(Texts.t("TOAST_OVERLOADED"), AppTheme.DANGER)
 
 
 func _on_sold(event: Dictionary) -> void:

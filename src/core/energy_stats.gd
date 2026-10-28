@@ -15,6 +15,11 @@ enum Metric {
 	RESERVE_DAY,
 	RESERVE_NIGHT,
 	RESERVE_FULL,
+	BEAM_LOSS,
+	BEAM_EFFICIENCY,
+	SUPPLY_DAY,
+	SUPPLY_NIGHT,
+	EXPORT_INCOME,
 	COUNT,
 }
 
@@ -31,7 +36,9 @@ func value(metric: Metric) -> float:
 	return values[metric]
 
 
-static func measure(state: BattleState) -> EnergyStats:
+static func measure(state: BattleState, audit: EnergyAudit = null) -> EnergyStats:
+	if audit == null:
+		audit = EnergyAudit.measure(state)
 	var stats := EnergyStats.new()
 	var day := 0.0
 	var night := 0.0
@@ -50,6 +57,8 @@ static func measure(state: BattleState) -> EnergyStats:
 	var capacity := state.storage_capacity()
 	var stored := minf(state.stored_energy(), capacity)
 	var missing := capacity - stored
+	var loss_day := audit.loss_rate(EnergyAudit.DAY)
+	var loss_night := audit.loss_rate(EnergyAudit.NIGHT)
 	stats.values[Metric.GENERATION_DAY] = day
 	stats.values[Metric.GENERATION_NIGHT] = night
 	stats.values[Metric.CAPACITY] = capacity
@@ -58,11 +67,16 @@ static func measure(state: BattleState) -> EnergyStats:
 	stats.values[Metric.FILL_TIME] = 0.0 if missing <= FULL_EPSILON else drain_time(missing, day - exported)
 	stats.values[Metric.FIRE_DRAW] = fire
 	stats.values[Metric.EXPORT_DRAW] = exported
-	stats.values[Metric.NET_DAY] = day - exported - fire
-	stats.values[Metric.NET_NIGHT] = night - exported - fire
-	stats.values[Metric.RESERVE_DAY] = drain_time(stored, fire + exported - day)
-	stats.values[Metric.RESERVE_NIGHT] = drain_time(stored, fire + exported - night)
-	stats.values[Metric.RESERVE_FULL] = drain_time(capacity, fire + exported - night)
+	stats.values[Metric.NET_DAY] = day - exported - fire - loss_day
+	stats.values[Metric.NET_NIGHT] = night - exported - fire - loss_night
+	stats.values[Metric.RESERVE_DAY] = drain_time(stored, fire + exported + loss_day - day)
+	stats.values[Metric.RESERVE_NIGHT] = drain_time(stored, fire + exported + loss_night - night)
+	stats.values[Metric.RESERVE_FULL] = drain_time(capacity, fire + exported + loss_night - night)
+	stats.values[Metric.BEAM_LOSS] = loss_day
+	stats.values[Metric.BEAM_EFFICIENCY] = audit.transfer_efficiency(EnergyAudit.DAY)
+	stats.values[Metric.SUPPLY_DAY] = audit.supply_ratio(EnergyAudit.DAY)
+	stats.values[Metric.SUPPLY_NIGHT] = audit.supply_ratio(EnergyAudit.NIGHT)
+	stats.values[Metric.EXPORT_INCOME] = audit.export_income(EnergyAudit.DAY)
 	return stats
 
 
@@ -71,7 +85,7 @@ static func fire_draw(building: Building) -> float:
 		return Formulas.heal_energy(building) / maxf(Formulas.heal_cooldown(building), GameConfig.TICK)
 	if not building.armed:
 		return 0.0
-	if str(Formulas.attack(building).get("mode", "")) == GameConfig.MODE_LASER:
+	if Formulas.is_laser(building):
 		return Formulas.shot_energy(building)
 	return Formulas.shot_energy(building) / maxf(Formulas.cooldown(building), GameConfig.TICK)
 

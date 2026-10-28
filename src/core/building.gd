@@ -18,6 +18,7 @@ var spawn_progress := 0.0
 var spawn_queue := 0
 var spawn_heading := 0.0
 var spawn_timer := 0.0
+var guard_timer := 0.0
 var hit_time := -INF
 var laser_damage := 0.0
 var laser_timer := 0.0

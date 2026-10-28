@@ -197,6 +197,15 @@ func test_invalid_data_is_sanitized() -> void:
 	assert_true(progress.techs.is_empty())
 
 
+func test_techs_without_requirements_are_dropped() -> void:
+	var progress := Progress.new(PATH)
+	progress.apply({"version": Progress.VERSION, "regions": {"dawn": {"conquered": true}, "beetle_hill": {"conquered": true}},
+		"techs": ["tesla_arc", "tesla", "laser", "laser_focus"]})
+	assert_eq(progress.techs, ["laser", "laser_focus"] as Array[String])
+	assert_true(progress.is_done(1, Challenges.CONQUER))
+	assert_eq(progress.skill_points(), 0)
+
+
 func test_overspent_techs_are_reset() -> void:
 	var progress := Progress.new(PATH)
 	progress.apply({"version": Progress.VERSION, "regions": {}, "techs": ["laser", "tesla"]})

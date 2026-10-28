@@ -2,6 +2,7 @@ class_name EnemyAI
 extends RefCounted
 
 const LINK_PATH := -2
+const PATROL_PATH := -3
 
 var state: BattleState
 var events: BattleEvents
@@ -37,6 +38,9 @@ func update(delta: float) -> void:
 func _update(enemy: Enemy, delta: float) -> void:
 	enemy.cooldown = maxf(enemy.cooldown - delta, 0.0)
 	enemy.retarget_timer -= delta
+	if enemy.is_guard():
+		_patrol(enemy, delta)
+		return
 	if enemy.is_saboteur() and _sabotage(enemy, delta):
 		return
 	var target := state.building(enemy.target_id)
@@ -100,6 +104,37 @@ func _attack(enemy: Enemy, target: Building) -> void:
 	enemy.heading = (target.position - enemy.position).normalized() if target.position != enemy.position else enemy.heading
 	events.emit("enemy_attack", {"from": enemy.position, "to": target.position, "ranged": enemy.reach() > 0.0, "kind": enemy.kind})
 	combat.damage_building(target, enemy.damage())
+
+
+func _patrol(enemy: Enemy, delta: float) -> void:
+	var post := state.building(enemy.post)
+	if post == null or not post.is_alive() or enemy.is_burning() or enemy.retarget_timer > 0.0:
+		return
+	var goal := patrol_point(enemy, post)
+	if enemy.is_air():
+		move(enemy, goal, delta)
+		if enemy.position == goal:
+			_next_waypoint(enemy)
+		return
+	if enemy.path_target != PATROL_PATH:
+		var cell := state.nav.nearest_free(goal)
+		if cell == Vector2i(-1, -1):
+			_next_waypoint(enemy)
+			return
+		if not _plan(enemy, PATROL_PATH, func() -> PackedVector2Array: return state.nav.ground_path(enemy.position, cell)):
+			return
+	if not _follow(enemy, delta):
+		_next_waypoint(enemy)
+
+
+static func patrol_point(enemy: Enemy, post: Building) -> Vector2:
+	return post.position + Vector2.from_angle(enemy.patrol_angle) * Formulas.guard_ring(post)
+
+
+func _next_waypoint(enemy: Enemy) -> void:
+	enemy.patrol_angle = fposmod(enemy.patrol_angle + GameConfig.GUARD_STEP * enemy.patrol_turn, TAU)
+	enemy.path_target = -1
+	enemy.retarget_timer = state.rng.randf_range(GameConfig.GUARD_PAUSE_MIN, GameConfig.GUARD_PAUSE_MAX)
 
 
 func _plan(enemy: Enemy, key: int, finder: Callable) -> bool:

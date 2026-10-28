@@ -21,6 +21,12 @@ var _icon: BuildingIcon
 var _title: Label
 var _info: Label
 var _stats: GridContainer
+var _status: HBoxContainer
+var _status_icon: Label
+var _status_title: Label
+var _status_cause: Label
+var _status_grid: GridContainer
+var _status_values: Array[Label] = []
 var _tracks: VBoxContainer
 var _track_scroll: ScrollContainer
 var _targets: VBoxContainer
@@ -62,12 +68,23 @@ func _ready() -> void:
 	header.add_child(titles)
 	header.add_child(UiKit.icon_button(Icons.CLOSE, func() -> void: closed.emit(), 52.0))
 	column.add_child(header)
-	_stats = GridContainer.new()
-	_stats.columns = 4
-	_stats.add_theme_constant_override(&"h_separation", AppTheme.SPACING_LG)
-	_stats.add_theme_constant_override(&"v_separation", 2)
-	_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stats = _grid()
 	column.add_child(_stats)
+	_status = UiKit.hbox(AppTheme.SPACING_SM)
+	_status_icon = UiKit.icon(Icons.CHECK, AppTheme.SUCCESS, 30)
+	_status.add_child(_status_icon)
+	var status_texts := UiKit.vbox(0)
+	status_texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_status_title = UiKit.label("", "Body")
+	status_texts.add_child(_status_title)
+	_status_cause = UiKit.label("", "Caption")
+	_status_cause.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status_cause.custom_minimum_size = Vector2(420, 0)
+	status_texts.add_child(_status_cause)
+	_status.add_child(status_texts)
+	column.add_child(_status)
+	_status_grid = _grid()
+	column.add_child(_status_grid)
 	_targets = UiKit.vbox(2)
 	_targets.add_child(UiKit.label(Texts.t("PANEL_TARGETS"), "Caption"))
 	_target_row = UiKit.hbox(AppTheme.SPACING_XS)
@@ -87,6 +104,15 @@ func _ready() -> void:
 	column.add_child(_actions)
 	_sell = UiKit.button("", "DangerButton", func() -> void: sell_pressed.emit(building_id))
 	column.add_child(_sell)
+
+
+func _grid() -> GridContainer:
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override(&"h_separation", AppTheme.SPACING_LG)
+	grid.add_theme_constant_override(&"v_separation", 2)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return grid
 
 
 func _action_button(callback: Callable) -> Button:
@@ -115,13 +141,24 @@ func _rebuild(building: Building) -> void:
 		child.queue_free()
 	for child in _tracks.get_children():
 		child.queue_free()
+	for child in _status_grid.get_children():
+		child.queue_free()
 	_track_rows.clear()
 	_stat_values.clear()
+	_status_values.clear()
 	for row in StatText.stats(building, battle.state):
 		_stats.add_child(UiKit.label(Texts.t(row[0]), "Caption"))
 		var value := UiKit.label(str(row[1]), "Body")
 		_stats.add_child(value)
 		_stat_values.append(value)
+	var audit := battle.audit() if building.is_player() else null
+	for row in StatText.status_rows(building, audit):
+		_status_grid.add_child(UiKit.label(Texts.t(row[0]), "Caption"))
+		var value := UiKit.label(str(row[1]), "Body")
+		_status_grid.add_child(value)
+		_status_values.append(value)
+	_status.visible = audit != null and audit.has(building.id)
+	_status_grid.visible = not _status_values.is_empty()
 	var tracks: Array = building.definition().get("tracks", []) if building.is_player() else []
 	for track: String in tracks:
 		_tracks.add_child(_track_row(building, track))
@@ -221,6 +258,7 @@ func refresh() -> void:
 			Juice.pop(_stat_values[i], PULSE)
 		_stat_values[i].text = text
 	_pulse = false
+	_refresh_status(building)
 	for track: String in _track_rows:
 		var entry: Dictionary = _track_rows[track]
 		var maxed := Formulas.is_maxed(building, track)
@@ -235,11 +273,41 @@ func refresh() -> void:
 			var draw := StatText.draw_change(building, track)
 			if not draw.is_empty():
 				detail.text += "  ·  " + draw
+			var overload := StatText.overload_change(building, track)
+			if not overload.is_empty():
+				detail.text += "  ·  " + overload
+			detail.add_theme_color_override(&"font_color", AppTheme.WARNING if not overload.is_empty() else AppTheme.ON_SURFACE_VARIANT)
 			button.text = "▲ %d" % Formulas.upgrade_cost(building, track)
 			button.disabled = not battle.can_upgrade(building_id, track)
-	_sell.text = Texts.format("PANEL_SELL", [Formulas.sell_value(building)])
+	_sell.text = sell_text(building, battle.state.is_planning())
 	_refresh_actions(building)
 	_refresh_targets(building)
+
+
+static func sell_text(building: Building, planning: bool) -> String:
+	var value := Formulas.sell_value(building)
+	if planning and Formulas.is_fresh(building):
+		return Texts.format("PANEL_SELL_FULL", [value])
+	var loss := Formulas.sell_loss(building)
+	if loss > 0:
+		return Texts.format("PANEL_SELL_LOSS", [value, loss])
+	return Texts.format("PANEL_SELL", [value])
+
+
+func _refresh_status(building: Building) -> void:
+	if not _status.visible:
+		return
+	var audit := battle.audit()
+	var verdict := audit.verdict(building.id)
+	_status_icon.text = StatusText.icon(verdict)
+	_status_icon.add_theme_color_override(&"font_color", StatusText.color(verdict))
+	_status_title.text = StatusText.summary(audit, building)
+	_status_title.add_theme_color_override(&"font_color", StatusText.color(verdict))
+	_status_cause.text = StatusText.cause_text(audit, building, battle.state)
+	_status_cause.visible = not _status_cause.text.is_empty()
+	var rows := StatText.status_rows(building, audit)
+	for i in mini(rows.size(), _status_values.size()):
+		_status_values[i].text = str(rows[i][1])
 
 
 func _refresh_actions(building: Building) -> void:

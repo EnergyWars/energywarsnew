@@ -16,6 +16,8 @@ var mobility: MobileControl
 var history := PlanHistory.new()
 var _accumulator := 0.0
 var _was_night := false
+var _audit: EnergyAudit
+var _audit_key := Vector3i(-1, -1, -1)
 
 
 func _init(p_state: BattleState) -> void:
@@ -56,6 +58,9 @@ func tick(delta: float) -> void:
 	state.fog.update(state, delta)
 	if state.phase != BattleState.Phase.FIGHT:
 		economy.update_pickups(delta)
+		if state.is_planning() and not state.enemies.is_empty():
+			spawns.burn(delta)
+			_sweep()
 		if not state.is_scouting():
 			_check_end()
 		return
@@ -95,7 +100,7 @@ func _check_daylight() -> void:
 
 
 func _check_round() -> void:
-	if state.phase != BattleState.Phase.FIGHT or not state.night_over or not state.enemies.is_empty():
+	if state.phase != BattleState.Phase.FIGHT or not state.night_over or state.has_attackers():
 		return
 	state.projectiles.clear()
 	economy.reset_combo()
@@ -111,8 +116,17 @@ func _check_round() -> void:
 	state.round_time = 0.0
 	state.waves_sent = 0
 	_was_night = false
+	spawns.ignite_guards()
 	history.begin(state)
 	events.emit("round_cleared", {"round": survived, "next": state.round_number})
+
+
+func audit() -> EnergyAudit:
+	var key := Vector3i(state.roster_version, state.links_version, state.layout_version)
+	if _audit == null or key != _audit_key:
+		_audit = EnergyAudit.measure(state)
+		_audit_key = key
+	return _audit
 
 
 func start_round() -> bool:
@@ -142,6 +156,7 @@ func reset_plan() -> bool:
 
 func _restore(snapshot: PlanSnapshot) -> void:
 	snapshot.restore(state)
+	state.mark_changed()
 	state.fog.invalidate()
 	events.emit("plan_restored", {"steps": history.size()})
 
@@ -309,8 +324,9 @@ func upgrade(id: int, track: String) -> bool:
 	var old_max := building.max_hp()
 	building.set_level(track, building.level(track) + 1)
 	building.hp += building.max_hp() - old_max
+	state.mark_changed()
 	state.fog.invalidate()
-	events.emit("upgraded", {"id": id, "track": track, "level": building.level(track), "position": building.position})
+	events.emit("upgraded", {"id": id, "track": track, "level": building.level(track), "position": building.position, "overloaded": Formulas.is_overloaded(building)})
 	return true
 
 

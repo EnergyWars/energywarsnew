@@ -60,10 +60,10 @@ func delta_text(index: int) -> String:
 	return _deltas[index].text
 
 
-func refresh(state: BattleState, baseline: EnergyStats) -> void:
+func refresh(state: BattleState, baseline: EnergyStats, audit: EnergyAudit = null) -> void:
 	if _values.is_empty():
 		return
-	var stats := EnergyStats.measure(state)
+	var stats := EnergyStats.measure(state, audit)
 	for i in EnergyStatsText.ROWS.size():
 		var row: Dictionary = EnergyStatsText.ROWS[i]
 		var text := EnergyStatsText.value_text(stats, row)

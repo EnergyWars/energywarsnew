@@ -42,6 +42,24 @@ static func track_value(building: Building, track: String) -> String:
 			return str(Formulas.chain_count(building))
 		GameConfig.TRACK_SPLASH:
 			return str(int(round(Formulas.splash(building))))
+		GameConfig.TRACK_OVERCLOCK:
+			return "%d  %s%.1f" % [int(round(Formulas.damage(building))), Icons.BOLT, Formulas.shot_energy(building)]
+		GameConfig.TRACK_TRANSFER:
+			return Texts.format("STAT_TRANSFER_VALUE", [loss_per_cell(building) * 100.0])
+	return ""
+
+
+static func loss_per_cell(building: Building) -> float:
+	return Formulas.beam_loss(building, GameConfig.CELL)
+
+
+static func overload_change(building: Building, track: String) -> String:
+	var now := Formulas.is_overloaded(building)
+	var next := Formulas.is_overloaded(upgraded(building, track))
+	if next and not now:
+		return Texts.t("PANEL_OVERLOAD_NEXT")
+	if now and not next:
+		return Texts.t("PANEL_OVERLOAD_FIXED")
 	return ""
 
 
@@ -94,8 +112,9 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 		rows.append(["STAT_LINKS", "%d / %d" % [state.outgoing(building.id).size(), Formulas.max_links(building)]])
 		rows.append(["STAT_RATE", "%d/s" % int(round(Formulas.rate(building)))])
 		rows.append(["STAT_LINK_RANGE", str(int(round(Formulas.link_range(building))))])
+		rows.append(["STAT_BEAM_LOSS", "−%d%%" % int(round(Formulas.beam_loss(building, Formulas.link_range(building)) * 100.0))])
 	if GameConfig.has_attack(building.kind):
-		var laser := str(Formulas.attack(building).mode) == GameConfig.MODE_LASER
+		var laser := Formulas.is_laser(building)
 		rows.append(["STAT_DPS" if laser else "STAT_DAMAGE", str(int(round(Formulas.damage(building))))])
 		if not laser:
 			rows.append(["STAT_FIRE_RATE", "%.2f/s" % (1.0 / maxf(Formulas.cooldown(building), 0.001))])
@@ -111,6 +130,8 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 	if Formulas.export_rate(building) > 0.0:
 		rows.append(["STAT_EXPORT", "%d/s" % int(round(Formulas.export_rate(building)))])
 		rows.append(["STAT_EXPORT_INCOME", "%.1f/s" % (Formulas.export_rate(building) / GameConfig.ENERGY_PER_COIN)])
+		rows.append(["STAT_EXPORT_RATIO", Texts.format("STAT_EXPORT_RATIO_VALUE", [GameConfig.ENERGY_PER_COIN])])
+		rows.append(["STAT_EXPORT_ROUND", "+%d" % int(round(Formulas.export_income(Formulas.export_rate(building)) * DayCycle.length(state.level)))])
 	if building.kind == GameConfig.SHIELD:
 		rows.append(["STAT_SHIELD_RADIUS", str(int(round(Formulas.shield_radius(building))))])
 		rows.append(["STAT_SHIELD_RATIO", "%.1f" % Formulas.shield_ratio(building)])
@@ -123,8 +144,23 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 	return rows
 
 
+static func status_rows(building: Building, audit: EnergyAudit) -> Array[Array]:
+	var rows: Array[Array] = []
+	if audit == null or not audit.has(building.id):
+		return rows
+	var id := building.id
+	if EnergyAudit.draw(building) > 0.0:
+		rows.append(["STAT_NEED", "%.1f/s" % audit.need_of(id)])
+		rows.append(["STAT_SUPPLY", Texts.format("STAT_SUPPLY_VALUE", [EnergyStatsText.percent(audit.ratio(id, EnergyAudit.DAY)), EnergyStatsText.percent(audit.ratio(id, EnergyAudit.NIGHT))])])
+	if building.exporting:
+		rows.append(["STAT_EXPORT_REAL", Texts.format("STAT_EXPORT_REAL_VALUE", ["%.2f" % Formulas.export_income(audit.supply(id, EnergyAudit.DAY)), "%.2f" % Formulas.export_income(audit.supply(id, EnergyAudit.NIGHT))])])
+	if EnergyNetwork.can_receive(building) or EnergyNetwork.can_send(building):
+		rows.append(["STAT_FLOW", Texts.format("STAT_FLOW_VALUE", [audit.inflow(id), audit.throughput(id)])])
+	return rows
+
+
 static func _energy_rows(building: Building, rows: Array[Array], charge_key: String) -> void:
-	if str(Formulas.attack(building).get("mode", "")) != GameConfig.MODE_LASER:
+	if not Formulas.is_laser(building):
 		rows.append(["STAT_FIRE_DRAW", "%.1f/s" % EnergyStats.fire_draw(building)])
 	rows.append(["STAT_SELF_RESERVE", EnergyStatsText.duration(EnergyStats.self_reserve(building))])
 	if not charge_key.is_empty():

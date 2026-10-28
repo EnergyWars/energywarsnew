@@ -16,6 +16,7 @@ func update(delta: float) -> void:
 	burn(delta)
 	if state.night_over:
 		return
+	reinforce(delta)
 	var level := state.level
 	while state.waves_sent < Formulas.wave_times(level) and state.round_time >= Formulas.wave_time(level, state.waves_sent):
 		send_wave()
@@ -36,6 +37,7 @@ func start_round() -> bool:
 	for spawner in state.enemy_buildings():
 		spawner.spawn_queue = 0
 		spawner.spawn_progress = 0.0
+		spawner.guard_timer = GameConfig.GUARD_FIRST
 	events.emit("fight_started", {"round": state.round_number})
 	return true
 
@@ -48,10 +50,81 @@ func end_night() -> void:
 		spawner.spawn_queue = 0
 	var ignited := 0
 	for enemy in state.enemies:
-		if enemy.is_alive() and enemy.is_nocturnal():
-			enemy.burn = state.rng.randf_range(GameConfig.BURN_MIN, GameConfig.BURN_MAX)
+		if enemy.is_attacker() and enemy.is_nocturnal():
+			ignite(enemy)
 			ignited += 1
-	events.emit("night_over", {"round": state.round_number, "left": state.enemies.size() - ignited, "burning": ignited})
+	events.emit("night_over", {"round": state.round_number, "left": state.attackers() - ignited, "burning": ignited})
+
+
+func ignite(enemy: Enemy) -> void:
+	if not enemy.is_burning():
+		enemy.burn = state.rng.randf_range(GameConfig.BURN_MIN, GameConfig.BURN_MAX)
+
+
+func ignite_guards() -> int:
+	var count := 0
+	for enemy in state.enemies:
+		if enemy.is_alive() and enemy.is_guard() and not enemy.is_burning():
+			ignite(enemy)
+			count += 1
+	if count > 0:
+		events.emit("guards_ignited", {"count": count})
+	return count
+
+
+func guard_counts() -> Dictionary:
+	var counts := {}
+	for enemy in state.enemies:
+		if enemy.is_alive() and enemy.is_guard() and not enemy.is_burning():
+			counts[enemy.post] = int(counts.get(enemy.post, 0)) + 1
+	return counts
+
+
+func reinforce(delta: float) -> int:
+	for enemy in state.enemies:
+		if enemy.is_alive() and enemy.is_guard() and not enemy.is_burning() and not _post_alive(enemy):
+			ignite(enemy)
+	var counts := guard_counts()
+	var spawned := 0
+	var target := Formulas.guard_count(state.round_number)
+	for spawner in state.enemy_buildings():
+		if not spawner.spawner or not spawner.is_alive() or GameConfig.guard(spawner.kind).is_empty():
+			continue
+		var count := int(counts.get(spawner.id, 0))
+		if count >= target:
+			spawner.guard_timer = GameConfig.GUARD_RESPAWN
+			continue
+		spawner.guard_timer -= delta
+		if spawner.guard_timer > 0.0:
+			continue
+		spawn_guard(spawner)
+		spawned += 1
+		spawner.guard_timer = GameConfig.GUARD_TRICKLE if count + 1 < target else GameConfig.GUARD_RESPAWN
+	return spawned
+
+
+func _post_alive(enemy: Enemy) -> bool:
+	var post := state.building(enemy.post)
+	return post != null and post.is_alive()
+
+
+func spawn_guard(spawner: Building) -> Enemy:
+	var config := GameConfig.guard(spawner.kind)
+	var kind := str(config.kind)
+	var angle := state.rng.randf() * TAU
+	var point := spawner.position + Vector2.from_angle(angle) * Formulas.guard_ring(spawner)
+	if GameConfig.enemy(kind).get("class", "") != GameConfig.CLASS_AIR:
+		var cell := state.nav.nearest_free(point)
+		if cell != Vector2i(-1, -1):
+			point = state.map.center_of(cell)
+	var round_number := state.round_number
+	var hp_scale := float(config.hp) * Formulas.enemy_hp_scale(round_number)
+	var bounty_scale := GameConfig.GUARD_BOUNTY * Formulas.enemy_bounty_scale(round_number)
+	var enemy := Enemy.new(state.next_id(), kind, point, hp_scale, Formulas.enemy_damage_scale(round_number), bounty_scale)
+	enemy.make_guard(spawner.id, angle, 1.0 if state.rng.randf() < 0.5 else -1.0)
+	state.enemies.append(enemy)
+	events.emit("spawn", {"position": enemy.position, "kind": kind, "boss": false, "guard": true})
+	return enemy
 
 
 func burn(delta: float) -> int:

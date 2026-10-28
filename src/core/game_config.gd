@@ -48,6 +48,8 @@ const TRACK_EFFICIENCY := "efficiency"
 const TRACK_CRIT := "crit"
 const TRACK_CHAIN := "chain"
 const TRACK_SPLASH := "splash"
+const TRACK_OVERCLOCK := "overclock"
+const TRACK_TRANSFER := "transfer"
 
 const TRACKS := {
 	TRACK_RATE: {"max": 25, "step": 0.12, "price": 0.22},
@@ -62,6 +64,8 @@ const TRACKS := {
 	TRACK_CRIT: {"max": 20, "step": 0.01, "price": 0.25},
 	TRACK_CHAIN: {"max": 5, "step": 1.0, "price": 0.7, "growth": 1.5},
 	TRACK_SPLASH: {"max": 15, "step": 0.05, "price": 0.25},
+	TRACK_OVERCLOCK: {"max": 12, "step": 0.2, "price": 0.15, "energy": 1.25},
+	TRACK_TRANSFER: {"max": 10, "step": 0.15, "price": 0.2},
 }
 const TRACK_GROWTH := 1.12
 
@@ -69,30 +73,30 @@ const BUILDINGS := {
 	CORE: {"team": TEAM_PLAYER, "cost": 0, "upgrade_base": 120, "hp": 1500.0, "radius": 50.0, "cells": 2, "capacity": 300.0, "output": 3.0,
 		"links": 3, "range": 280.0, "rate": 40.0, "build_radius": 420.0, "vision": 460.0,
 		"attack": {"mode": MODE_BOLT, "damage": 12.0, "cooldown": 0.7, "energy": 3.0, "range": 220.0, "ground": true, "air": true},
-		"tracks": [TRACK_RATE, TRACK_RANGE, TRACK_LINKS, TRACK_POWER, TRACK_SPEED, TRACK_OUTPUT, TRACK_CAPACITY, TRACK_HULL]},
+		"tracks": [TRACK_RATE, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_POWER, TRACK_SPEED, TRACK_OUTPUT, TRACK_CAPACITY, TRACK_HULL]},
 	SOLAR: {"team": TEAM_PLAYER, "cost": 40, "hp": 70.0, "radius": 26.0, "capacity": 30.0, "output": 8.0, "solar": true,
 		"links": 1, "range": 240.0, "rate_from_output": true, "build_radius": 240.0, "receives": false,
-		"tracks": [TRACK_OUTPUT, TRACK_RANGE, TRACK_LINKS, TRACK_CAPACITY, TRACK_HULL]},
+		"tracks": [TRACK_OUTPUT, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
 	RELAY: {"team": TEAM_PLAYER, "cost": 30, "hp": 90.0, "radius": 24.0, "capacity": 20.0,
 		"links": 3, "range": 330.0, "rate": 30.0, "build_radius": 320.0, "vision": 320.0,
-		"tracks": [TRACK_RATE, TRACK_RANGE, TRACK_LINKS, TRACK_CAPACITY, TRACK_HULL]},
+		"tracks": [TRACK_RATE, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
 	BATTERY: {"team": TEAM_PLAYER, "cost": 80, "hp": 140.0, "radius": 26.0, "capacity": 400.0,
 		"links": 2, "range": 220.0, "rate": 30.0, "build_radius": 220.0,
-		"tracks": [TRACK_CAPACITY, TRACK_RATE, TRACK_RANGE, TRACK_LINKS, TRACK_HULL]},
+		"tracks": [TRACK_CAPACITY, TRACK_RATE, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_HULL]},
 	EXPORTER: {"team": TEAM_PLAYER, "cost": 120, "hp": 80.0, "radius": 26.0, "capacity": 80.0, "links": 0, "build_radius": 160.0, "export": 8.0,
 		"tracks": [TRACK_RATE, TRACK_CAPACITY, TRACK_HULL]},
 	ZAPPER: {"team": TEAM_PLAYER, "cost": 70, "hp": 90.0, "radius": 26.0, "capacity": 40.0, "links": 0, "build_radius": 160.0,
 		"attack": {"mode": MODE_BOLT, "damage": 26.0, "cooldown": 0.45, "energy": 4.0, "range": 230.0, "ground": true, "air": true},
-		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
+		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
 	LASER: {"team": TEAM_PLAYER, "cost": 120, "hp": 110.0, "radius": 26.0, "capacity": 60.0, "links": 0, "build_radius": 160.0,
 		"attack": {"mode": MODE_LASER, "damage": 30.0, "cooldown": 0.0, "energy": 10.0, "range": 270.0, "ground": true, "air": true},
 		"tracks": [TRACK_POWER, TRACK_RANGE, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
 	TESLA: {"team": TEAM_PLAYER, "cost": 160, "hp": 120.0, "radius": 26.0, "capacity": 80.0, "links": 0, "build_radius": 160.0,
 		"attack": {"mode": MODE_CHAIN, "damage": 30.0, "cooldown": 1.0, "energy": 14.0, "range": 220.0, "chain": 5, "ground": true, "air": true},
-		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_RANGE, TRACK_CHAIN, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
+		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_RANGE, TRACK_CHAIN, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
 	PLASMA: {"team": TEAM_PLAYER, "cost": 200, "hp": 110.0, "radius": 26.0, "capacity": 100.0, "links": 0, "build_radius": 160.0,
 		"attack": {"mode": MODE_PLASMA, "damage": 65.0, "cooldown": 2.5, "energy": 28.0, "range": 430.0, "min_range": 90.0, "splash": 85.0, "ground": true, "air": false},
-		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_RANGE, TRACK_SPLASH, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
+		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_RANGE, TRACK_SPLASH, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
 	SHIELD: {"team": TEAM_PLAYER, "cost": 140, "hp": 100.0, "radius": 26.0, "capacity": 140.0, "links": 0, "build_radius": 160.0,
 		"shield": {"radius": 210.0},
 		"tracks": [TRACK_POWER, TRACK_RANGE, TRACK_CAPACITY, TRACK_HULL]},
@@ -102,7 +106,7 @@ const BUILDINGS := {
 	ROVER: {"team": TEAM_PLAYER, "cost": 150, "hp": 160.0, "radius": 22.0, "capacity": 120.0, "links": 0, "build_radius": 0.0,
 		"mobile": {"speed": 85.0, "energy": 0.12},
 		"attack": {"mode": MODE_BOLT, "damage": 20.0, "cooldown": 0.5, "energy": 3.0, "range": 210.0, "ground": true, "air": true},
-		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
+		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_HULL]},
 	BULWARK: {"team": TEAM_PLAYER, "cost": 4, "cost_every": 6, "upgrade_base": 40, "hp": 2000.0, "radius": 27.0, "capacity": 0.0, "links": 0,
 		"build_radius": 0.0, "vision": 120.0, "wall": true,
 		"tracks": [TRACK_HULL]},
@@ -174,6 +178,24 @@ const DAWN_RAMP := 8.0
 const ENERGY_PER_COIN := 4.0
 const EXPORT_BATCH := 5
 const SURVIVAL_TARGETS: Array[int] = [5, 10, 15]
+const BEAM_LOSS_PER_CELL := 0.025
+const BEAM_LOSS_MAX := 0.6
+const GUARDS := {
+	NEST: {"kind": "beetle", "hp": 4.0},
+	CAMP: {"kind": "soldier", "hp": 12.0},
+}
+const GUARD_BASE := 2
+const GUARD_EVERY := 2
+const GUARD_MAX := 5
+const GUARD_FIRST := 2.0
+const GUARD_TRICKLE := 0.8
+const GUARD_RESPAWN := 30.0
+const GUARD_RING := 2.4
+const GUARD_SPEED := 0.55
+const GUARD_STEP := 0.7
+const GUARD_PAUSE_MIN := 0.4
+const GUARD_PAUSE_MAX := 1.6
+const GUARD_BOUNTY := 1.5
 const WORLD_WALK_SPEED := 0.32
 
 const CELL := 56.0
@@ -270,6 +292,7 @@ const BOOST_EXPORT := "export"
 const BOOST_HEAL := "heal"
 const BOOST_CHAIN := "chain"
 const BOOST_SPLASH := "splash"
+const BOOST_TRANSFER := "transfer"
 
 const TECHS := {
 	"zapper_power": {"branch": BRANCH_OFFENSE, "cost": 1, "requires": [], "kind": ZAPPER, "boost": BOOST_DAMAGE, "value": 0.2},
@@ -293,6 +316,7 @@ const TECHS := {
 	"solar_output_2": {"branch": BRANCH_ECONOMY, "cost": 2, "requires": ["solar_output"], "kind": SOLAR, "boost": BOOST_OUTPUT, "value": 0.15},
 	"battery_capacity": {"branch": BRANCH_ECONOMY, "cost": 1, "requires": [], "kind": BATTERY, "boost": BOOST_CAPACITY, "value": 0.3},
 	"exporter_rate": {"branch": BRANCH_ECONOMY, "cost": 2, "requires": ["battery_capacity"], "kind": EXPORTER, "boost": BOOST_EXPORT, "value": 0.25},
+	"superconductor": {"branch": BRANCH_ECONOMY, "cost": 2, "requires": ["solar_output"], "kind": ALL_BUILDINGS, "boost": BOOST_TRANSFER, "value": 0.25},
 	"funding_1": {"branch": BRANCH_ECONOMY, "cost": 1, "requires": [], "money": 60},
 	"funding_2": {"branch": BRANCH_ECONOMY, "cost": 2, "requires": ["funding_1"], "money": 120},
 }
@@ -358,3 +382,7 @@ static func is_wall(kind: String) -> bool:
 
 static func is_nocturnal(kind: String) -> bool:
 	return bool(enemy(kind).get("nocturnal", false))
+
+
+static func guard(spawner_kind: String) -> Dictionary:
+	return GUARDS.get(spawner_kind, EMPTY)

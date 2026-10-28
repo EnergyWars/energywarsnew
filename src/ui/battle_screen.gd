@@ -109,6 +109,7 @@ func _ready() -> void:
 	hud.start_pressed.connect(start_round)
 	hud.undo_pressed.connect(undo_plan)
 	hud.reset_pressed.connect(confirm_reset)
+	hud.status_pressed.connect(toggle_status)
 	build_bar.kind_pressed.connect(choose_kind)
 	panel.closed.connect(func() -> void: view.select(-1))
 	panel.upgrade_pressed.connect(upgrade)
@@ -128,6 +129,7 @@ func _ready() -> void:
 	view.mode_changed.connect(_on_mode_changed)
 	view.scout_selected.connect(func(active: bool) -> void: scout_chip.visible = active)
 	view.pick_changed.connect(_on_pick_changed)
+	view.status_mode_changed.connect(_on_status_changed)
 	_show_mode(view.mode)
 
 
@@ -156,9 +158,8 @@ func _process(delta: float) -> void:
 
 
 func steering_input() -> Vector2:
-	if not joystick.visible:
-		return Vector2.ZERO
-	return Input.get_vector(&"steer_left", &"steer_right", &"steer_up", &"steer_down")
+	var keys := Input.get_vector(&"steer_left", &"steer_right", &"steer_up", &"steer_down") if joystick.visible else Vector2.ZERO
+	return keys if keys != Vector2.ZERO else view.stick_vector
 
 
 func _steer() -> void:
@@ -180,7 +181,8 @@ func _steer() -> void:
 
 func _refresh_ui(delta: float) -> void:
 	var state := battle.state
-	hud.refresh(state, GameConfig.SPEEDS[speed_index], tutorial_text(), state.money - celebrations.in_flight(), battle.history)
+	var audit := battle.audit() if hud.stats_panel.visible else null
+	hud.refresh(state, GameConfig.SPEEDS[speed_index], tutorial_text(), state.money - celebrations.in_flight(), battle.history, audit)
 	build_bar.visible = view.selected_id < 0 and not state.is_over()
 	build_bar.refresh(state, view.build_kind)
 	view.top_inset = hud.top_height()
@@ -243,6 +245,7 @@ func _check_result(delta: float) -> void:
 		_recorded = true
 		view.set_build_kind("")
 		view.select(-1)
+		view.set_status_mode(false)
 		report = progress.record(BattleReport.from_state(state))
 		progress.save()
 		_result_timer = VICTORY_DELAY if state.phase == BattleState.Phase.WON else DEFEAT_DELAY
@@ -315,6 +318,19 @@ func _show_mode(mode: BattleView.Mode) -> void:
 	var connecting := mode == BattleView.Mode.CONNECT
 	mode_button.text = "%s  %s" % [Icons.LINK if connecting else Icons.PAN, Texts.t("MODE_CONNECT" if connecting else "MODE_MOVE")]
 	mode_button.theme_type_variation = "PrimaryButton" if connecting else "Button"
+
+
+func toggle_status() -> void:
+	if battle.state.is_scouting() or battle.state.is_over():
+		return
+	view.toggle_status_mode()
+
+
+func _on_status_changed(active: bool) -> void:
+	hud.set_status_mode(active)
+	hud.toast(Texts.t("TOAST_STATUS_ON" if active else "TOAST_STATUS_OFF"), AppTheme.ENERGY if active else AppTheme.ON_SURFACE)
+	if sfx != null:
+		sfx.play(SoundBank.CLICK)
 
 
 func start_round() -> void:
@@ -457,6 +473,8 @@ func handle_back() -> void:
 		view.select(-1)
 	elif hud.stats_panel.visible:
 		hud.hide_stats()
+	elif view.status_mode:
+		view.set_status_mode(false)
 	elif view.mode == BattleView.Mode.CONNECT and not battle.state.is_over():
 		view.set_mode(BattleView.Mode.MOVE)
 	elif battle.state.is_over():

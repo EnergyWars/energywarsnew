@@ -20,6 +20,9 @@ var path_index := 0
 var path_target := -1
 var path_version := -1
 var burn := -1.0
+var post := -1
+var patrol_angle := 0.0
+var patrol_turn := 1.0
 var _class := ""
 var _radius := 0.0
 var _speed := 0.0
@@ -94,6 +97,21 @@ func is_nocturnal() -> bool:
 
 func is_burning() -> bool:
 	return burn >= 0.0
+
+
+func is_guard() -> bool:
+	return post >= 0
+
+
+func is_attacker() -> bool:
+	return is_alive() and post < 0
+
+
+func make_guard(post_id: int, angle: float, turn: float) -> void:
+	post = post_id
+	patrol_angle = angle
+	patrol_turn = 1.0 if turn >= 0.0 else -1.0
+	_speed = float(_definition.speed) * GameConfig.GUARD_SPEED
 
 
 func reach() -> float:

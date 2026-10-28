@@ -27,7 +27,7 @@ func _initialize() -> void:
 
 
 func _run(index: int, walls: bool, extra: int) -> int:
-	var battle := Battle.start(index)
+	var battle := Battle.start(index, 0, BattleSetup.campaign(Arsenal.everything()))
 	var state := battle.state
 	BattleFixtures.open_terrain(state)
 	state.rng.seed = 1

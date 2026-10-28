@@ -86,8 +86,22 @@ func drop_out_of_range(id: int) -> int:
 
 func in_range(link: EnergyLink) -> bool:
 	var source := state.building(link.source)
+	return source != null and length(link) <= Formulas.link_range(source)
+
+
+func length(link: EnergyLink) -> float:
+	var source := state.building(link.source)
 	var target := state.building(link.target)
-	return source != null and target != null and source.position.distance_to(target.position) <= Formulas.link_range(source)
+	return source.position.distance_to(target.position) if source != null and target != null else INF
+
+
+func loss(link: EnergyLink) -> float:
+	var source := state.building(link.source)
+	return Formulas.beam_loss(source, length(link)) if source != null else GameConfig.BEAM_LOSS_MAX
+
+
+func efficiency(link: EnergyLink) -> float:
+	return 1.0 - loss(link)
 
 
 func cut(from: Vector2, to: Vector2) -> int:
@@ -142,20 +156,25 @@ func groups() -> Array:
 
 func _push(source: Building, outgoing: Array, delta: float) -> void:
 	var active: Array[EnergyLink] = []
+	var yields := PackedFloat64Array()
+	var reach := Formulas.link_range(source)
 	for link: EnergyLink in outgoing:
-		link.active = in_range(link)
+		var distance := length(link)
+		link.active = distance <= reach
 		if link.active:
 			active.append(link)
+			yields.append(Formulas.beam_efficiency(source, distance))
 		else:
 			link.flow = lerpf(link.flow, 0.0, FLOW_SMOOTHING)
 	var limit := Formulas.beam_rate(source, active.size()) * delta
 	var remaining := active.size()
-	for link: EnergyLink in active:
+	for i in active.size():
+		var link := active[i]
 		var target := state.building(link.target)
 		var share := source.energy / remaining
 		remaining -= 1
 		var space := maxf(Formulas.capacity(target) - target.energy, 0.0)
-		var amount := minf(minf(limit, share), space)
+		var amount := minf(minf(limit, share), space / maxf(yields[i], 0.01))
 		source.energy -= amount
-		target.energy += amount
+		target.energy += amount * yields[i]
 		link.flow = lerpf(link.flow, amount / delta, FLOW_SMOOTHING) if delta > 0.0 else 0.0

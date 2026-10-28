@@ -15,6 +15,7 @@ var _reveal := false
 var _zoom := 0.0
 var _drop := false
 var _pick := ""
+var _conquered := 0
 var _main: Node
 
 
@@ -44,6 +45,8 @@ func _initialize() -> void:
 			_drop = true
 		elif arg.begins_with("--pick="):
 			_pick = arg.trim_prefix("--pick=")
+		elif arg.begins_with("--conquered="):
+			_conquered = arg.trim_prefix("--conquered=").to_int()
 		elif arg == "--reveal":
 			_reveal = true
 		elif arg.begins_with("--zoom="):
@@ -58,11 +61,15 @@ func _process(_delta: float) -> bool:
 		_main.progress = Progress.new("user://screenshot_progress.json")
 		if not _locale.is_empty():
 			TranslationServer.set_locale(_locale)
-			if _level < 0:
-				_main.show_menu()
 		if _level >= 0:
-			_main.progress.record(_level - 1, 3, 0, 0)
-			_main.start_level(_level)
+			for i in _level:
+				_main.progress.mark_conquered(i)
+			_main.progress.techs.assign(TechTree.ids())
+			_main.start_campaign(_level)
+		else:
+			for i in _conquered:
+				_main.progress.mark_conquered(i)
+			_main.show_menu()
 	if _frames == 8 and _level >= 0:
 		_prepare(_main.screen as BattleScreen)
 	if _frames == _capture_frame():
@@ -100,7 +107,7 @@ func _prepare(screen: BattleScreen) -> void:
 			"zap_a": [GameConfig.ZAPPER, Vector2(-170, -300)],
 			"zap_b": [GameConfig.ZAPPER, Vector2(170, -300)],
 			"relay_b": [GameConfig.RELAY, Vector2(0, -560)],
-			"tower": [GameConfig.available_kinds(_level).back(), Vector2(-130, -620)],
+			"tower": [state.available_kinds().back(), Vector2(-130, -620)],
 			"healer": [GameConfig.HEALER, Vector2(150, -430)],
 			"bulwark": [GameConfig.BULWARK, Vector2(110, -660)],
 		}

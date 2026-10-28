@@ -48,7 +48,7 @@ func _play(index: int) -> void:
 	_lost_walls = 0
 	_lost_other = 0
 	_first_loss = -1.0
-	var battle := Battle.start(index)
+	var battle := Battle.start(index, 0, BattleSetup.campaign(Arsenal.everything()))
 	var state := battle.state
 	state.scout.drop_left = 0.0
 	state.fog.cells.fill(FogOfWar.EXPLORED)
@@ -113,7 +113,7 @@ func _think(battle: Battle) -> void:
 	var core := state.core()
 	if core == null:
 		return
-	var kinds := GameConfig.available_kinds(state.level_index)
+	var kinds := state.available_kinds()
 	var target := _nearest_structure(state, core.position)
 	if target == null:
 		return

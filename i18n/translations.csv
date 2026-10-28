@@ -194,11 +194,11 @@ REASON_BUILD_PHASE,Build your base first.,Errichte zuerst deine Basis.
 REASON_SCOUT_MISSING,No soldier available.,Kein Soldat verfügbar.
 REASON_SCOUT_LANDING,Still landing…,Landet noch …
 HUD_SCOUT,Find a base site,Suche einen Bauplatz
-SCOUT_HINT,"Soldier: steer with the joystick, tap nearby trees or rocks to clear them.","Soldat: Mit dem Joystick lenken, Bäume oder Felsen in der Nähe antippen zum Abbauen."
+SCOUT_HINT,"Soldier: drag anywhere on the map to steer, tap nearby trees or rocks to clear them.","Soldat: Irgendwo auf der Karte ziehen zum Lenken, Bäume oder Felsen in der Nähe antippen zum Abbauen."
 TOAST_LANDED,Landed! Explore the map.,Gelandet! Erkunde die Karte.
 BANNER_BASE,BASE ESTABLISHED,BASIS ERRICHTET
 BANNER_BASE_SUB,Plan in peace – nothing happens until you start the day,"Plane in Ruhe – bis du den Tag startest, passiert nichts"
-TUTORIAL_MOVE_SCOUT,Your soldier has landed. Use the joystick to walk around and explore – look for a plateau or a spot sheltered by forest and rocks.,"Dein Soldat ist gelandet. Lauf mit dem Joystick herum und erkunde – suche ein Plateau oder einen Platz, den Wald und Felsen schützen."
+TUTORIAL_MOVE_SCOUT,Your soldier has landed. Drag anywhere on the map (or use the joystick) to walk around and explore – look for a plateau or a spot sheltered by forest and rocks.,"Dein Soldat ist gelandet. Zieh irgendwo auf der Karte (oder nutze den Joystick), um herumzulaufen und zu erkunden – suche ein Plateau oder einen Platz, den Wald und Felsen schützen."
 TUTORIAL_DEPLOY_CORE,Tap “Base” below and place your core near the soldier. The soldier then mans the core.,Tippe unten auf „Basis“ und platziere deinen Kern in der Nähe des Soldaten. Der Soldat besetzt dann den Kern.
 TUTORIAL_BUILD_WALL,Enemies wreck towers fast. Pick the bulwark and drag a wall that closes off your base – ramps and gaps first!,"Gegner zerlegen Türme schnell. Wähle das Bollwerk und ziehe eine Mauer, die deine Basis abschließt – zuerst Rampen und Lücken!"
 STAT_BLOCKS,Blocks,Blockiert
@@ -222,7 +222,7 @@ PANEL_RELOCATE,Move −%d,Versetzen −%d
 TOAST_PICK_LINK,Tap a highlighted building to connect,Tippe auf ein markiertes Gebäude zum Verbinden
 TOAST_PICK_FOCUS,"Tap an enemy, a base, a tree or a rock","Tippe auf einen Gegner, eine Basis, einen Baum oder Felsen"
 TOAST_RELOCATE,Tap the new spot: %s,Tippe auf den neuen Platz: %s
-TOAST_ROVER,Steer with the joystick – driving drains energy,Lenke mit dem Joystick – Fahren kostet Energie
+TOAST_ROVER,Drag anywhere to steer – driving drains energy,Irgendwo ziehen zum Lenken – Fahren kostet Energie
 TOAST_STALLED,Out of energy – it can’t drive!,Keine Energie – Fahren unmöglich!
 TOAST_BOARDED,Your soldier mans the core and fires from there,Dein Soldat besetzt den Kern und schießt von dort
 STAT_MOVE_ENERGY,Energy/cell,Energie/Feld
@@ -250,7 +250,7 @@ STATS_ENDLESS,unlimited,unbegrenzt
 STATS_NEVER,never,nie
 STATS_FULL,full,voll
 STATS_WAS,was %s,vorher %s
-STATS_NOTE,Coloured column: change since this planning phase began. Full fire: every tower and medic works non-stop. Charging ignores beam limits.,Farbige Spalte: Änderung seit Beginn dieser Planungsphase. Dauerfeuer: Alle Türme und Heiltürme arbeiten ununterbrochen. Laden ohne Strahl-Limits gerechnet.
+STATS_NOTE,Coloured column: change since this planning phase began. Full fire: every tower and medic works non-stop. Balances include beam losses; demand covered follows every chain back to its producers.,Farbige Spalte: Änderung seit Beginn dieser Planungsphase. Dauerfeuer: Alle Türme und Heiltürme arbeiten ununterbrochen. Bilanzen enthalten den Strahlverlust; „Bedarf gedeckt“ verfolgt jede Kette bis zu ihren Erzeugern.
 TOAST_UNDO,Last step undone,Letzter Schritt rückgängig gemacht
 TOAST_RESET,Planning reset,Planung zurückgesetzt
 RESET_TITLE,Reset planning?,Planung zurücksetzen?
@@ -370,3 +370,61 @@ TECH_FUNDING_1,War chest I,Kriegskasse I
 TECH_FUNDING_1_INFO,+60 starting money,+60 Startgeld
 TECH_FUNDING_2,War chest II,Kriegskasse II
 TECH_FUNDING_2_INFO,+120 starting money,+120 Startgeld
+TRACK_OVERCLOCK,Overcharge,Überladung
+TRACK_TRANSFER,Beam transfer,Strahlübertragung
+TECH_SUPERCONDUCTOR,Superconductor,Supraleiter
+TECH_SUPERCONDUCTOR_INFO,All beams +25% transfer (less loss over distance),Alle Strahlen +25 % Übertragung (weniger Verlust über Distanz)
+STATS_EXPORT_INCOME,Export income,Exporterlös
+STATS_INCOME_VALUE,%s coins/s,%s Geld/s
+STATS_BEAM_LOSS,Beam loss (day),Strahlverlust (Tag)
+STATS_BEAM_EFFICIENCY,Beam efficiency,Strahleffizienz
+STATS_SUPPLY_DAY,Demand covered (day),Bedarf gedeckt (Tag)
+STATS_SUPPLY_NIGHT,Demand covered (night),Bedarf gedeckt (Nacht)
+STAT_TRANSFER_VALUE,−%.1f%% per tile,−%.1f %% pro Feld
+STAT_BEAM_LOSS,Loss at full range,Verlust bei voller Weite
+STAT_EXPORT_RATIO,Rate,Kurs
+STAT_EXPORT_RATIO_VALUE,%.0f energy = 1 coin,%.0f Energie = 1 Geld
+STAT_EXPORT_ROUND,Per day (full supply),Pro Tag (voll versorgt)
+STAT_NEED,Demand,Bedarf
+STAT_SUPPLY,Covered,Gedeckt
+STAT_SUPPLY_VALUE,day %s · night %s,Tag %s · Nacht %s
+STAT_EXPORT_REAL,Real income,Realer Ertrag
+STAT_EXPORT_REAL_VALUE,%s/s day · %s/s night,%s/s Tag · %s/s Nacht
+STAT_FLOW,Beams in/out,Strahlen rein/raus
+STAT_FLOW_VALUE,+%.1f / −%.1f/s,+%.1f / −%.1f/s
+PANEL_OVERLOAD_NEXT,⚠ shot > storage: stops firing,⚠ Schuss > Speicher: feuert nicht mehr
+PANEL_OVERLOAD_FIXED,✓ fires again,✓ feuert wieder
+PANEL_SELL_FULL,Sell  +%d (full refund),Verkaufen  +%d (volle Erstattung)
+PANEL_SELL_LOSS,Sell  +%d (−%d loss),Verkaufen  +%d (−%d Verlust)
+STATUS_OK,Supplied,Versorgt
+STATUS_NIGHT,Short at night,Nachts knapp
+STATUS_LOW,Undersupplied,Unterversorgt
+STATUS_STARVED,Starved,Ausgehungert
+STATUS_OFFLINE,No source,Ohne Quelle
+STATUS_OVERLOADED,Overloaded,Überladen
+STATUS_FRESH,Built this planning: full refund,In dieser Planung gebaut: volle Erstattung
+STATUS_HINT,"Tap a building to light up its supply chain. Need assumes non-stop fire, beam labels show loss · arriving energy.","Tippe ein Gebäude an, um seine Versorgungskette zu sehen. Bedarf gilt für Dauerfeuer, Strahlen zeigen Verlust · ankommende Energie."
+STATUS_UNKNOWN,a building,einem Gebäude
+STATUS_SUMMARY,%s – day %s · night %s,%s – Tag %s · Nacht %s
+STATUS_LABEL_OVERLOAD,shot %s > storage %s,Schuss %s > Speicher %s
+STATUS_LABEL_EXPORT,%s → %s coins/s,%s → %s Geld/s
+STATUS_LABEL_HEAL,%s/heal · %s,%s/Heilung · %s
+STATUS_LABEL_BEAM,beam %s,Strahl %s
+STATUS_LABEL_SHOT,%s/shot · %s,%s/Schuss · %s
+STATUS_LABEL_OUTPUT,+%s,+%s
+STATUS_LABEL_RELAY,passes %s,leitet %s
+STATUS_LABEL_SUPPLY,%s covered,%s gedeckt
+STATUS_LINK_RANGE,out of range,außer Reichweite
+STATUS_LINK_LABEL,−%s · %s,−%s · %s
+STATUS_CAUSE_OVERLOAD,"Needs %s per shot but stores only %s, so it never fires. Upgrade capacity or efficiency.","Braucht %s pro Schuss, speichert aber nur %s – feuert nie. Kapazität oder Effizienz ausbauen."
+STATUS_CAUSE_NO_SOURCE,No beam chain leads to a producer. Connect it to your network.,Keine Strahlkette führt zu einem Erzeuger. Verbinde es mit deinem Netz.
+STATUS_CAUSE_OUT_OF_RANGE,The beam from %s is out of range.,Der Strahl von %s ist außer Reichweite.
+STATUS_CAUSE_BEAM_RATE,The beam from %s is at its limit. Raise its transfer rate or add another beam.,Der Strahl von %s ist am Limit. Transferrate erhöhen oder weiteren Strahl ziehen.
+STATUS_CAUSE_BEAM_LOSS,The beam from %s loses %s on the way. Shorten it or upgrade beam transfer.,Der Strahl von %s verliert unterwegs %s. Kürzer bauen oder Strahlübertragung ausbauen.
+STATUS_CAUSE_GENERATION,Your network produces too little for everything connected. Build producers or disconnect consumers.,Dein Netz erzeugt zu wenig für alles Angeschlossene. Erzeuger bauen oder Verbraucher abkoppeln.
+STATUS_CAUSE_NIGHT,At night only %s is covered – solar is dark. Add storage or core output.,Nachts nur %s gedeckt – Solar liefert nichts. Speicher oder Kernleistung ausbauen.
+TOAST_STATUS_ON,Status view on,Statusansicht an
+TOAST_STATUS_OFF,Status view off,Statusansicht aus
+TOAST_GUARDS,"Guards patrol the enemy bases – tough, but they never attack","Wächter patrouillieren um die Feindbasen – zäh, greifen aber nie an"
+TOAST_GUARDS_BURN,%d guards go up in flames,%d Wächter gehen in Flammen auf
+TOAST_OVERLOADED,Overloaded: one shot needs more than its storage – it stops firing,Überladen: Ein Schuss braucht mehr als der Speicher – der Turm feuert nicht mehr

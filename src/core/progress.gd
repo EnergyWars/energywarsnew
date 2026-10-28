@@ -67,9 +67,20 @@ func _apply_current(data: Dictionary) -> void:
 		for id: Variant in owned:
 			if GameConfig.TECHS.has(str(id)) and not techs.has(str(id)):
 				techs.append(str(id))
+	_prune_techs()
 	if spent_points() > earned_points():
 		techs = []
 	location = clampi(int(data.get("location", 0)), 0, GameConfig.level_count() - 1)
+
+
+func _prune_techs() -> void:
+	var pruned := true
+	while pruned:
+		pruned = false
+		for id in techs.duplicate():
+			if not TechTree.missing(self, id).is_empty():
+				techs.erase(id)
+				pruned = true
 
 
 static func _sanitize_region(index: int, raw: Dictionary) -> Dictionary:
@@ -80,9 +91,12 @@ static func _sanitize_region(index: int, raw: Dictionary) -> Dictionary:
 		for id: Variant in stored:
 			if valid.has(str(id)) and not done.has(str(id)):
 				done.append(str(id))
-	var conquered: Variant = raw.get("conquered", false)
+	var flag: Variant = raw.get("conquered", false)
+	var conquered: bool = (flag is bool and flag) or done.has(Challenges.CONQUER)
+	if conquered and not done.has(Challenges.CONQUER):
+		done.push_front(Challenges.CONQUER)
 	return {
-		"conquered": (conquered is bool and conquered) or done.has(Challenges.CONQUER),
+		"conquered": conquered,
 		"stars": clampi(int(raw.get("stars", 0)), 0, MAX_STARS),
 		"best_days": maxi(int(raw.get("best_days", 0)), 0),
 		"done": done,

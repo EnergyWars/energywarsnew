@@ -8,9 +8,10 @@ signal camera_moved
 signal mode_changed(mode: Mode)
 signal scout_selected(active: bool)
 signal pick_changed(pick: Pick)
+signal status_mode_changed(active: bool)
 
 enum Mode { MOVE, CONNECT }
-enum Gesture { NONE, BUILD, LINK_PENDING, LINK, TAP_PENDING, CUT_PENDING, CUT, PAN, PICK }
+enum Gesture { NONE, BUILD, LINK_PENDING, LINK, TAP_PENDING, CUT_PENDING, CUT, PAN, PICK, STEER_PENDING, STEER }
 enum Pick { NONE, LINK, FOCUS }
 
 const BEAM_REFRESH := 0.06
@@ -25,6 +26,10 @@ const DEFAULT_AIM := -PI / 2.0
 const BEAM_VISIBLE_FLOW := 1.5
 const BEAM_MIN_FLOW := 0.05
 const CULL_MARGIN := 120.0
+const STICK_RADIUS := 90.0
+const STICK_DEADZONE := 0.12
+const STATUS_TEXT := 17
+const STATUS_BADGE := 22
 
 var battle: Battle
 var fx := EffectPool.new(7)
@@ -43,6 +48,10 @@ var relocate_id := -1
 var coverage_levels := PackedByteArray()
 var gesture := Gesture.NONE
 var mode := Mode.MOVE
+var status_mode := false
+var stick_origin := Vector2.INF
+var stick_point := Vector2.INF
+var stick_vector := Vector2.ZERO
 var ghost := Vector2.ZERO
 var link_source := -1
 var link_end := Vector2.ZERO
@@ -203,6 +212,45 @@ func select(id: int) -> void:
 	building_selected.emit(id)
 
 
+func set_status_mode(active: bool) -> void:
+	if status_mode == active:
+		return
+	status_mode = active
+	status_mode_changed.emit(active)
+
+
+func toggle_status_mode() -> void:
+	set_status_mode(not status_mode)
+
+
+func can_steer() -> bool:
+	if mode != Mode.MOVE or not build_kind.is_empty() or pick != Pick.NONE or battle.state.is_over():
+		return false
+	return scout_active or (selected_mobile() != null and battle.state.is_fighting())
+
+
+func is_steering() -> bool:
+	return gesture == Gesture.STEER_PENDING or gesture == Gesture.STEER
+
+
+func steer_to(screen: Vector2) -> void:
+	if stick_origin == Vector2.INF:
+		stick_origin = screen
+	var offset := screen - stick_origin
+	if offset.length() > STICK_RADIUS:
+		stick_origin = screen - offset.normalized() * STICK_RADIUS
+		offset = screen - stick_origin
+	stick_point = screen
+	var vector := offset / STICK_RADIUS
+	stick_vector = vector if vector.length() >= STICK_DEADZONE else Vector2.ZERO
+
+
+func release_stick() -> void:
+	stick_origin = Vector2.INF
+	stick_point = Vector2.INF
+	stick_vector = Vector2.ZERO
+
+
 func selected_mobile() -> Building:
 	var building := battle.state.building(selected_id)
 	return building if building != null and building.is_player() and GameConfig.is_mobile(building.kind) else null
@@ -237,6 +285,9 @@ func advance(delta: float) -> void:
 	var controllable := battle.state.is_scouting() and scout != null and scout.is_controllable()
 	if controllable != scout_active:
 		set_scout_active(controllable)
+	if is_steering() and not can_steer():
+		gesture = Gesture.NONE
+		release_stick()
 	_update_coverage(delta)
 	if _fog_texture.refresh():
 		_fog.queue_redraw()
@@ -363,10 +414,11 @@ func _on_touch(touch: InputEventScreenTouch) -> void:
 		if not tracker.is_active() and in_ui_zone(touch.position):
 			return
 		if tracker.press(touch.index, touch.position):
-			begin(to_world(touch.position))
+			begin(to_world(touch.position), touch.position)
 		else:
 			gesture = Gesture.NONE
 			trail.clear()
+			release_stick()
 		return
 	var result := tracker.release(touch.index, touch.position)
 	match str(result.get("kind", "")):
@@ -383,6 +435,11 @@ func _on_drag(drag: InputEventScreenDrag) -> void:
 			zoom_by(float(result.zoom), result.center)
 			pan(-(result.pan as Vector2) / zoom)
 		GestureTracker.DRAG:
+			if is_steering():
+				if bool(result.moved):
+					gesture = Gesture.STEER
+					steer_to(drag.position)
+				return
 			drag_to(to_world(drag.position), bool(result.moved), drag.relative)
 
 
@@ -414,7 +471,7 @@ func _report_camera() -> void:
 		camera_moved.emit()
 
 
-func begin(world: Vector2) -> void:
+func begin(world: Vector2, screen: Vector2 = Vector2.INF) -> void:
 	battle.begin_stroke()
 	cut_last = world
 	trail.clear()
@@ -433,8 +490,13 @@ func begin(world: Vector2) -> void:
 		return
 	var building := battle.building_at(world, PICK_SLACK)
 	if mode == Mode.MOVE:
-		gesture = Gesture.TAP_PENDING if building != null else Gesture.CUT_PENDING
 		link_source = building.id if building != null else -1
+		if screen != Vector2.INF and can_steer():
+			gesture = Gesture.STEER_PENDING
+			release_stick()
+			stick_origin = screen
+			return
+		gesture = Gesture.TAP_PENDING if building != null else Gesture.CUT_PENDING
 		return
 	if building != null and EnergyNetwork.can_send(building):
 		gesture = Gesture.LINK_PENDING
@@ -514,6 +576,7 @@ func finish(world: Vector2) -> void:
 					action_failed.emit(Texts.reason("link_" + reason), world)
 	gesture = Gesture.NONE
 	link_source = -1
+	release_stick()
 	battle.end_stroke()
 
 
@@ -526,13 +589,23 @@ func tap(world: Vector2) -> void:
 		Gesture.LINK_PENDING, Gesture.TAP_PENDING:
 			select(link_source if link_source != selected_id else -1)
 		Gesture.CUT_PENDING:
-			if scout_active and battle.state.map.is_clearable(battle.state.map.cell_of(world)):
-				clear_with_scout(world)
+			_tap_ground(world)
+		Gesture.STEER_PENDING:
+			if link_source >= 0:
+				select(link_source if link_source != selected_id else -1)
 			else:
-				select(-1)
+				_tap_ground(world)
 	gesture = Gesture.NONE
 	link_source = -1
+	release_stick()
 	battle.end_stroke()
+
+
+func _tap_ground(world: Vector2) -> void:
+	if scout_active and battle.state.map.is_clearable(battle.state.map.cell_of(world)):
+		clear_with_scout(world)
+	else:
+		select(-1)
 
 
 func resolve_pick(world: Vector2) -> void:
@@ -636,7 +709,9 @@ func _paint_world(ci: CanvasItem) -> void:
 		if is_on_screen(enemy.position) and state.fog.is_visible(enemy.position):
 			Painter.enemy(ci, enemy.kind, enemy.position, enemy.radius(), enemy.heading, clock + enemy.id * 0.37, 1.0 - light)
 			if enemy.is_burning():
-				Painter.flames(ci, enemy.position, enemy.radius(), clock + enemy.id * 0.53)
+				Painter.flames(ci, enemy.position, enemy.radius(), clock + enemy.id * 0.53, 1.4 if enemy.is_guard() else 1.0)
+			elif enemy.is_guard():
+				Painter.guard(ci, enemy.position, enemy.radius(), clock + enemy.id * 0.29)
 	for building in state.enemy_buildings():
 		if building.immune and is_on_screen(building.position, building.half_extent() + 20.0):
 			var pulse := 0.5 + 0.5 * sin(clock * 2.5 + building.id)
@@ -763,7 +838,7 @@ func _paint_overlay(ci: CanvasItem) -> void:
 		if building.is_player() and GameConfig.uses_energy_actively(building.kind):
 			var fill := building.energy / Formulas.capacity(building)
 			Painter.bar(ci, building.position + Vector2(0, building.radius() + 9.0), building.radius() * 1.4, fill, AppTheme.ENERGY, 4.0)
-			if building.energy < Targeting.needed_energy(building) and fmod(clock, 1.0) < 0.6:
+			if not status_mode and building.energy < Targeting.needed_energy(building) and fmod(clock, 1.0) < 0.6:
 				_icon(ci, Icons.BOLT, building.position + Vector2(0, -building.radius() - 30.0), 26, AppTheme.WARNING)
 	for obstacle: Obstacle in state.obstacles.values():
 		if obstacle.hp < obstacle.max_hp:
@@ -771,9 +846,12 @@ func _paint_overlay(ci: CanvasItem) -> void:
 	for enemy in state.enemies:
 		if enemy.hp < enemy.max_hp and is_on_screen(enemy.position) and state.fog.is_visible(enemy.position):
 			Painter.bar(ci, enemy.position + Vector2(0, -enemy.radius() - 9.0), maxf(enemy.radius() * 2.0, 20.0), enemy.hp_ratio(), Painter.hp_color(enemy.hp_ratio()), 4.0)
+	if status_mode:
+		_paint_status(ci)
 	_paint_selection(ci)
 	_paint_pick(ci)
 	_paint_gesture(ci)
+	_paint_stick(ci)
 	for floater_item in fx.floaters:
 		var ratio := EffectPool.ratio(floater_item)
 		var age := float(floater_item.max) - float(floater_item.life)
@@ -790,6 +868,8 @@ func _paint_selection(ci: CanvasItem) -> void:
 	if not building.is_player():
 		if building.definition().has("attack"):
 			_dashed_circle(ci, building.position, Formulas.attack_range(building), AppTheme.DANGER)
+		if building.spawner and not GameConfig.guard(building.kind).is_empty():
+			_dashed_circle(ci, building.position, Formulas.guard_ring(building), Color(AppTheme.WARNING, 0.6))
 		return
 	_paint_links_of(ci, building)
 	if Formulas.max_links(building) > 0:
@@ -804,6 +884,64 @@ func _paint_selection(ci: CanvasItem) -> void:
 			_dashed_line(ci, building.position, focus.position, Color(AppTheme.DANGER, 0.7))
 			_crosshair(ci, focus.position, float(focus.radius()) + 8.0, AppTheme.DANGER)
 	_paint_support_ranges(ci, building, 1.0)
+
+
+func _paint_status(ci: CanvasItem) -> void:
+	var state := battle.state
+	var audit := battle.audit()
+	var chain := audit.chain(selected_id)
+	var chain_links := {}
+	for key: String in chain.links:
+		chain_links[key] = true
+	var chain_buildings := {}
+	for id: int in chain.buildings:
+		chain_buildings[id] = true
+	var focused := not chain_links.is_empty()
+	var culprit_link := audit.culprit_link(selected_id)
+	var culprit := audit.culprit(selected_id)
+	var pulse := 0.5 + 0.5 * sin(clock * 8.0)
+	for link in state.links:
+		var points := state.link_points(link)
+		if not _segment_on_screen(points[0], points[1]):
+			continue
+		var key := link.key()
+		var color := StatusText.link_color(audit, key)
+		var lit := chain_links.has(key)
+		if key == culprit_link:
+			ci.draw_line(points[0], points[1], Color(AppTheme.DANGER, 0.3 + 0.4 * pulse), 16.0, true)
+		ci.draw_line(points[0], points[1], Color(color, 0.9 if lit or not focused else 0.3), 6.0 if lit else 3.0, true)
+		if lit or not focused:
+			_text(ci, StatusText.link_label(audit, key), points[0].lerp(points[1], 0.5) + Vector2(0, -8.0), STATUS_TEXT, color)
+	for building in state.player_buildings():
+		if not audit.has(building.id) or not is_on_screen(building.position, building.half_extent()):
+			continue
+		var verdict := audit.verdict(building.id)
+		var color := StatusText.color(verdict)
+		var corner := building.position + Vector2(building.radius(), -building.radius()) * 0.8
+		ci.draw_circle(corner, STATUS_BADGE * 0.7, Color(AppTheme.SURFACE, 0.92))
+		ci.draw_arc(corner, STATUS_BADGE * 0.7, 0.0, TAU, 20, color, 2.0, true)
+		_icon(ci, StatusText.icon(verdict), corner, STATUS_BADGE, color)
+		if state.is_planning() and Formulas.is_fresh(building):
+			_icon(ci, Icons.SELL, building.position + Vector2(-building.radius(), -building.radius()) * 0.8, STATUS_BADGE - 4, AppTheme.GOLD)
+		var text := StatusText.label(building, audit)
+		if not text.is_empty():
+			var tone := AppTheme.ON_SURFACE if verdict == EnergyAudit.Verdict.OK else color
+			_text(ci, text, building.position + Vector2(0, building.radius() + 32.0), STATUS_TEXT, Color(tone, 1.0 if not focused or chain_buildings.has(building.id) or building.id == selected_id else 0.45))
+		if chain_buildings.has(building.id):
+			ci.draw_arc(building.position, building.radius() + 6.0, 0.0, TAU, 32, Color(AppTheme.ENERGY_CORE, 0.8), 3.0, true)
+		if building.id == culprit:
+			ci.draw_arc(building.position, building.radius() + 10.0 + 4.0 * pulse, 0.0, TAU, 32, Color(AppTheme.DANGER, 0.5 + 0.4 * pulse), 4.0, true)
+
+
+func _paint_stick(ci: CanvasItem) -> void:
+	if gesture != Gesture.STEER or stick_origin == Vector2.INF:
+		return
+	var factor := 1.0 / maxf(zoom, 0.01)
+	var origin := to_world(stick_origin)
+	var knob := to_world(stick_point if stick_point != Vector2.INF else stick_origin)
+	ci.draw_circle(origin, STICK_RADIUS * factor, Color(AppTheme.SURFACE, 0.35))
+	ci.draw_arc(origin, STICK_RADIUS * factor, 0.0, TAU, 40, Color(AppTheme.ENERGY, 0.6), 3.0 * factor, true)
+	ci.draw_circle(knob, STICK_RADIUS * 0.42 * factor, Color(AppTheme.ENERGY, 0.55))
 
 
 func _paint_links_of(ci: CanvasItem, building: Building) -> void:

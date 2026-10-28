@@ -1,6 +1,6 @@
 # Energy Wars – Features
 
-Tower-Defense-/Eroberungsspiel für Android (Godot 4.7, Hochformat). Ein Soldat landet per Fallschirm auf einer großen, vernebelten Karte und sucht einen Bauplatz. Dort baut man den Kern, mauert sich mit Bollwerken ein und baut ein Energienetz aus Solarpanels, Verteilern und Speichern. Damit versorgt man Türme über sichtbare Energiestrahlen und erobert die Karte, bis alle feindlichen Strukturen zerstört sind.
+Tower-Defense-/Eroberungsspiel für Android (Godot 4.7, Hochformat). Auf einer Weltkarte erobert man Gebiet für Gebiet. In jedem Gebiet landet ein Soldat per Fallschirm auf einer großen, vernebelten Karte und sucht einen Bauplatz. Dort baut man den Kern, mauert sich mit Bollwerken ein und baut ein Energienetz aus Solarpanels, Verteilern und Speichern. Damit versorgt man Türme über sichtbare Energiestrahlen und erobert die Karte, bis alle feindlichen Strukturen zerstört sind.
 
 ## Projektspezifische Ausnahmen von globalen Regeln
 
@@ -12,17 +12,17 @@ Tower-Defense-/Eroberungsspiel für Android (Godot 4.7, Hochformat). Ein Soldat 
 
 ## Spielablauf
 
-1. **Levelauswahl:** 8 Level, die nacheinander freigeschaltet werden. Pro Level gibt es 0–3 Sterne. Angezeigt werden Gesamtsterne, Kills und die beste Combo.
+1. **Weltkarte** (Hauptmenü): siehe Abschnitt „Weltkarte und Kampagne“. Von dort startet man eine Eroberung (Kampagne) oder – in eroberten Gebieten – den Survival-Modus.
 2. **Erkundung:**
    - Ein Soldat schwebt am Fallschirm herab und landet. Während der Erkundung läuft keine Zeit und es kommen keine Gegner.
-   - Der Soldat wird mit einem virtuellen Joystick (links unten; am Desktop auch Pfeiltasten/WASD) direkt gesteuert. Er gleitet an Klippen, Schluchten, Wald, Felsen und feindlichen Strukturen entlang und deckt dabei den Nebel auf. Die Kamera folgt ihm.
+   - Der Soldat wird direkt gesteuert: Man zieht mit dem Finger **irgendwo auf der Karte** (schwebender Joystick, der unter dem Finger erscheint und ihm folgt), alternativ mit dem festen Joystick links unten oder am Desktop mit Pfeiltasten/WASD. Er gleitet an Klippen, Schluchten, Wald, Felsen und feindlichen Strukturen entlang und deckt dabei den Nebel auf. Die Kamera folgt ihm.
    - Tippt man auf einen Baum oder Felsen in seiner Nähe (goldener Ring), beseitigt er ihn (Baum ca. 1,6 s, Fels ca. 3,2 s). Läuft er weg, bricht das Roden ab.
    - Mit „Basis“ in der Bauleiste setzt man den Kern: nur in der Nähe des Soldaten, auf erkundetem, freiem Boden und mit großem Abstand zu feindlichen Strukturen. Danach beginnt die erste Planungsphase.
    - Sobald der Kern steht, setzt sich der Soldat hinein und ist nicht mehr steuerbar. Von dort schießt er mit seinem Gewehr (ohne Energie, Reichweite 250) auf den nächsten Gegner.
 3. **Planungsphase** (ohne Zeitlimit):
    - Man kann bauen, upgraden, verbinden, versetzen und verkaufen.
    - Es gibt keine Gegner, die Zeit steht still und alle Energie ist eingefroren: Generatoren und Exporteure produzieren nichts, Türme schießen nicht, Heiltürme heilen nicht, mobile Türme fahren nicht.
-   - Versetzen ist kostenlos. Was in dieser Planungsphase investiert wurde (Bau und Upgrades), bekommt man beim Verkaufen voll zurück.
+   - Versetzen ist kostenlos. Nur was in **dieser** Planungsphase investiert wurde (Bau und Upgrades), bekommt man beim Verkaufen voll zurück; Gebäude aus früheren Runden oder aus dem Kampf geben nur den normalen Anteil. Der Verkaufen-Button zeigt „volle Erstattung“ bzw. den Verlust, im Statusmodus markiert ein goldenes Symbol die voll erstattbaren Gebäude.
    - In einem großen Umkreis (650 px) um feindliche Strukturen darf nicht gebaut werden. Feindbasen besiegt man nur mit mobilen Türmen oder mit Gebäuden, die man während des Kampfes näher heranbaut (dann gilt nur der kleine Mindestabstand von 150 px).
    - Eine Karte oben zeigt „Planung · Tag N“, die Buttons „Rückgängig“ und „Zurücksetzen“ sowie „▶ Tag N starten“.
    - **Rückgängig** nimmt den letzten Planungsschritt zurück: Bauen, Upgraden, Verkaufen, Versetzen, Verbinden, Kappen, Zielpriorität und Fokus. Eine gezogene Mauerlinie und ein Wischer, der mehrere Strahlen kappt, zählen jeweils als ein Schritt. Gebäude, Energie, Strahlen und Geld kehren zum Stand vor dem Schritt zurück.
@@ -31,17 +31,55 @@ Tower-Defense-/Eroberungsspiel für Android (Godot 4.7, Hochformat). Ein Soldat 
 4. **Kampf (Tag und Nacht):**
    - „Tag N starten“ beginnt den Tag. Die erste Welle kommt nach 3 s, danach alle 9 s eine weitere (Zähler „Tag N · Welle x/y“).
    - Jeder Spawner (Nest, Lager) schickt pro Welle mindestens einen Gegner; die Wellen werden im Laufe des Tages größer (bis zum 2,5-Fachen). Die Gegner einer Welle laufen kurz nacheinander (alle 0,3 s) aus einer gemeinsamen Richtung los.
-   - Die Nacht bringt größere Wellen (×1,6) mit stärkeren Gegnern (HP ×1,35, Schaden und Kopfgeld ×1,2, eine Gegnerstufe höher). Jede Nachtwelle wird mit Hinweis und Grollen angekündigt.
-   - Ist die Nacht vorbei, kommen keine neuen Gegner mehr („Morgengrauen – noch N Gegner“). Ist der letzte Gegner besiegt, gibt es ein Banner „Tag N überstanden“, alle Münzen werden eingesammelt, und die nächste Planungsphase beginnt.
+   - **Tagmonster:** Nach der Planungsphase ist es noch Tag. Dann kommen nur Tagmonster (Krabbler, Speier, Stachler, Käfer, Soldaten, Drohnen) – eher schwach.
+   - **Nachtmonster:** Sobald die Nacht beginnt, schicken die Spawner nur noch Nachtmonster (Pirscher, Nachtschwinge, Plünderer, Phantomdrohne, Saboteur sowie die Bosse Koloss und Panzer). Sie sind deutlich stärker; Nachtwellen sind zusätzlich 1,2-mal so groß. Jede Nachtwelle wird mit Hinweis und Grollen angekündigt. Jedes Level hat dafür eine eigene Tag- und Nachtliste.
+   - **Tagesanbruch:** Ist die Nacht vorbei, kommen keine neuen Gegner mehr. Alle Nachtmonster gehen in Flammen auf und verbrennen innerhalb von 0,6–2,4 s (Banner „Morgengrauen – N Nachtmonster gehen in Flammen auf“, Flammen und Funken). Verbrannte Monster bringen kein Kopfgeld und zählen nicht als Kill. Übrige Tagmonster muss man selbst besiegen („noch N Gegner“). Ist der letzte Gegner weg, gibt es ein Banner „Tag N überstanden“, alle Münzen werden eingesammelt, und die nächste Planungsphase beginnt.
    - Mit jedem Tag werden die Gegner stärker: HP ×1,16 pro Tag (ohne Deckel), Schaden +8 %, Kopfgeld +12 %, Wellen +35 %, und neue Gegnertypen kommen hinzu. Irgendwann ist die Verteidigung nicht mehr zu halten.
    - Feindliche Geschütztürme verteidigen sich selbst.
-5. **Sieg:** Alle feindlichen Strukturen sind zerstört. Verbleibende Gegner werden vernichtet und alle Münzen eingesammelt.
-6. **Niederlage:** Der Kern wird zerstört.
-7. **Sterne:**
-   - 3 Sterne: Kern ≥ 80 % und höchstens 2 verlorene Gebäude.
-   - 2 Sterne: Kern ≥ 40 %.
-   - Sonst 1 Stern.
-8. **Ergebnis:** Sterne erscheinen nacheinander mit Konfetti. Dazu Statistiken (Kills, beste Combo, verdientes Geld, Verluste, Zeit) und die Buttons Weiter, Nochmal und Menü.
+   - **Wächter:** Im Kampf erscheinen zusätzlich Wächter rund um jedes Nest (Käfer mit 4-fachen HP) und jedes Lager (Soldaten mit 12-fachen HP). Ab 2 s nach Tagesstart kommen sie nacheinander (alle 0,8 s), bis 2 Wächter je Basis stehen (alle zwei Tage einer mehr, höchstens 5). Gefallene Wächter werden nach 30 s ersetzt, aber nur bis zum Ende der Nacht. Sie laufen langsam (55 %) auf einem Ring um ihre Basis Patrouille, greifen nie an und bringen 1,5-faches Kopfgeld. Sie halten das Rundenende nicht auf. Beginnt die Planungsphase oder fällt ihre Basis, gehen sie in Flammen auf und verbrennen ohne Kopfgeld. Wächter tragen einen gelben Markierungsring; wählt man eine Feindbasis aus, zeigt ein gestrichelter Ring ihre Patrouillenroute.
+5. **Sieg (Kampagne):** Alle feindlichen Strukturen sind zerstört. Verbleibende Gegner werden vernichtet und alle Münzen eingesammelt. Das Gebiet gilt als erobert.
+6. **Sieg (Survival):** Die gewählte Zahl an Tagen ist überstanden. Im Endlos-Modus gibt es keinen Sieg.
+7. **Niederlage:** Der Kern wird zerstört.
+8. **Ergebnis:** Titel je nach Modus („Erobert!“, „Überlebt!“, „Das Ende“ mit überlebten Tagen, „Kern zerstört“). Im Survival erscheinen die Sterne nacheinander mit Konfetti; bei neuem Sterne- bzw. Endlos-Rekord steht „Neuer Rekord!“. Darunter alle Herausforderungen des Gebiets mit Häkchen, neu geschaffte mit „+N SP“. Dazu Statistiken (überlebte Tage, Kills, beste Combo, verdientes Geld, Verluste, Zeit) und die Buttons „Weltkarte“ und „Nochmal spielen“.
+
+## Weltkarte und Kampagne
+
+- Die Weltkarte ist das Hauptmenü: eine Inselwelt mit 8 Gebieten, verbunden durch Wege. Oben stehen Titel, Gesamtsterne, verfügbare Skillpunkte und Kills; unten das Gebietspanel, der Forschungs-Button und Sound/Vibration/Sprache.
+- Der eigene Soldat steht auf der Karte und **geht** über die Wege: Tippt man ein Gebiet an, läuft er auf dem kürzesten Weg dorthin – nur durch eroberte Gebiete. Während er läuft, sind die Start-Buttons gesperrt; tippt man unterwegs ein anderes Ziel an, läuft er vom nächsten Wegpunkt aus weiter. Sein Standort wird gespeichert.
+- **Gebietszustände:** erobert (Energie-Flagge, Sterne darunter), Feindgebiet (pulsierender roter Ring, Nest- oder Lager-Symbol der Feinde, angreifbar), unbekannt (Schloss). Ein Gebiet wird angreifbar, sobald ein Nachbargebiet erobert ist; das erste Gebiet ist immer offen. Wege zwischen eroberten Gebieten leuchten, Wege zu Feindgebieten sind goldfarben gestrichelt, alle anderen grau.
+- **Gebietspanel:** Name, Zustand, Beschreibung, alle Herausforderungen mit Häkchen und Skillpunkten. Buttons „Erobern“ bzw. „Erneut erobern“ (Kampagne, z. B. für offene Herausforderungen) und – in eroberten Gebieten – „Survival“.
+- Gebiete und Wege: Erstes Licht → Käferhügel / Schwarmnacht → Grenzposten / Sabotage → Panzerfront / Koloss → Endschlacht (mit Querwegen, mehrere Routen möglich).
+
+## Survival-Modus
+
+- Nur in eroberten Gebieten. Ablauf wie in der Kampagne (Erkundung, Kern, Planung, Tag/Nacht), aber die Spawner (Nest, Lager) sind unverwundbar (violetter Schutzring): Türme greifen sie nicht an, Fokus ist nicht möglich. Feindliche Geschütztürme bleiben zerstörbar.
+- Im Gebietspanel wählt man die Dauer: 5 Tage (★), 10 Tage (★★), 15 Tage (★★★) oder Endlos. Standard ist das nächste noch nicht erreichte Sternziel.
+- Übersteht man alle Tage, ist das Survival gewonnen und bringt die Sterne der gewählten Dauer (pro Gebiet zählt das Maximum, insgesamt 24 Sterne).
+- **Endlos:** Man kann nicht gewinnen; es zählt der Rekord an überlebten Tagen pro Gebiet („Endlos-Rekord: N Tage“).
+- Die HUD-Uhr zeigt „Tag N/M“ (bzw. „Tag N“ im Endlos-Modus).
+
+## Herausforderungen und Skillpunkte
+
+- Jedes Gebiet hat drei Herausforderungen. Jede bringt einmalig Skillpunkte (SP):
+  - „Erobere das Gebiet“ (2 SP).
+  - Eine Kampagnen-Herausforderung (1 SP), z. B. Kern ≥ X %, höchstens N verlorene Gebäude, Eroberung bis Tag N oder eine ×N-Combo. Gilt nur bei einem Kampagnensieg.
+  - „Überlebe N Tage im Survival“ (1 SP), gilt in jedem Survival-Lauf (auch bei Niederlage oder endlos), sobald N Tage überstanden sind.
+- Insgesamt gibt es 32 SP – weniger, als der ganze Forschungsbaum kostet (48 SP). Man muss also wählen.
+
+## Forschung (Tech-Baum)
+
+- Button „Forschung · N SP“ auf der Weltkarte. Drei Zweige; jede Forschung kostet SP und setzt teils andere voraus (wie ein StarCraft-Techbaum). Gekaufte Forschung gilt für jeden Kampf (Kampagne und Survival).
+- Zu Beginn verfügbar: Bollwerk, Solar, Verteiler, Speicher, Exporteur, Blitzturm. Alle weiteren Türme werden erforscht.
+
+| Zweig | Forschung (Kosten, Voraussetzung) |
+|---|---|
+| Waffen | Überladene Blitze (1): Blitzturm +20 % Schaden · Laserturm (2) · Mobiler Turm (2, Überladene Blitze) · Tesla-Spule (3, Überladene Blitze) · Plasmawerfer (3, Laserturm) · Fokuslinse (2, Laser): Laser +20 % Schaden · Bogenverstärker (2, Tesla): +1 Kettenziel · Instabiles Plasma (2, Plasma): +25 % Explosionsradius · Waffensysteme I (2, Laser) und II (3): alle Türme je +10 % Schaden · Zieloptik (2, Waffensysteme I): alle Türme +8 % Reichweite |
+| Verteidigung | Verstärkte Mauern (1): Bollwerk +25 % HP · Heilturm (2) · Nanoreparatur (2, Heilturm): +25 % Heilkraft · Schildgenerator (3, Heilturm) · Panzerung I (2, Verstärkte Mauern) und II (3): alle Gebäude inkl. Kern je +15 % HP |
+| Wirtschaft | Bessere Zellen (1) und Perfekte Zellen (2): Solar je +15 % Leistung · Supraleiter (2, Bessere Zellen): alle Strahlen +25 % Übertragung, also 20 % weniger Strahlverlust · Dichte Speicher (1): Speicher +30 % Kapazität · Handelswege (2, Dichte Speicher): Exporteur +25 % Exportrate · Kriegskasse I (1) und II (2): +60 bzw. +120 Startgeld |
+
+- Jede Zeile zeigt Symbol, Name, Wirkung, fehlende Voraussetzungen und den Kauf-Button (ausgegraut, wenn SP oder Voraussetzungen fehlen; „Erforscht“ bei Besitz).
+- „Forschung zurücksetzen“ erstattet nach Rückfrage alle SP.
+- Boni wirken auf die Grundwerte und stapeln sich mit den Upgrades im Kampf; das Gebäudepanel zeigt die erhöhten Werte.
 
 ## Gelände und Nebel
 
@@ -65,35 +103,31 @@ Jedes Gebäude hat Kosten, Lebenspunkte und eigene Upgrade-Pfade; die meisten ha
 
 | Gebäude | Funktion | Upgrades |
 |---|---|---|
-| Kern (Basis) | Wird nach der Erkundung gesetzt, erzeugt etwas Energie, hat 3 Strahlen und verteidigt sich selbst mit Blitzen. Der Soldat sitzt darin und schießt zusätzlich. | Rate, Reichweite, Strahlen, Kraft, Tempo, Leistung, Kapazität, Hülle |
-| Solarpanel | Erzeugt tagsüber Energie, kann nur senden. Die Transferrate entspricht immer der Leistung und verteilt sich auf die verbundenen Strahlen – so fließt stets die gesamte Leistung ab. | Leistung, Reichweite, Strahlen, Kapazität, Hülle |
-| Verteiler | Leitet Energie weiter (3 Strahlen, große Reichweite) | Rate, Reichweite, Strahlen, Kapazität, Hülle |
-| Speicher | Großer Energiespeicher | Kapazität, Rate, Reichweite, Strahlen, Hülle |
-| Energieexporteur | Verkauft empfangene Energie für Geld (4 Energie = 1 Geld, Auszahlung in 5er-Paketen) | Exportrate, Kapazität, Hülle |
-| Blitzturm | Schneller Einzelziel-Blitz (Boden + Luft) | Kraft, Tempo, Reichweite, Kritische Treffer, Effizienz, Kapazität, Hülle |
-| Laserturm | Dauerstrahl, verbraucht Energie kontinuierlich | Kraft, Reichweite, Effizienz, Kapazität, Hülle |
-| Teslaturm | Kettenblitz über bis zu 5 Ziele mit Abschwächung | Kraft, Tempo, Reichweite, Kettenziele, Kritische Treffer, Effizienz, Kapazität, Hülle |
-| Plasmawerfer | Artillerie mit Flächenschaden, große Reichweite und Mindestreichweite, nur Bodenziele (auch Strukturen) | Kraft, Tempo, Reichweite, Explosionsradius, Kritische Treffer, Effizienz, Kapazität, Hülle |
+| Kern (Basis) | Wird nach der Erkundung gesetzt, erzeugt etwas Energie, hat 3 Strahlen und verteidigt sich selbst mit Blitzen. Der Soldat sitzt darin und schießt zusätzlich. | Rate, Reichweite, Strahlen, Strahlübertragung, Kraft, Tempo, Leistung, Kapazität, Hülle |
+| Solarpanel | Erzeugt tagsüber Energie, kann nur senden. Die Transferrate entspricht immer der Leistung und verteilt sich auf die verbundenen Strahlen – so fließt stets die gesamte Leistung ab. | Leistung, Reichweite, Strahlen, Strahlübertragung, Kapazität, Hülle |
+| Verteiler | Leitet Energie weiter (3 Strahlen, große Reichweite) | Rate, Reichweite, Strahlen, Strahlübertragung, Kapazität, Hülle |
+| Speicher | Großer Energiespeicher | Kapazität, Rate, Reichweite, Strahlen, Strahlübertragung, Hülle |
+| Energieexporteur | Verkauft empfangene Energie für Geld (4 Energie = 1 Geld, Auszahlung in 5er-Paketen). Das Panel zeigt Verbrauch/s, Kurs („4 Energie = 1 Geld“), Erlös/s, Erlös pro Tag bei voller Versorgung und den realen Ertrag laut Netzdiagnose (Tag/Nacht). | Exportrate, Kapazität, Hülle |
+| Blitzturm | Schneller Einzelziel-Blitz (Boden + Luft) | Kraft, Tempo, Überladung, Reichweite, Kritische Treffer, Effizienz, Kapazität, Hülle |
+| Laserturm | Dauerstrahl, verbraucht Energie kontinuierlich | Kraft, Überladung, Reichweite, Effizienz, Kapazität, Hülle |
+| Teslaturm | Kettenblitz über bis zu 5 Ziele mit Abschwächung | Kraft, Tempo, Überladung, Reichweite, Kettenziele, Kritische Treffer, Effizienz, Kapazität, Hülle |
+| Plasmawerfer | Artillerie mit Flächenschaden, große Reichweite und Mindestreichweite, nur Bodenziele (auch Strukturen) | Kraft, Tempo, Überladung, Reichweite, Explosionsradius, Kritische Treffer, Effizienz, Kapazität, Hülle |
 | Schildgenerator | Absorbiert Schaden an Gebäuden im Radius mit eigener Energie | Stärke, Radius, Kapazität, Hülle |
 | Heilturm | Repariert beschädigte Gebäude in Reichweite und verbraucht dafür Energie. Wählt das Ziel automatisch: am stärksten beschädigt, gerade unter Beschuss, Kern bevorzugt, plus etwas Zufall. Kein Überheilen, ohne Ziel kein Verbrauch. | Heilkraft, Heiltempo, Heilreichweite, Effizienz, Kapazität, Hülle |
-| Mobiler Turm | Fahrbarer Blitzturm (Boden + Luft). Wird ausgewählt und per Joystick gesteuert (nur im Kampf); Fahren kostet viel Energie (ca. 6,7 pro Feld). Ohne Energie bleibt er stehen. Erweitert den Bauradius nicht und kann nicht versetzt werden. | Kraft, Tempo, Reichweite, Kritische Treffer, Fahreffizienz, Kapazität, Hülle |
+| Mobiler Turm | Fahrbarer Blitzturm (Boden + Luft). Wird ausgewählt und durch Ziehen irgendwo auf der Karte bzw. per Joystick gesteuert (nur im Kampf); Fahren kostet viel Energie (ca. 6,7 pro Feld). Ohne Energie bleibt er stehen. Erweitert den Bauradius nicht und kann nicht versetzt werden. | Kraft, Tempo, Überladung, Reichweite, Kritische Treffer, Fahreffizienz, Kapazität, Hülle |
 | Bollwerk | Mauerblock mit sehr viel HP (2000, Türme nur 90–120). Blockiert Bodengegner, braucht keine Energie und erweitert den Bauradius nicht. Anfangs sehr günstig (4 Geld), alle 6 Bollwerke wird es 1 teurer. Im Baumodus kann man eine Mauerlinie ziehen; der Baumodus bleibt aktiv. | Hülle |
 
 - **Energiewerte pro Gebäude:** Türme, Kern, mobiler Turm und Heilturm zeigen im Panel zusätzlich den Verbrauch pro Sekunde bei Dauerfeuer (beim Laser „Energie/s“), wie lange der eigene Speicher dabei reicht und wie viele Schüsse bzw. Heilungen eine volle Ladung ergibt. Ändert ein Upgrade den Verbrauch (Tempo, Effizienz), zeigt die Upgrade-Zeile zusätzlich „⚡ alt → neu/s“. Nach einem Upgrade hüpfen alle geänderten Werte kurz auf.
-- **Upgrades:** viele kleine Stufen je Pfad, z. B. Kraft 40 Stufen à +10 %, Tempo 25 à +6 %, Rate 25 à +12 %, Reichweite 15 à +4 %, Leistung 30 à +10 %, Kapazität 25 à +20 %, Hülle 30 à +15 %, Effizienz 20 à +5 % (weniger Energie pro Schuss, Heilung oder Fahrt), Kritische Treffer 20 à +1 % Chance, Explosionsradius 15 à +5 %, Strahlen und Kettenziele je 5 Stufen à +1. Die Kosten wachsen pro Stufe um 12 % (Strahlen und Kette steiler). Das Panel zeigt „St. x/max“, aktuellen und nächsten Wert sowie die Kosten; die Liste ist scrollbar.
-- **Verkaufen:** Investitionen aus der aktuellen Planungsphase werden voll erstattet, ältere Investitionen zu 50 %. Dieser Anteil sinkt mit dem Gesundheitszustand (z. B. bei 40 % HP nur 40 % davon).
+- **Upgrades:** viele kleine Stufen je Pfad, z. B. Kraft 40 Stufen à +10 %, Tempo 25 à +6 %, Rate 25 à +12 %, Reichweite 15 à +4 %, Leistung 30 à +10 %, Kapazität 25 à +20 %, Hülle 30 à +15 %, Effizienz 20 à +5 % (weniger Energie pro Schuss, Heilung oder Fahrt), Kritische Treffer 20 à +1 % Chance, Explosionsradius 15 à +5 %, Strahlübertragung 10 à +15 % (weniger Strahlverlust), Strahlen und Kettenziele je 5 Stufen à +1.
+- **Überladung (Fehl-Upgrade möglich):** 12 Stufen à +20 % Schaden, aber jede Stufe braucht ×1,25 Energie pro Schuss. Braucht ein Schuss mehr Energie, als der Turm speichern kann, ist er **überladen** und feuert gar nicht mehr (Blitzturm ab Stufe 11, Tesla ab 8, Plasma ab 6 ohne Kapazitäts-Upgrades). Man darf das bewusst oder versehentlich ausbauen. Die Upgrade-Zeile warnt vorher („⚠ Schuss > Speicher: feuert nicht mehr“), Kapazität bzw. Effizienz zeigen „✓ feuert wieder“, wenn sie die Überladung beheben, nach dem Upgrade erscheint ein Hinweis, und der Statusmodus markiert den Turm rot. Die Kosten wachsen pro Stufe um 12 % (Strahlen und Kette steiler). Das Panel zeigt „St. x/max“, aktuellen und nächsten Wert sowie die Kosten; die Liste ist scrollbar.
+- **Verkaufen:** Investitionen aus der aktuellen Planungsphase werden voll erstattet, ältere Investitionen (auch alles, was im Kampf gebaut wurde) zu 50 %. Dieser Anteil sinkt mit dem Gesundheitszustand (z. B. bei 40 % HP nur 40 % davon). Der Button zeigt „+N (volle Erstattung)“ oder „+N (−M Verlust)“.
 - **Versetzen** (Button im Panel): in der Planungsphase kostenlos, im Kampf 20 % von Kaufpreis plus allen Upgrades (mindestens 1). Es gelten die normalen Bauregeln, das Gebäude selbst zählt dabei nicht für den Bauradius. Strahlen, die danach zu lang sind, werden gekappt. Kern und mobiler Turm lassen sich nicht versetzen.
 - **Bauregeln:**
   - Nur innerhalb des Bauradius eigener Gebäude (Bollwerke zählen nicht).
   - Nur auf erkundetem, freiem Boden: nicht auf Klippen, Schluchten, Bäumen, Felsen, anderen Gebäuden oder Bodengegnern.
   - Abstand zu feindlichen Strukturen: in der Planungsphase 650 px (Hinweis „Zu nah an der Feindbasis – das geht nur während des Angriffs.“), im Kampf 150 px. Die Sperrzone wird im Baumodus um erkundete Feindstrukturen angezeigt.
   - Geld muss reichen und das Gebäude freigeschaltet sein.
-- **Freischaltung je Level:**
-  - Level 1: Solar, Verteiler, Speicher, Exporteur, Blitz, Bollwerk
-  - Level 2: Laser, Heilturm, mobiler Turm
-  - Level 3: Schild
-  - Level 4: Tesla
-  - Level 5: Plasma
+- **Freischaltung:** über die Forschung (siehe „Forschung“), unabhängig vom Gebiet.
 
 ## Energienetz
 
@@ -108,6 +142,7 @@ Jedes Gebäude hat Kosten, Lebenspunkte und eigene Upgrade-Pfade; die meisten ha
   - Jeder Strahl überträgt bis zur Transferrate der Quelle; der Vorrat der Quelle wird gleichmäßig auf ihre Strahlen verteilt. Beim Solarpanel ist die Transferrate die Leistung, aufgeteilt auf die verbundenen Strahlen.
   - Strahlen, deren Ziel außer Reichweite ist (mobiler Turm ist weggefahren), bleiben bestehen, übertragen aber nichts, bis das Ziel wieder in Reichweite ist.
   - Begrenzt wird durch den freien Speicher des Ziels.
+  - **Strahlverlust:** Jeder Strahl verliert 2,5 % pro Feld Länge (höchstens 60 %). Das Ziel erhält nur den Rest, die Quelle zahlt den vollen Betrag. Die Quelle bestimmt die Qualität: Das Upgrade „Strahlübertragung“ (Kern, Solar, Verteiler, Speicher) und die Forschung „Supraleiter“ teilen den Verlust. Ist das Ziel fast voll, wird nur so viel gesendet, wie ankommen kann, sodass nichts verschwendet wird. Das Panel zeigt pro Sender den „Verlust bei voller Weite“ und in der Upgrade-Zeile den Verlust pro Feld.
   - Die Dicke und das Leuchten eines Strahls zeigen den aktuellen Fluss; Energiepakete wandern sichtbar entlang.
 - Türme ohne Energie feuern nicht und zeigen ein blinkendes Blitzsymbol.
 - **Energiebilanz** (Diagramm-Button in der oberen Leiste, ab dem Setzen des Kerns): Ein Panel unter der Planungskarte zeigt live
@@ -118,30 +153,44 @@ Jedes Gebäude hat Kosten, Lebenspunkte und eigene Upgrade-Pfade; die meisten ha
   - die Bilanz bei Dauerfeuer am Tag und in der Nacht,
   - wie lange die aktuelle Reserve bei Dauerfeuer am Tag und in der Nacht reicht und wie lange volle Speicher nachts reichen („unbegrenzt“, wenn die Produktion reicht).
   - Eine farbige Spalte zeigt die Änderung seit Beginn der aktuellen Planungsphase (grün besser, rot schlechter, grau neutral; bei „unbegrenzt“/„voll“ steht „vorher …“). Nach Bauen, Upgraden, Verkaufen, Versetzen, Verbinden, Kappen oder Rückgängig hüpfen die geänderten Werte kurz auf.
-  - Schilde fließen nicht ein (Verbrauch nur bei Treffern), Strahl-Transferlimits werden nicht berücksichtigt. Schließen über ✕, erneutes Tippen auf den Button oder die Zurück-Taste.
+  - Zusätzlich: Exporterlös (Geld/s, nach Strahlverlust), Strahlverlust am Tag (Energie/s), Strahleffizienz (ankommender Anteil) und wie viel Prozent des Bedarfs am Tag und in der Nacht gedeckt sind. Die Bilanzen ziehen den Strahlverlust ab.
+  - Schilde fließen nicht ein (Verbrauch nur bei Treffern). Schließen über ✕, erneutes Tippen auf den Button oder die Zurück-Taste.
+- **Statusmodus** (Netz-Button neben der Energiebilanz, ab dem Setzen des Kerns, in Planung und Kampf):
+  - Eine Diagnose verfolgt für jedes Gebäude die gesamte Strahlkette bis zu den Erzeugern und prüft, ob im Dauerbetrieb genug Energie ankommt. Gerechnet wird ein Tag- und ein Nacht-Szenario (Solar nachts 0), mit Transferraten, Strahlverlusten und fairer Aufteilung auf mehrere Strahlen (auch bei Kreisen im Netz).
+  - An jedem Gebäude steht ein Status-Abzeichen: ✓ „Versorgt“ (grün), Mond „Nachts knapp“, Warnung „Unterversorgt“, „Ausgehungert“ (unter 2 %), „Ohne Quelle“ (keine Kette zu einem Erzeuger oder Strahl außer Reichweite) und „Überladen“.
+  - Darunter steht der Verbrauch: Türme „Energie/Schuss · Energie/s“, Laser „Energie/s“, Heiltürme pro Heilung, Exporteure „Energie/s → Geld/s“, Erzeuger ihre Leistung, Verteiler den Durchsatz und bei Mangel „X % gedeckt“.
+  - Jeder Strahl zeigt Verlust und ankommende Energie/s und ist eingefärbt: Energie normal, gelb am Transferlimit, orange bei starkem Verlust (ab 20 %), rot außer Reichweite.
+  - Wählt man ein Gebäude aus, leuchtet seine Versorgungskette auf, der Rest wird abgedunkelt. Das verantwortliche Gebäude und der verantwortliche Strahl pulsieren rot. Das Panel nennt Status, Tag/Nacht-Deckung, Bedarf, Strahlen rein/raus und die Ursache mit Lösungsvorschlag (z. B. „Der Strahl von Verteiler verliert unterwegs 23 %. Kürzer bauen oder Strahlübertragung ausbauen.“).
+  - Eine Legende erklärt die Farben. In der Planungsphase markiert ein goldenes Verkaufen-Symbol die Gebäude, die noch voll erstattet werden.
 
 ## Gegner
 
 Es gibt drei Klassen: Nahkampf, Fernkampf und Luft.
 
-| Gegner | Klasse | Eigenschaften |
-|---|---|---|
-| Krabbler | Nahkampf | Schnell, schwach, Schwarm |
-| Käfer | Nahkampf | Gepanzert, langsam |
-| Speier | Fernkampf | Säurespucker aus dem Nest |
-| Wespe | Luft | Schnell, schwach (Plasma trifft nicht) |
-| Behemoth | Nahkampf | Boss, sehr viel HP |
-| Soldat | Fernkampf | Schießt aus Distanz |
-| Saboteur | Nahkampf | Läuft zum nächsten erreichbaren Strahl (freie Zelle direkt am Strahl) und schneidet ihn durch |
-| Drohne | Luft | Fliegt und schießt aus kurzer Distanz |
-| Panzer | Fernkampf | Boss mit großer Reichweite |
+| Gegner | Klasse | Zeit | Eigenschaften |
+|---|---|---|---|
+| Krabbler | Nahkampf | Tag | Schnell, schwach, Schwarm |
+| Käfer | Nahkampf | Tag | Gepanzert, langsam |
+| Speier | Fernkampf | Tag | Säurespucker aus dem Nest |
+| Stachler | Luft | Tag | Schnell, schwach (Plasma trifft nicht) |
+| Soldat | Fernkampf | Tag | Schießt aus Distanz |
+| Drohne | Luft | Tag | Fliegt und schießt aus kurzer Distanz |
+| Pirscher | Nahkampf | Nacht | Schnelles, kräftiges Raubtier aus dem Nest |
+| Nachtschwinge | Luft | Nacht | Fledermausartiger Flieger |
+| Koloss | Nahkampf | Nacht | Boss, sehr viel HP |
+| Plünderer | Fernkampf | Nacht | Stärkerer Schütze mit Nachtsichtvisier |
+| Phantomdrohne | Luft | Nacht | Stärkere, violett leuchtende Drohne |
+| Saboteur | Nahkampf | Nacht | Läuft zum nächsten erreichbaren Strahl (freie Zelle direkt am Strahl) und schneidet ihn durch |
+| Panzer | Fernkampf | Nacht | Boss mit großer Reichweite |
+
+- Nachtmonster verbrennen bei Tagesanbruch (siehe Kampf).
 
 - Nester schicken Tiere, Lager schicken Menschen und Maschinen. Jede Fraktion hat alle drei Klassen. Feindliche Geschütztürme schießen auf nahe Gebäude.
 - **Pfadsuche:** Bodengegner laufen per A* um Klippen, Schluchten, Wald, Felsen und Gebäude herum. Neue Mauern lösen eine Neuplanung aus.
 - **Zielpriorität:** Exporteur > Heiler > Türme (inkl. Schild) > Bollwerke > Verteiler und Speicher > Kern. Gebäude, die mangels Energie gerade nichts tun, rutschen auf die niedrigste Stufe direkt über dem Kern. Bei gleicher Stufe gewinnt das nächste Ziel.
 - **Erreichbarkeit:** Bodengegner (Nah- und Fernkampf) greifen nur Gebäude an, zu denen ein Weg führt. Ist die Basis eingemauert, greifen sie zuerst die Bollwerke an. Fernkämpfer schießen auch dann nicht über Mauern, wenn das Ziel in Reichweite ist. Luftgegner ignorieren das.
 - Gegner zerstören Türme sehr schnell; nur Bollwerke halten lange stand. Man muss sich also einmauern. Mauern wirken am besten dicht an den Türmen: Fernkämpfer (Reichweite 110–120) bleiben dann in Turmreichweite, nur der Panzer schießt von weiter weg.
-- HP, Schaden und Kopfgeld steigen mit jedem Tag und sind nachts zusätzlich erhöht (siehe Kampf).
+- HP, Schaden und Kopfgeld steigen mit jedem Tag (siehe Kampf).
 
 ## Belohnungen und „Juice“
 
@@ -152,14 +201,16 @@ Es gibt drei Klassen: Nahkampf, Fernkampf und Luft.
 - **Kritische Treffer:** 12 % Grundchance auf doppelten Schaden (per Upgrade steigerbar), mit großer Schadenszahl und Effekt.
 - Wird eine feindliche Struktur zerstört, gibt es Zeitlupe, Bildschirmwackeln, eine Explosion, einen Münzregen und ein Banner.
 - Partikel, Ringe, Schadenszahlen, Vibration (abschaltbar) und synthetisierte Soundeffekte.
+- Erscheinende Wächter blitzen gelb auf (einmaliger Hinweis), beim Start der Planungsphase meldet ein Hinweis „N Wächter gehen in Flammen auf“. Wächter brennen mit stärkeren Flammen.
+- Verbrennende Nachtmonster flackern in Flammen und zerfallen mit Funkenregen; ein verbrannter Boss löst Bildschirmwackeln und den Hinweis „Boss verbrannt“ aus. Unverwundbare Survival-Spawner tragen einen pulsierenden violetten Schutzring.
 - Banner für Tagesstart, Nacht, Ende der Nacht und „Tag N überstanden“ (mit Fanfare und Konfetti), Nachtwellen-Hinweis, Exporteur-Einnahmen-Effekt, grüne Heilstrahlen mit „+N“, Landungs- und Basis-Banner, Rodungs-Effekte.
 
 ## Bedienung
 
 - **Bauen:** Gebäude in der Bauleiste antippen. Ein Geist (Rasterfeld) zeigt Gültigkeit und Reichweite; Platzieren per Tippen oder Loslassen.
   - Energie-Abdeckung im Platzierungsmodus (nicht bei Bollwerk und Kern): Bebaubare Felder werden eingefärbt, je nachdem wie viele sendende Gebäude mit freiem Strahl sie erreichen – rot = 1, gelb = 2, grün = 3 oder mehr. Blau = nur von Gebäuden erreichbar, deren Strahlen alle belegt sind. Danach endet der Baumodus, außer bei Bollwerken: Hier zieht man Mauerlinien und baut weiter, bis das Geld fehlt. Die Kosten in der Bauleiste sind aktuell (Bollwerke werden teurer).
-- **Soldat (nur während der Erkundung):** Joystick links unten, Hinweis-Chip darüber. Tippen auf nahe Bäume oder Felsen rodet. Der Button rechts unten springt zum Soldaten.
-- **Mobiler Turm:** Auswählen zeigt den Joystick. Solange er ausgewählt ist, zeigt der Boden die Reichweite aller mit ihm verbundenen Sender (rot/gelb/grün = 1/2/3+), damit man sieht, wie weit er fahren kann. Abwählen hält ihn an.
+- **Soldat (nur während der Erkundung):** Ziehen irgendwo auf der Karte (schwebender Joystick mit Totzone, der Ursprung wandert mit dem Finger mit) oder der Joystick links unten, Hinweis-Chip darüber. Kurzes Tippen wählt weiterhin aus bzw. rodet. Tippen auf nahe Bäume oder Felsen rodet. Der Button rechts unten springt zum Soldaten.
+- **Mobiler Turm:** Auswählen zeigt den Joystick; im Kampf lenkt zusätzlich Ziehen irgendwo auf der Karte (im Verschieben-Modus ohne aktiven Bau- oder Zielmodus). Solange er ausgewählt ist, zeigt der Boden die Reichweite aller mit ihm verbundenen Sender (rot/gelb/grün = 1/2/3+), damit man sieht, wie weit er fahren kann. Abwählen hält ihn an.
 - **Modus-Umschalter** (Button unten rechts):
   - „Verschieben“ (Standard): Ein Finger bewegt die Karte, Tippen wählt aus.
   - „Verbinden“: Ziehen verbindet, Wischen kappt. Doppeltippen und gedrückt halten verschiebt die Karte; bis zum Loslassen wird nicht verbunden. Die Zurück-Taste wechselt zurück zu Verschieben.
@@ -172,12 +223,13 @@ Es gibt drei Klassen: Nahkampf, Fernkampf und Luft.
   - Zwei Finger zoomen und verschieben in beiden Modi. Solange zwei Finger aufliegen, wird nicht verbunden oder geschnitten.
   - Im Verbinden-Modus: Doppeltippen und halten verschiebt.
   - Am Desktop: Mausrad sowie rechte oder mittlere Maustaste.
-- **HUD:** Geld, Energiebalken mit Erzeugung pro Sekunde, Button für die Energiebilanz, Uhr (Planung/Tag/Nacht) mit Tages- und Wellenzähler, Planungskarte mit Rückgängig, Zurücksetzen und „Tag N starten“, Spielgeschwindigkeit 1×/2×/3× und Pause.
-- **Pause-Menü:** Weiter, Neustart, Menü, Sound und Vibration.
-- **Zurück-Taste:** schließt nacheinander Zielauswahl (Verbinden/Angreifen), Bau- oder Versetzen-Modus, Gebäudeauswahl, Energiebilanz und Verbinden-Modus, dann öffnet sie die Pause; nach Spielende geht sie zum Menü.
-- **Tutorial** im ersten Level: Soldat mit Joystick laufen lassen → Basis setzen → Solar bauen → verbinden → Turm bauen → Turm versorgen → Bollwerke bauen → Kamera → Tag starten → Speicher → Strahl schneiden.
+- **HUD:** Geld, Energiebalken mit Erzeugung pro Sekunde, Buttons für die Energiebilanz und den Statusmodus, Uhr (Planung/Tag/Nacht) mit Tages- und Wellenzähler, Planungskarte mit Rückgängig, Zurücksetzen und „Tag N starten“, Spielgeschwindigkeit 1×/2×/3× und Pause.
+- **Pause-Menü:** Weiter, Neustart, Weltkarte, Sound und Vibration.
+- **Zurück-Taste:** schließt nacheinander Zielauswahl (Verbinden/Angreifen), Bau- oder Versetzen-Modus, Gebäudeauswahl, Energiebilanz, Statusmodus und Verbinden-Modus, dann öffnet sie die Pause; nach Spielende geht sie zur Weltkarte. Auf der Weltkarte schließt sie die Rückfrage bzw. die Forschung, sonst beendet sie die App.
+- **Tutorial** in der ersten Kampagne von „Erstes Licht“ (solange es nicht erobert ist): Soldat mit Joystick laufen lassen → Basis setzen → Solar bauen → verbinden → Turm bauen → Turm versorgen → Bollwerke bauen → Kamera → Tag starten → Speicher → Strahl schneiden.
 
 ## Einstellungen und Fortschritt
 
 - Sound, Vibration und Sprache (Deutsch/Englisch, Standard ist die Systemsprache) werden lokal gespeichert.
-- Der Fortschritt (Sterne je Level, Gesamtkills, beste Combo) liegt als JSON in `user://progress.json`. Beschädigte Daten werden robust bereinigt.
+- Der Fortschritt liegt als JSON (Version 2) in `user://progress.json`: pro Gebiet erobert, Survival-Sterne, Endlos-Rekord und geschaffte Herausforderungen; dazu gekaufte Forschung, Standort auf der Weltkarte, Gesamtkills und beste Combo. Beschädigte Daten werden robust bereinigt (unbekannte Gebiete, Herausforderungen und Forschungen fallen weg; wurde mehr ausgegeben als verdient, wird die Forschung zurückgesetzt).
+- **Migration:** Ein alter Spielstand (Version 1, Sterne je Level) wird beim Laden übernommen: Jedes Level mit mindestens einem Stern gilt als erobert (inkl. „Erobere das Gebiet“), der Standort ist das letzte eroberte Gebiet. Andere Versionen werden verworfen.
