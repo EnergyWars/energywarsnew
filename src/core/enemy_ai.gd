@@ -99,7 +99,7 @@ func _attack(enemy: Enemy, target: Building) -> void:
 	enemy.cooldown = float(enemy.definition().cooldown)
 	enemy.heading = (target.position - enemy.position).normalized() if target.position != enemy.position else enemy.heading
 	events.emit("enemy_attack", {"from": enemy.position, "to": target.position, "ranged": enemy.reach() > 0.0, "kind": enemy.kind})
-	combat.damage_building(target, float(enemy.definition().damage))
+	combat.damage_building(target, enemy.damage())
 
 
 func _plan(enemy: Enemy, key: int, finder: Callable) -> bool:

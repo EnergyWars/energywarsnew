@@ -7,6 +7,7 @@ var position: Vector2
 var hp: float
 var max_hp: float
 var bounty: int
+var damage_scale := 1.0
 var cooldown := 0.0
 var target_id := -1
 var target_link := ""
@@ -18,23 +19,41 @@ var path := PackedVector2Array()
 var path_index := 0
 var path_target := -1
 var path_version := -1
+var burn := -1.0
 var _class := ""
 var _radius := 0.0
+var _speed := 0.0
+var _reach := 0.0
+var _saboteur := false
+var _boss := false
+var _nocturnal := false
+var _definition: Dictionary
 
 
-func _init(p_id: int, p_kind: String, p_position: Vector2, cycle: int = 0) -> void:
+func _init(p_id: int, p_kind: String, p_position: Vector2, hp_scale: float = 1.0, p_damage_scale: float = 1.0, bounty_scale: float = 1.0) -> void:
 	id = p_id
 	kind = p_kind
 	position = p_position
-	_class = str(definition().get("class", GameConfig.CLASS_MELEE))
-	_radius = float(definition().radius)
-	max_hp = float(definition().hp) * (1.0 + GameConfig.HP_GROWTH * clampi(cycle, 0, GameConfig.HP_GROWTH_CYCLES))
+	_definition = GameConfig.enemy(kind)
+	_class = str(_definition.get("class", GameConfig.CLASS_MELEE))
+	_radius = float(_definition.radius)
+	_speed = float(_definition.speed)
+	_reach = float(_definition.reach)
+	_saboteur = bool(_definition.get("sabotage", false))
+	_boss = bool(_definition.get("boss", false))
+	_nocturnal = bool(_definition.get("nocturnal", false))
+	max_hp = float(_definition.hp) * maxf(hp_scale, 0.01)
 	hp = max_hp
-	bounty = int(round(float(definition().bounty) * (1.0 + GameConfig.BOUNTY_GROWTH * maxi(cycle, 0))))
+	damage_scale = maxf(p_damage_scale, 0.0)
+	bounty = maxi(int(round(float(_definition.bounty) * bounty_scale)), 1)
 
 
 func definition() -> Dictionary:
-	return GameConfig.enemy(kind)
+	return _definition
+
+
+func damage() -> float:
+	return float(_definition.damage) * damage_scale
 
 
 func is_alive() -> bool:
@@ -46,7 +65,7 @@ func radius() -> float:
 
 
 func speed() -> float:
-	return float(definition().speed)
+	return _speed
 
 
 func unit_class() -> String:
@@ -54,23 +73,31 @@ func unit_class() -> String:
 
 
 func is_air() -> bool:
-	return unit_class() == GameConfig.CLASS_AIR
+	return _class == GameConfig.CLASS_AIR
 
 
 func is_ranged() -> bool:
-	return unit_class() == GameConfig.CLASS_RANGED
+	return _class == GameConfig.CLASS_RANGED
 
 
 func is_saboteur() -> bool:
-	return bool(definition().get("sabotage", false))
+	return _saboteur
 
 
 func is_boss() -> bool:
-	return bool(definition().get("boss", false))
+	return _boss
+
+
+func is_nocturnal() -> bool:
+	return _nocturnal
+
+
+func is_burning() -> bool:
+	return burn >= 0.0
 
 
 func reach() -> float:
-	return float(definition().reach)
+	return _reach
 
 
 func hp_ratio() -> float:

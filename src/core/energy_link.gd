@@ -4,6 +4,7 @@ extends RefCounted
 var source: int
 var target: int
 var flow := 0.0
+var active := true
 
 
 func _init(p_source: int, p_target: int) -> void:

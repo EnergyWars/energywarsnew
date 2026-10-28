@@ -1,7 +1,7 @@
 class_name EffectPool
 extends RefCounted
 
-const MAX_PARTICLES := 700
+const MAX_PARTICLES := 400
 const MAX_FLOATERS := 60
 const MAX_SHAKE := 26.0
 const SHAKE_DECAY := 2.6
@@ -20,9 +20,8 @@ func _init(seed_value: int = 1) -> void:
 
 
 func burst(position: Vector2, color: Color, count: int, speed: float, size: float, life: float, gravity: float = 0.0) -> void:
+	count = mini(count, MAX_PARTICLES - particles.size())
 	for i in count:
-		if particles.size() >= MAX_PARTICLES:
-			particles.pop_front()
 		var velocity := Vector2.from_angle(rng.randf() * TAU) * speed * rng.randf_range(0.3, 1.0)
 		particles.append({"position": position, "velocity": velocity, "life": life * rng.randf_range(0.6, 1.0), "max": life,
 			"color": color, "size": size * rng.randf_range(0.6, 1.2), "gravity": gravity})

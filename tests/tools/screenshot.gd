@@ -14,6 +14,7 @@ var _deploy := false
 var _reveal := false
 var _zoom := 0.0
 var _drop := false
+var _pick := ""
 var _main: Node
 
 
@@ -41,6 +42,8 @@ func _initialize() -> void:
 			_deploy = true
 		elif arg == "--drop":
 			_drop = true
+		elif arg.begins_with("--pick="):
+			_pick = arg.trim_prefix("--pick=")
 		elif arg == "--reveal":
 			_reveal = true
 		elif arg.begins_with("--zoom="):
@@ -118,7 +121,7 @@ func _prepare(screen: BattleScreen) -> void:
 				battle.place(GameConfig.BULWARK, state.map.center_of(origin + Vector2i(x, y)))
 		for building in state.player_buildings():
 			building.energy = Formulas.capacity(building) * 0.7
-		battle.skip_prep()
+		battle.start_round()
 	var steps := int(_seconds / GameConfig.TICK)
 	for i in steps:
 		battle.tick(GameConfig.TICK)
@@ -141,6 +144,10 @@ func _prepare(screen: BattleScreen) -> void:
 			if building.kind == _select:
 				screen.view.select(building.id)
 				break
+		if _pick == "link":
+			screen.start_link_pick(screen.view.selected_id)
+		elif _pick == "focus":
+			screen.toggle_focus(screen.view.selected_id)
 	if _result == "win":
 		for building in state.enemy_buildings():
 			battle.combat.destroy(building)

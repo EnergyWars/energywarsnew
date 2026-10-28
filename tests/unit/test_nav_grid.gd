@@ -100,7 +100,7 @@ func test_path_goes_around_walls() -> void:
 func test_cell_paths_trim_solid_goals() -> void:
 	map.set_tile(Vector2i(6, 2), LevelMap.Tile.ROCK)
 	nav.terrain_changed(Vector2i(6, 2))
-	var path := nav.walker_path(map.center_of(Vector2i(1, 2)), Vector2i(6, 2))
+	var path := nav.path_to_cell(nav.walker, map.center_of(Vector2i(1, 2)), Vector2i(6, 2))
 	assert_eq(map.cell_of(path[path.size() - 1]), Vector2i(5, 2))
 	assert_true(nav.walker.is_point_solid(Vector2i(6, 2)))
 	var open_path := nav.ground_path(map.center_of(Vector2i(1, 2)), Vector2i(3, 2))

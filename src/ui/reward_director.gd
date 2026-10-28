@@ -10,6 +10,7 @@ const BOSS_SHAKE := 12.0
 const STRUCTURE_SHAKE := 24.0
 const PLASMA_SHAKE := 4.0
 const LOST_SHAKE := 9.0
+const UPGRADE_PITCH_CAP := 10
 
 var view: BattleView
 var hud: BattleHud
@@ -209,8 +210,10 @@ func coin_arrived(_value: int) -> void:
 	_play(SoundBank.COIN, randf_range(0.95, 1.25))
 
 
-func _on_surge(event: Dictionary) -> void:
-	hud.toast(Texts.t("TOAST_SURGE_NIGHT" if bool(event.night) else "TOAST_SURGE"), AppTheme.WARNING)
+func _on_wave(event: Dictionary) -> void:
+	if not bool(event.night):
+		return
+	hud.toast(Texts.format("TOAST_NIGHT_WAVE", [int(event.index), int(event.total)]), AppTheme.WARNING)
 	_play(SoundBank.RUMBLE)
 	_vibrate(30)
 
@@ -245,10 +248,37 @@ func _on_core_deployed(event: Dictionary) -> void:
 	_vibrate(120)
 
 
-func _on_scout_order(event: Dictionary) -> void:
-	var color := AppTheme.GOLD if bool(event.clear) else AppTheme.ENERGY_CORE
-	view.fx.ring(event.position, 30.0, 6.0, color, 0.35, 3.0)
+func _on_clear_order(event: Dictionary) -> void:
+	view.fx.ring(event.position, 30.0, 6.0, AppTheme.GOLD, 0.35, 3.0)
 	_play(SoundBank.CLICK, 1.2)
+
+
+func _on_scout_boarded(event: Dictionary) -> void:
+	view.fx.ring(event.position, 40.0, 8.0, AppTheme.SCOUT, 0.5, 4.0)
+	hud.toast(Texts.t("TOAST_BOARDED"), AppTheme.ENERGY)
+
+
+func _on_rifle(event: Dictionary) -> void:
+	view.fx.tracer(event.from, event.to, AppTheme.GOLD, 2.0, 0.08)
+	view.fx.burst(event.to, AppTheme.GOLD, 2, 90.0, 2.0, 0.15)
+	_play(SoundBank.ENEMY_SHOT, 1.6)
+
+
+func _on_focus(event: Dictionary) -> void:
+	view.fx.ring(event.to, 34.0, 10.0, AppTheme.DANGER, 0.4, 4.0)
+	_play(SoundBank.CLICK, 0.8)
+
+
+func _on_relocated(event: Dictionary) -> void:
+	view.fx.ring(event.from, 30.0, 6.0, AppTheme.ENERGY_CORE, 0.3, 3.0)
+	view.fx.ring(event.position, 6.0, 60.0, AppTheme.ENERGY, 0.4, 5.0)
+	view.fx.floater("-%d" % int(event.cost), event.position, AppTheme.GOLD, 1.0)
+	_play(SoundBank.PLACE)
+	_vibrate(15)
+
+
+func _on_stalled(_event: Dictionary) -> void:
+	hud.toast(Texts.t("TOAST_STALLED"), AppTheme.WARNING)
 
 
 func _on_cleared(event: Dictionary) -> void:
@@ -261,8 +291,8 @@ func _on_cleared(event: Dictionary) -> void:
 	_vibrate(25)
 
 
-func _on_fight_started(_event: Dictionary) -> void:
-	hud.banner(Texts.t("BANNER_FIGHT"), Texts.t("BANNER_FIGHT_SUB"), AppTheme.DANGER, 1.6)
+func _on_fight_started(event: Dictionary) -> void:
+	hud.banner(Texts.t("BANNER_FIGHT"), Texts.format("BANNER_ROUND_SUB", [int(event.round)]), AppTheme.DANGER, 1.6)
 	_play(SoundBank.WHOOSH)
 
 
@@ -271,9 +301,33 @@ func _on_nightfall(_event: Dictionary) -> void:
 	_play(SoundBank.NIGHT)
 
 
-func _on_daybreak(event: Dictionary) -> void:
-	hud.banner(Texts.format("BANNER_DAY", [int(event.day)]), Texts.t("BANNER_DAY_SUB"), AppTheme.GOLD, 2.0)
+func _on_night_over(event: Dictionary) -> void:
+	var burning := int(event.get("burning", 0))
+	var subtitle := Texts.format("BANNER_NIGHT_OVER_BURN", [burning]) if burning > 0 else Texts.t("BANNER_NIGHT_OVER_SUB")
+	hud.banner(Texts.t("BANNER_NIGHT_OVER"), subtitle, AppTheme.GOLD, 2.0)
 	_play(SoundBank.DAY)
+
+
+func _on_burned(event: Dictionary) -> void:
+	var position: Vector2 = event.position
+	var fx := view.fx
+	fx.burst(position, AppTheme.FLAME, 18, 200.0, 6.0, 0.7, -160.0)
+	fx.burst(position, AppTheme.FLAME_CORE, 8, 120.0, 4.0, 0.5, -200.0)
+	fx.burst(position, AppTheme.METAL_DARK, 6, 80.0, 5.0, 0.9, -60.0)
+	fx.ring(position, 6.0, 40.0, AppTheme.FLAME, 0.35, 3.0)
+	if _hit_budget > 0:
+		_hit_budget -= 1
+		_play(SoundBank.THUMP, randf_range(1.3, 1.6))
+	if bool(event.boss):
+		fx.add_shake(BOSS_SHAKE * 0.5)
+		hud.toast(Texts.format("TOAST_BOSS_BURNED", [Texts.enemy_name(str(event.kind))]), AppTheme.GOLD)
+
+
+func _on_round_cleared(event: Dictionary) -> void:
+	hud.banner(Texts.format("BANNER_ROUND_CLEARED", [int(event.round)]), Texts.t("BANNER_ROUND_CLEARED_SUB"), AppTheme.SUCCESS, 2.4)
+	_play(SoundBank.FANFARE)
+	_vibrate(60)
+	celebrations.burst_confetti(Vector2(hud.size.x * 0.5, hud.size.y * 0.4), 60)
 
 
 func _on_spawn(event: Dictionary) -> void:
@@ -319,7 +373,7 @@ func _on_upgraded(event: Dictionary) -> void:
 	view.fx.burst(position, AppTheme.GOLD, 24, 240.0, 5.0, 0.6)
 	view.fx.ring(position, 10.0, 80.0, AppTheme.GOLD, 0.45, 5.0)
 	view.fx.floater(Texts.format("FLOAT_LEVEL", [int(event.level)]), position + Vector2(0, -40), AppTheme.GOLD, 1.3, 1.1)
-	_play(SoundBank.UPGRADE, 1.0 + 0.05 * int(event.level))
+	_play(SoundBank.UPGRADE, 1.0 + 0.05 * mini(int(event.level), UPGRADE_PITCH_CAP))
 	_vibrate(25)
 
 

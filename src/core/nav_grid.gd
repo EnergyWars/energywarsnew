@@ -11,6 +11,9 @@ var hostile := PackedByteArray()
 var ground := AStarGrid2D.new()
 var walker := AStarGrid2D.new()
 var version := 0
+var _blocked := PackedByteArray()
+var _width := 0
+var _height := 0
 var _labels := PackedInt32Array()
 var _labels_version := -1
 var _reachable := {}
@@ -18,6 +21,10 @@ var _reachable := {}
 
 func _init(p_map: LevelMap) -> void:
 	map = p_map
+	_width = map.width
+	_height = map.height
+	_blocked.resize(map.width * map.height)
+	_blocked.fill(0)
 	occupant.resize(map.width * map.height)
 	occupant.fill(FREE)
 	hostile.resize(map.width * map.height)
@@ -37,7 +44,9 @@ func _init(p_map: LevelMap) -> void:
 func _refresh(cell: Vector2i) -> void:
 	var walkable := map.is_walkable(cell)
 	var index := map.index(cell)
-	ground.set_point_solid(cell, not walkable or occupant[index] != FREE)
+	var blocked := not walkable or occupant[index] != FREE
+	_blocked[index] = 1 if blocked else 0
+	ground.set_point_solid(cell, blocked)
 	walker.set_point_solid(cell, not walkable or hostile[index] == 1)
 
 
@@ -70,11 +79,11 @@ func occupant_at(cell: Vector2i) -> int:
 
 
 func is_free(cell: Vector2i) -> bool:
-	return map.is_walkable(cell) and occupant[map.index(cell)] == FREE
+	return cell.x >= 0 and cell.y >= 0 and cell.x < _width and cell.y < _height and _blocked[cell.y * _width + cell.x] == 0
 
 
 func is_blocked_at(position: Vector2) -> bool:
-	return not is_free(map.cell_of(position))
+	return not is_free(Vector2i(floori(position.x / GameConfig.CELL), floori(position.y / GameConfig.CELL)))
 
 
 func component(cell: Vector2i) -> int:
@@ -200,7 +209,3 @@ func path_to_cell(grid: AStarGrid2D, from: Vector2, goal: Vector2i) -> PackedVec
 
 func ground_path(from: Vector2, goal: Vector2i) -> PackedVector2Array:
 	return path_to_cell(ground, from, goal)
-
-
-func walker_path(from: Vector2, goal: Vector2i) -> PackedVector2Array:
-	return path_to_cell(walker, from, goal)

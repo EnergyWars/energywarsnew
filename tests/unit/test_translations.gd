@@ -8,7 +8,10 @@ func after_all() -> void:
 
 
 func _keys() -> Array[String]:
-	var keys: Array[String] = ["APP_TITLE", "MENU_TAGLINE", "COMBO_LABEL", "LANGUAGE_AUTO", "LANGUAGE_DE", "LANGUAGE_EN"]
+	var keys: Array[String] = ["APP_TITLE", "MENU_TAGLINE", "COMBO_LABEL", "LANGUAGE_AUTO", "LANGUAGE_DE", "LANGUAGE_EN",
+		"HUD_PLAN", "HUD_PLAN_CARD", "HUD_START", "HUD_DAY_WAVE", "HUD_MOP_UP", "BANNER_ROUND_SUB", "BANNER_NIGHT_OVER",
+		"BANNER_NIGHT_OVER_SUB", "BANNER_ROUND_CLEARED", "BANNER_ROUND_CLEARED_SUB", "TOAST_NIGHT_WAVE", "PANEL_LEVEL",
+		"PANEL_RELOCATE_FREE", "STAT_CRIT"]
 	for kind: String in GameConfig.BUILDINGS:
 		keys.append("BUILDING_%s" % kind.to_upper())
 		keys.append("BUILDING_%s_INFO" % kind.to_upper())
@@ -21,7 +24,7 @@ func _keys() -> Array[String]:
 	for level: Dictionary in GameConfig.LEVELS:
 		keys.append("LEVEL_%s" % str(level.id).to_upper())
 		keys.append("LEVEL_%s_INFO" % str(level.id).to_upper())
-	for code in [BuildRules.INVALID, BuildRules.LOCKED, BuildRules.MONEY, BuildRules.BOUNDS, BuildRules.BLOCKED, BuildRules.OVERLAP, BuildRules.ENEMY_NEAR, BuildRules.TOO_FAR]:
+	for code in [BuildRules.INVALID, BuildRules.LOCKED, BuildRules.MONEY, BuildRules.BOUNDS, BuildRules.BLOCKED, BuildRules.OVERLAP, BuildRules.ENEMY_NEAR, BuildRules.ENEMY_ZONE, BuildRules.TOO_FAR]:
 		keys.append("REASON_BUILD_%s" % code.to_upper())
 	for code in [EnergyNetwork.MISSING, EnergyNetwork.SAME, EnergyNetwork.NO_SEND, EnergyNetwork.NO_RECEIVE, EnergyNetwork.EXISTS, EnergyNetwork.FULL, EnergyNetwork.RANGE]:
 		keys.append("REASON_LINK_%s" % code.to_upper())
@@ -45,6 +48,9 @@ func test_german_differs_where_expected() -> void:
 	assert_eq(Texts.track_name(GameConfig.TRACK_POWER, GameConfig.SHIELD), "Schildstärke")
 	assert_eq(Texts.track_name(GameConfig.TRACK_POWER, GameConfig.ZAPPER), "Schaden")
 	assert_eq(Texts.format("HUD_DAY", [3]), "Tag 3")
+	assert_eq(Texts.format("HUD_START", [2]), "Tag 2 starten")
+	assert_eq(Texts.track_name(GameConfig.TRACK_EFFICIENCY, GameConfig.ROVER), "Fahreffizienz")
+	assert_eq(Texts.track_name(GameConfig.TRACK_EFFICIENCY, GameConfig.ZAPPER), "Effizienz")
 	assert_eq(Texts.reason("build_money"), "Nicht genug Geld!")
 	assert_eq(Texts.level_name(0), "Erstes Licht")
 	assert_ne(Texts.level_info(0), "")

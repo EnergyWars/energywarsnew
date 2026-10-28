@@ -5,7 +5,6 @@ MENU_CREDITS,"Fonts: Geist (OFL), Material Icons (Apache 2.0) · Sounds & graphi
 SETTINGS_SOUND,Sound,Ton
 SETTINGS_HAPTICS_ON,Vibration on,Vibration an
 SETTINGS_HAPTICS_OFF,Vibration off,Vibration aus
-SETTINGS_ON,On,An
 SETTINGS_OFF,Off,Aus
 LANGUAGE_AUTO,Auto,Automatisch
 LANGUAGE_DE,Deutsch,Deutsch
@@ -13,17 +12,17 @@ LANGUAGE_EN,English,English
 LEVEL_DAWN,First Light,Erstes Licht
 LEVEL_DAWN_INFO,"A lone nest. Find a good spot, wall yourself in and learn to beam power.","Ein einzelnes Nest. Finde einen guten Platz, mauere dich ein und lerne, Energie zu strahlen."
 LEVEL_BEETLE_HILL,Beetle Hill,Käferhügel
-LEVEL_BEETLE_HILL_INFO,Armoured beetles join the swarm. New: Laser tower and medic tower.,Gepanzerte Käfer mischen mit. Neu: Laserturm und Heilturm.
+LEVEL_BEETLE_HILL_INFO,"Armoured beetles by day, stalkers by night.","Gepanzerte Käfer am Tag, Pirscher in der Nacht."
 LEVEL_SWARM_NIGHT,Swarm Night,Schwarmnacht
-LEVEL_SWARM_NIGHT_INFO,"Long nights, flying stingers. New: Shield generator.","Lange Nächte, fliegende Stachler. Neu: Schildgenerator."
+LEVEL_SWARM_NIGHT_INFO,Long nights full of night wings.,Lange Nächte voller Nachtschwingen.
 LEVEL_OUTPOST,Outpost,Grenzposten
-LEVEL_OUTPOST_INFO,"Humans with rifles, drones and gun towers. New: Tesla coil.","Menschen mit Gewehren, Drohnen und Geschütztürme. Neu: Tesla-Spule."
+LEVEL_OUTPOST_INFO,"Humans with rifles, drones and gun towers. Raiders strike at night.","Menschen mit Gewehren, Drohnen und Geschütztürme. Nachts greifen Plünderer an."
 LEVEL_SABOTAGE,Sabotage,Sabotage
-LEVEL_SABOTAGE_INFO,Saboteurs cut your beams. New: Plasma mortar.,Saboteure kappen deine Strahlen. Neu: Plasmawerfer.
+LEVEL_SABOTAGE_INFO,Saboteurs sneak in at night and cut your beams.,Nachts schleichen Saboteure heran und kappen deine Strahlen.
 LEVEL_TANK_FRONT,Tank Front,Panzerfront
-LEVEL_TANK_FRONT_INFO,"Two camps, heavy tanks, lots of guns.","Zwei Lager, schwere Panzer, viele Geschütze."
+LEVEL_TANK_FRONT_INFO,"Two camps, heavy tanks at night, lots of guns.","Zwei Lager, nachts schwere Panzer, viele Geschütze."
 LEVEL_COLOSSUS,Colossus,Koloss
-LEVEL_COLOSSUS_INFO,Three nests breed giant behemoths.,Drei Nester brüten riesige Kolosse aus.
+LEVEL_COLOSSUS_INFO,Three nests breed giant behemoths that roam the night.,"Drei Nester brüten riesige Kolosse aus, die nachts umherziehen."
 LEVEL_FINAL_WAR,Final War,Endschlacht
 LEVEL_FINAL_WAR_INFO,Everything at once. Wipe them all out.,Alles auf einmal. Lösch sie alle aus.
 BUILDING_CORE,Core,Kern
@@ -125,13 +124,16 @@ STAT_HEAL,Heal,Heilung
 STAT_HEAL_RATE,Heals,Heilungen
 STAT_EXPORT,Sells,Verkauft
 STAT_EXPORT_INCOME,Income,Einnahmen
+STAT_FIRE_DRAW,Draw (full fire),Verbrauch (Dauerfeuer)
+STAT_SELF_RESERVE,Own storage lasts,Eigener Speicher reicht
+STAT_SHOTS_PER_CHARGE,Shots per charge,Schüsse pro Füllung
+STAT_HEALS_PER_CHARGE,Heals per charge,Heilungen pro Füllung
+PANEL_DRAW_CHANGE,%s %.1f → %.1f/s,%s %.1f → %.1f/s
 PANEL_MAX,MAX,MAX
 PANEL_SELL,Sell  +%d,Verkaufen  +%d
 HUD_DAY,Day %d,Tag %d
 MODE_MOVE,Move,Verschieben
 MODE_CONNECT,Connect,Verbinden
-HUD_PREP,Get ready %s,Vorbereitung %s
-HUD_SKIP,Attack! +%d,Angriff! +%d
 COMBO_LABEL,COMBO,COMBO
 COMBO_TIER_1,COMBO!,COMBO!
 COMBO_TIER_2,OVERLOAD!,ÜBERLADEN!
@@ -141,20 +143,17 @@ COMBO_TIER_5,BLACKOUT!,BLACKOUT!
 COMBO_TIER_6,SUPERNOVA!,SUPERNOVA!
 COMBO_TIER_7,GOD MODE!,GOTTMODUS!
 TUTORIAL_BUILD_SOLAR,"Tap the solar panel below, then tap next to your core to build it.","Tippe unten auf das Solarpanel und dann neben deinen Kern, um es zu bauen."
-TUTORIAL_CONNECT,"Tap “Connect” at the bottom right, then drag from the solar panel to the core: an energy beam appears!",Tippe unten rechts auf „Verbinden“ und ziehe dann vom Solarpanel zum Kern: Ein Energiestrahl entsteht!
+TUTORIAL_CONNECT,Tap “Connect” at the bottom right and drag from the solar panel to the core – or select the panel and tap “Connect” there. An energy beam appears!,Tippe unten rechts auf „Verbinden“ und ziehe vom Solarpanel zum Kern – oder wähle das Panel aus und tippe dort auf „Verbinden“. Ein Energiestrahl entsteht!
 TUTORIAL_BUILD_TOWER,Now build a zapper towards the nest at the top.,Baue jetzt einen Blitzturm Richtung Nest oben.
 TUTORIAL_POWER_TOWER,Drag a beam from your core to the zapper to power it.,"Ziehe einen Strahl vom Kern zum Blitzturm, damit er Energie bekommt."
 TUTORIAL_CAMERA,Switch to “Move” to drag the map with one finger. Two fingers zoom.,"Wechsle auf „Verschieben“, um die Karte mit einem Finger zu bewegen. Mit zwei Fingern zoomst du."
 TUTORIAL_STORAGE,At night the sun is gone. Build storage and charge it during the day!,Nachts gibt es keine Sonne. Baue Speicher und lade sie tagsüber!
 TUTORIAL_CUT,"In connect mode, swipe across a beam to cut it – then reconnect it elsewhere.","Wische im Verbinden-Modus über einen Strahl, um ihn zu kappen – und verbinde neu."
-RESULT_VICTORY,VICTORY!,SIEG!
 RESULT_DEFEAT,CORE LOST,KERN ZERSTÖRT
-RESULT_VICTORY_TEXT,Every enemy base is rubble.,Alle feindlichen Basen liegen in Trümmern.
 RESULT_DEFEAT_TEXT,Store more energy for the night and guard your core.,Speichere mehr Energie für die Nacht und schütze deinen Kern.
 RESULT_NEW_RECORD,New best!,Neuer Rekord!
-RESULT_NEXT,Next level,Nächstes Level
 RESULT_RETRY,Play again,Nochmal spielen
-RESULT_MENU,Level select,Levelauswahl
+RESULT_MENU,World map,Weltkarte
 RESULT_KILLS,Kills,Abschüsse
 RESULT_COMBO,Best combo,Beste Combo
 RESULT_EARNED,Money earned,Verdientes Geld
@@ -163,27 +162,21 @@ RESULT_TIME,Time,Zeit
 PAUSE_TITLE,Paused,Pause
 PAUSE_RESUME,Resume,Weiter
 PAUSE_RESTART,Restart level,Level neu starten
-PAUSE_MENU,Level select,Levelauswahl
+PAUSE_MENU,World map,Weltkarte
 BANNER_BOSS_DOWN,GIANT SLAIN!,RIESE ERLEGT!
 BANNER_BASES_LEFT,%d bases left,Noch %d Basen
 BANNER_ALL_DESTROYED,All bases destroyed!,Alle Basen zerstört!
 BANNER_STRUCTURE_DOWN,%s DESTROYED!,%s ZERSTÖRT!
 BANNER_FIGHT,ATTACK!,ANGRIFF!
-BANNER_FIGHT_SUB,Here they come,Sie kommen
 BANNER_NIGHT,Night falls,Die Nacht bricht herein
 BANNER_NIGHT_SUB,Solar is offline – your storage must hold,Solar ist aus – jetzt zählen deine Speicher
-BANNER_DAY,Day %d,Tag %d
-BANNER_DAY_SUB,The sun is back!,Die Sonne ist zurück!
 FLOAT_CRIT,CRIT %d!,KRIT %d!
 FLOAT_LEVEL,Level %d!,Stufe %d!
 TOAST_LOST,%s lost!,%s verloren!
 TOAST_BOSS,A giant approaches!,Ein Riese nähert sich!
-TOAST_SURGE,The attacks are intensifying!,Die Angriffe werden heftiger!
-TOAST_SURGE_NIGHT,The night assault is building up!,Der nächtliche Ansturm schwillt an!
 TOAST_MODE_MOVE,Move mode: drag to scroll the map,Verschiebe-Modus: Ziehen bewegt die Karte
 TOAST_MODE_CONNECT,"Connect mode: drag to link, swipe to cut","Verbinden-Modus: Ziehen verbindet, Wischen kappt"
 TOAST_SABOTAGE,Sabotage! A beam was cut.,Sabotage! Ein Strahl wurde gekappt.
-TOAST_SKIP_BONUS,Early attack bonus +%d,Frühstart-Bonus +%d
 TOAST_PLACE,Tap the map to place: %s,Tippe auf die Karte: %s platzieren
 BUILDING_CORE_SHORT,Base,Basis
 TRACK_HULL,Armour,Panzerung
@@ -200,16 +193,180 @@ REASON_BUILD_SCOUT_FAR,Too far from your soldier.,Zu weit von deinem Soldaten en
 REASON_BUILD_PHASE,Build your base first.,Errichte zuerst deine Basis.
 REASON_SCOUT_MISSING,No soldier available.,Kein Soldat verfügbar.
 REASON_SCOUT_LANDING,Still landing…,Landet noch …
-REASON_SCOUT_BOUNDS,Outside the map.,Außerhalb der Karte.
-REASON_SCOUT_BLOCKED,Impassable terrain.,Unpassierbares Gelände.
-REASON_SCOUT_UNREACHABLE,Can't get there.,Dort kommt er nicht hin.
 HUD_SCOUT,Find a base site,Suche einen Bauplatz
-SCOUT_HINT,"Soldier: tap the map to walk, tap trees or rocks to clear them.","Soldat: Tippe auf die Karte zum Laufen, auf Bäume oder Felsen zum Abbauen."
+SCOUT_HINT,"Soldier: steer with the joystick, tap nearby trees or rocks to clear them.","Soldat: Mit dem Joystick lenken, Bäume oder Felsen in der Nähe antippen zum Abbauen."
 TOAST_LANDED,Landed! Explore the map.,Gelandet! Erkunde die Karte.
 BANNER_BASE,BASE ESTABLISHED,BASIS ERRICHTET
-BANNER_BASE_SUB,Wall yourself in before they come,"Mauere dich ein, bevor sie kommen"
-TUTORIAL_MOVE_SCOUT,Your soldier has landed. Tap the map to walk around and explore – look for a plateau or a spot sheltered by forest and rocks.,"Dein Soldat ist gelandet. Tippe auf die Karte, um zu laufen und zu erkunden – suche ein Plateau oder einen Platz, den Wald und Felsen schützen."
-TUTORIAL_DEPLOY_CORE,Tap “Base” below and place your core near the soldier.,Tippe unten auf „Basis“ und platziere deinen Kern in der Nähe des Soldaten.
+BANNER_BASE_SUB,Plan in peace – nothing happens until you start the day,"Plane in Ruhe – bis du den Tag startest, passiert nichts"
+TUTORIAL_MOVE_SCOUT,Your soldier has landed. Use the joystick to walk around and explore – look for a plateau or a spot sheltered by forest and rocks.,"Dein Soldat ist gelandet. Lauf mit dem Joystick herum und erkunde – suche ein Plateau oder einen Platz, den Wald und Felsen schützen."
+TUTORIAL_DEPLOY_CORE,Tap “Base” below and place your core near the soldier. The soldier then mans the core.,Tippe unten auf „Basis“ und platziere deinen Kern in der Nähe des Soldaten. Der Soldat besetzt dann den Kern.
 TUTORIAL_BUILD_WALL,Enemies wreck towers fast. Pick the bulwark and drag a wall that closes off your base – ramps and gaps first!,"Gegner zerlegen Türme schnell. Wähle das Bollwerk und ziehe eine Mauer, die deine Basis abschließt – zuerst Rampen und Lücken!"
 STAT_BLOCKS,Blocks,Blockiert
 STAT_BLOCKS_VALUE,ground enemies,Bodengegner
+BUILDING_ROVER,Mobile tower,Mobiler Turm
+BUILDING_ROVER_INFO,Drives wherever you steer it. Driving costs a lot of energy; it only recharges within range of its beams.,"Fährt, wohin du ihn lenkst. Fahren kostet viel Energie; aufgeladen wird er nur in Reichweite seiner Strahlen."
+BUILDING_ROVER_SHORT,Mobile,Mobil
+REASON_SCOUT_BOARDED,Your soldier is manning the core.,Dein Soldat besetzt den Kern.
+REASON_SCOUT_NOTHING,Nothing to clear here.,Hier gibt es nichts abzubauen.
+REASON_SCOUT_TOO_FAR,Walk closer first.,Lauf erst näher heran.
+REASON_BUILD_IMMOBILE,This building can't be moved.,Dieses Gebäude kann nicht versetzt werden.
+REASON_BUILD_SAME,It's already here.,Es steht bereits hier.
+REASON_FOCUS_INVALID,That can't be attacked.,Das kann nicht angegriffen werden.
+REASON_FOCUS_MISSING,No target there.,Dort ist kein Ziel.
+REASON_FOCUS_CANNOT,This tower can't hit that target.,Dieser Turm kann das Ziel nicht treffen.
+REASON_FOCUS_RANGE,Out of range.,Außer Reichweite.
+PANEL_CONNECT,Connect,Verbinden
+PANEL_FOCUS,Attack,Angreifen
+PANEL_UNFOCUS,Release,Ziel lösen
+PANEL_RELOCATE,Move −%d,Versetzen −%d
+TOAST_PICK_LINK,Tap a highlighted building to connect,Tippe auf ein markiertes Gebäude zum Verbinden
+TOAST_PICK_FOCUS,"Tap an enemy, a base, a tree or a rock","Tippe auf einen Gegner, eine Basis, einen Baum oder Felsen"
+TOAST_RELOCATE,Tap the new spot: %s,Tippe auf den neuen Platz: %s
+TOAST_ROVER,Steer with the joystick – driving drains energy,Lenke mit dem Joystick – Fahren kostet Energie
+TOAST_STALLED,Out of energy – it can’t drive!,Keine Energie – Fahren unmöglich!
+TOAST_BOARDED,Your soldier mans the core and fires from there,Dein Soldat besetzt den Kern und schießt von dort
+STAT_MOVE_ENERGY,Energy/cell,Energie/Feld
+STAT_GARRISON,Crew,Besatzung
+STAT_GARRISON_VALUE,Soldier (rifle),Soldat (Gewehr)
+HUD_PLAN,Planning,Planung
+HUD_PLAN_CARD,Planning · Day %d,Planung · Tag %d
+HUD_START,Start day %d,Tag %d starten
+HUD_DAY_WAVE,%s · Wave %d/%d,%s · Welle %d/%d
+HUD_MOP_UP,Dawn – %d enemies left,Morgengrauen – noch %d Gegner
+STATS_TITLE,Energy balance,Energiebilanz
+STATS_GENERATION_DAY,Production (day),Produktion (Tag)
+STATS_GENERATION_NIGHT,Production (night),Produktion (Nacht)
+STATS_CAPACITY,Total storage,Gesamtspeicher
+STATS_STORED,Stored,Gespeichert
+STATS_FILL_TIME,Fully charged in,Voll geladen in
+STATS_FIRE_DRAW,"All towers, full fire","Alle Türme, Dauerfeuer"
+STATS_EXPORT_DRAW,Exporters,Exporteure
+STATS_NET_DAY,"Balance, full fire (day)",Bilanz Dauerfeuer (Tag)
+STATS_NET_NIGHT,"Balance, full fire (night)",Bilanz Dauerfeuer (Nacht)
+STATS_RESERVE_DAY,Reserve lasts (day),Reserve reicht (Tag)
+STATS_RESERVE_NIGHT,Reserve lasts (night),Reserve reicht (Nacht)
+STATS_RESERVE_FULL,Full storage lasts (night),Volle Speicher reichen (Nacht)
+STATS_ENDLESS,unlimited,unbegrenzt
+STATS_NEVER,never,nie
+STATS_FULL,full,voll
+STATS_WAS,was %s,vorher %s
+STATS_NOTE,Coloured column: change since this planning phase began. Full fire: every tower and medic works non-stop. Charging ignores beam limits.,Farbige Spalte: Änderung seit Beginn dieser Planungsphase. Dauerfeuer: Alle Türme und Heiltürme arbeiten ununterbrochen. Laden ohne Strahl-Limits gerechnet.
+TOAST_UNDO,Last step undone,Letzter Schritt rückgängig gemacht
+TOAST_RESET,Planning reset,Planung zurückgesetzt
+RESET_TITLE,Reset planning?,Planung zurücksetzen?
+RESET_TEXT,"Everything you built, upgraded, sold or connected in this planning phase will be undone.","Alles, was du in dieser Planungsphase gebaut, verbessert, verkauft oder verbunden hast, wird verworfen."
+RESET_CONFIRM,Reset,Zurücksetzen
+DIALOG_CANCEL,Cancel,Abbrechen
+BANNER_ROUND_SUB,Day %d begins,Tag %d beginnt
+BANNER_NIGHT_OVER,Dawn,Morgengrauen
+BANNER_NIGHT_OVER_SUB,No more reinforcements – defeat the last enemies,Kein Nachschub mehr – besiege die letzten Gegner
+BANNER_ROUND_CLEARED,DAY %d SURVIVED,TAG %d ÜBERSTANDEN
+BANNER_ROUND_CLEARED_SUB,Plan your defence – take your time,Plane deine Verteidigung – ohne Zeitdruck
+TOAST_NIGHT_WAVE,Night wave %d/%d,Nachtwelle %d/%d
+REASON_BUILD_ENEMY_ZONE,Too close to the enemy base – only possible during the attack.,Zu nah an der Feindbasis – das geht nur während des Angriffs.
+TRACK_EFFICIENCY,Efficiency,Effizienz
+TRACK_CRIT,Critical hits,Kritische Treffer
+TRACK_CHAIN,Chain targets,Kettenziele
+TRACK_SPLASH,Blast radius,Explosionsradius
+TRACK_EFFICIENCY_ROVER,Drive efficiency,Fahreffizienz
+PANEL_LEVEL,Lv %d/%d,St. %d/%d
+PANEL_RELOCATE_FREE,Move (free),Versetzen (gratis)
+STAT_CRIT,Crit chance,Krit-Chance
+TUTORIAL_START_DAY,Ready? Tap “Start day 1” at the top. Planning has no time limit – energy stays frozen until then.,Bereit? Tippe oben auf „Tag 1 starten“. Die Planung hat kein Zeitlimit – bis dahin ist die Energie eingefroren.
+HUD_DAY_OF,Day %d/%d,Tag %d/%d
+BANNER_NIGHT_OVER_BURN,%d night creatures burst into flames,%d Nachtmonster gehen in Flammen auf
+TOAST_BOSS_BURNED,%s burns in the sunlight,%s verbrennt im Sonnenlicht
+ENEMY_STALKER,Stalker,Pirscher
+ENEMY_NIGHTWING,Night wing,Nachtschwinge
+ENEMY_RAIDER,Raider,Plünderer
+ENEMY_PHANTOM,Phantom drone,Phantomdrohne
+RESULT_CONQUERED,CONQUERED!,EROBERT!
+RESULT_CONQUERED_TEXT,Every enemy base is rubble. The region is yours.,Alle feindlichen Basen liegen in Trümmern. Das Gebiet gehört dir.
+RESULT_SURVIVED,SURVIVED!,ÜBERLEBT!
+RESULT_SURVIVED_TEXT,You held out for %d days.,Du hast %d Tage durchgehalten.
+RESULT_SURVIVAL_LOST_TEXT,Day %d of %d – the core fell.,Tag %d von %d – der Kern ist gefallen.
+RESULT_ENDLESS,THE END,DAS ENDE
+RESULT_ENDLESS_TEXT,You survived %d days.,Du hast %d Tage überlebt.
+RESULT_DAYS,Days survived,Überlebte Tage
+RESULT_CHALLENGES,Challenges,Herausforderungen
+RESULT_POINTS,Challenges · +%d skill points,Herausforderungen · +%d Skillpunkte
+SKILL_POINTS,%d SP,%d SP
+SKILL_POINTS_GAIN,+%d SP,+%d SP
+CHALLENGE_CONQUER,Conquer the region,Erobere das Gebiet
+CHALLENGE_CORE,Conquer with core at %d%% or more,Erobere mit mindestens %d %% Kern
+CHALLENGE_LOST,Conquer losing at most %d buildings,Erobere mit höchstens %d verlorenen Gebäuden
+CHALLENGE_DAYS,Conquer by day %d,Erobere bis Tag %d
+CHALLENGE_COMBO,Conquer with a ×%d combo,Erobere mit einer ×%d-Combo
+CHALLENGE_SURVIVE,Survive %d days in survival,Überlebe %d Tage im Survival
+SURVIVAL_DAYS,%d days,%d Tage
+SURVIVAL_ENDLESS,Endless,Endlos
+WORLD_TAGLINE,Tap a region to march there.,"Tippe ein Gebiet an, um dorthin zu marschieren."
+WORLD_LOCKED,Conquer a neighbouring region first.,Erobere zuerst ein angrenzendes Gebiet.
+WORLD_TECH,Research · %d SP,Forschung · %d SP
+REGION_CONQUERED,CONQUERED,EROBERT
+REGION_ENEMY,ENEMY TERRITORY,FEINDGEBIET
+REGION_LOCKED,UNKNOWN,UNBEKANNT
+REGION_LOCKED_INFO,Conquer a neighbouring region to scout it.,"Erobere ein angrenzendes Gebiet, um es zu erkunden."
+REGION_ATTACK,Conquer,Erobern
+REGION_REPLAY,Conquer again,Erneut erobern
+REGION_SURVIVAL,Survival,Survival
+REGION_SURVIVAL_TITLE,Survival,Survival
+REGION_RECORD,Endless record: %d days,Endlos-Rekord: %d Tage
+TECH_TITLE,Research,Forschung
+TECH_HINT,Spend skill points from challenges on new towers and upgrades for every battle.,Investiere Skillpunkte aus Herausforderungen in neue Türme und Verbesserungen für jeden Kampf.
+TECH_BUY,%d SP,%d SP
+TECH_OWNED,Done,Erforscht
+TECH_REQUIRES,Requires: %s,Benötigt: %s
+TECH_RESET,Reset research,Forschung zurücksetzen
+TECH_RESET_TITLE,Reset research?,Forschung zurücksetzen?
+TECH_RESET_TEXT,You get all %d skill points back and can spend them again.,Du bekommst alle %d Skillpunkte zurück und kannst sie neu verteilen.
+TECH_RESET_CONFIRM,Reset,Zurücksetzen
+BRANCH_OFFENSE,Weapons,Waffen
+BRANCH_DEFENSE,Defence,Verteidigung
+BRANCH_ECONOMY,Economy,Wirtschaft
+TECH_ZAPPER_POWER,Overcharged bolts,Überladene Blitze
+TECH_ZAPPER_POWER_INFO,Zapper +20% damage,Blitzturm +20 % Schaden
+TECH_LASER,Laser tower,Laserturm
+TECH_LASER_INFO,Unlocks the laser tower,Schaltet den Laserturm frei
+TECH_ROVER,Mobile tower,Mobiler Turm
+TECH_ROVER_INFO,Unlocks the mobile tower,Schaltet den mobilen Turm frei
+TECH_TESLA,Tesla coil,Tesla-Spule
+TECH_TESLA_INFO,Unlocks the tesla coil,Schaltet die Tesla-Spule frei
+TECH_PLASMA,Plasma mortar,Plasmawerfer
+TECH_PLASMA_INFO,Unlocks the plasma mortar,Schaltet den Plasmawerfer frei
+TECH_LASER_FOCUS,Focused lens,Fokuslinse
+TECH_LASER_FOCUS_INFO,Laser +20% damage,Laser +20 % Schaden
+TECH_TESLA_ARC,Arc amplifier,Bogenverstärker
+TECH_TESLA_ARC_INFO,Tesla +1 chain target,Tesla +1 Kettenziel
+TECH_PLASMA_BLAST,Volatile plasma,Instabiles Plasma
+TECH_PLASMA_BLAST_INFO,Plasma +25% blast radius,Plasma +25 % Explosionsradius
+TECH_WEAPONS_1,Weapon systems I,Waffensysteme I
+TECH_WEAPONS_1_INFO,All towers +10% damage,Alle Türme +10 % Schaden
+TECH_WEAPONS_2,Weapon systems II,Waffensysteme II
+TECH_WEAPONS_2_INFO,All towers +10% damage,Alle Türme +10 % Schaden
+TECH_OPTICS,Targeting optics,Zieloptik
+TECH_OPTICS_INFO,All towers +8% range,Alle Türme +8 % Reichweite
+TECH_BULWARK_HULL,Reinforced walls,Verstärkte Mauern
+TECH_BULWARK_HULL_INFO,Bulwark +25% HP,Bollwerk +25 % HP
+TECH_HEALER,Medic tower,Heilturm
+TECH_HEALER_INFO,Unlocks the medic tower,Schaltet den Heilturm frei
+TECH_HEALER_POWER,Nano repair,Nanoreparatur
+TECH_HEALER_POWER_INFO,Medic tower +25% healing,Heilturm +25 % Heilkraft
+TECH_SHIELD,Shield generator,Schildgenerator
+TECH_SHIELD_INFO,Unlocks the shield generator,Schaltet den Schildgenerator frei
+TECH_PLATING_1,Armour plating I,Panzerung I
+TECH_PLATING_1_INFO,All buildings +15% HP,Alle Gebäude +15 % HP
+TECH_PLATING_2,Armour plating II,Panzerung II
+TECH_PLATING_2_INFO,All buildings +15% HP,Alle Gebäude +15 % HP
+TECH_SOLAR_OUTPUT,Better cells,Bessere Zellen
+TECH_SOLAR_OUTPUT_INFO,Solar +15% output,Solar +15 % Leistung
+TECH_SOLAR_OUTPUT_2,Perfect cells,Perfekte Zellen
+TECH_SOLAR_OUTPUT_2_INFO,Solar +15% output,Solar +15 % Leistung
+TECH_BATTERY_CAPACITY,Dense storage,Dichte Speicher
+TECH_BATTERY_CAPACITY_INFO,Storage +30% capacity,Energiespeicher +30 % Kapazität
+TECH_EXPORTER_RATE,Trade routes,Handelswege
+TECH_EXPORTER_RATE_INFO,Exporter +25% export rate,Exporteur +25 % Exportrate
+TECH_FUNDING_1,War chest I,Kriegskasse I
+TECH_FUNDING_1_INFO,+60 starting money,+60 Startgeld
+TECH_FUNDING_2,War chest II,Kriegskasse II
+TECH_FUNDING_2_INFO,+120 starting money,+120 Startgeld

@@ -34,20 +34,40 @@ static func track_value(building: Building, track: String) -> String:
 			if building.definition().has("heal"):
 				return "%.2f/s" % (1.0 / maxf(Formulas.heal_cooldown(building), 0.001))
 			return "%.2f/s" % (1.0 / maxf(Formulas.cooldown(building), 0.001))
+		GameConfig.TRACK_EFFICIENCY:
+			return "%d%%" % int(round(Formulas.efficiency(building) * 100.0))
+		GameConfig.TRACK_CRIT:
+			return "%d%%" % int(round(Formulas.crit_chance(building) * 100.0))
+		GameConfig.TRACK_CHAIN:
+			return str(Formulas.chain_count(building))
+		GameConfig.TRACK_SPLASH:
+			return str(int(round(Formulas.splash(building))))
 	return ""
 
 
 static func next_value(building: Building, track: String) -> String:
+	return track_value(upgraded(building, track), track)
+
+
+static func upgraded(building: Building, track: String) -> Building:
 	var probe := Building.new(building.id, building.kind, building.position)
+	probe.boosts = building.boosts
 	probe.levels = building.levels.duplicate()
-	probe.levels[track] = building.level(track) + 1
-	return track_value(probe, track)
+	probe.elevation = building.elevation
+	probe.set_level(track, building.level(track) + 1)
+	return probe
 
 
-static func pips(building: Building, track: String) -> String:
-	var maximum := int(GameConfig.TRACKS[track].max)
-	var level := building.level(track)
-	return "●".repeat(level) + "○".repeat(maxi(maximum - level, 0))
+static func draw_change(building: Building, track: String) -> String:
+	var before := EnergyStats.fire_draw(building)
+	var after := EnergyStats.fire_draw(upgraded(building, track))
+	if absf(after - before) < EnergyStatsText.RATE_STEP:
+		return ""
+	return Texts.format("PANEL_DRAW_CHANGE", [Icons.BOLT, before, after])
+
+
+static func level_text(building: Building, track: String) -> String:
+	return Texts.format("PANEL_LEVEL", [building.level(track), Formulas.max_level(track)])
 
 
 static func stats(building: Building, state: BattleState) -> Array[Array]:
@@ -80,7 +100,14 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 		if not laser:
 			rows.append(["STAT_FIRE_RATE", "%.2f/s" % (1.0 / maxf(Formulas.cooldown(building), 0.001))])
 		rows.append(["STAT_RANGE", str(int(round(Formulas.attack_range(building))))])
-		rows.append(["STAT_ENERGY_USE_LASER" if laser else "STAT_ENERGY_USE", "%.0f" % Formulas.shot_energy(building)])
+		rows.append(["STAT_ENERGY_USE_LASER" if laser else "STAT_ENERGY_USE", "%.1f" % Formulas.shot_energy(building)])
+		if not laser:
+			rows.append(["STAT_CRIT", "%d%%" % int(round(Formulas.crit_chance(building) * 100.0))])
+		_energy_rows(building, rows, "" if laser else "STAT_SHOTS_PER_CHARGE")
+	if GameConfig.is_mobile(building.kind):
+		rows.append(["STAT_MOVE_ENERGY", "%.1f" % (Formulas.move_energy(building) * GameConfig.CELL)])
+	if building.id == state.core_id and state.scout != null and state.scout.boarded:
+		rows.append(["STAT_GARRISON", Texts.t("STAT_GARRISON_VALUE")])
 	if Formulas.export_rate(building) > 0.0:
 		rows.append(["STAT_EXPORT", "%d/s" % int(round(Formulas.export_rate(building)))])
 		rows.append(["STAT_EXPORT_INCOME", "%.1f/s" % (Formulas.export_rate(building) / GameConfig.ENERGY_PER_COIN)])
@@ -91,5 +118,14 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 		rows.append(["STAT_HEAL", str(int(round(Formulas.heal_amount(building))))])
 		rows.append(["STAT_HEAL_RATE", "%.2f/s" % (1.0 / maxf(Formulas.heal_cooldown(building), 0.001))])
 		rows.append(["STAT_RANGE", str(int(round(Formulas.heal_range(building))))])
-		rows.append(["STAT_ENERGY_USE", "%.0f" % Formulas.heal_energy(building)])
+		rows.append(["STAT_ENERGY_USE", "%.1f" % Formulas.heal_energy(building)])
+		_energy_rows(building, rows, "STAT_HEALS_PER_CHARGE")
 	return rows
+
+
+static func _energy_rows(building: Building, rows: Array[Array], charge_key: String) -> void:
+	if str(Formulas.attack(building).get("mode", "")) != GameConfig.MODE_LASER:
+		rows.append(["STAT_FIRE_DRAW", "%.1f/s" % EnergyStats.fire_draw(building)])
+	rows.append(["STAT_SELF_RESERVE", EnergyStatsText.duration(EnergyStats.self_reserve(building))])
+	if not charge_key.is_empty():
+		rows.append([charge_key, str(EnergyStats.shots_per_charge(building))])

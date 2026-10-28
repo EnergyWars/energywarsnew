@@ -4,6 +4,9 @@ var settings: AppSettings
 var progress: Progress
 var sfx: SfxPlayer
 var screen: Node
+var menu: WorldMapScreen
+var last_index := 0
+var last_rules: BattleSetup
 
 
 func _ready() -> void:
@@ -33,19 +36,36 @@ func _replace(next: Node) -> void:
 
 func show_menu() -> void:
 	var layer := CanvasLayer.new()
-	var menu := LevelSelect.new().setup(progress, settings, safe_top())
-	menu.level_chosen.connect(start_level)
+	menu = WorldMapScreen.new().setup(progress, settings, safe_top())
+	menu.campaign_chosen.connect(start_campaign)
+	menu.survival_chosen.connect(start_survival)
 	menu.locale_changed.connect(show_menu)
 	layer.add_child(menu)
 	_replace(layer)
 
 
-func start_level(index: int) -> void:
-	if not progress.is_unlocked(index):
-		return
-	var battle := BattleScreen.new().setup(index, progress, settings, sfx, safe_top())
+func start_campaign(index: int) -> void:
+	if Campaign.is_unlocked(progress, index):
+		_start(index, BattleSetup.campaign(progress.arsenal()))
+
+
+func start_survival(index: int, days: int) -> void:
+	if progress.is_conquered(index):
+		_start(index, BattleSetup.survival(days, progress.arsenal()))
+
+
+func retry() -> void:
+	if last_rules != null:
+		_start(last_index, BattleSetup.new(last_rules.mode, last_rules.days, progress.arsenal()))
+
+
+func _start(index: int, rules: BattleSetup) -> void:
+	last_index = index
+	last_rules = rules
+	var battle := BattleScreen.new().setup(index, progress, settings, sfx, safe_top(), rules)
 	battle.menu_requested.connect(show_menu)
-	battle.level_requested.connect(start_level)
+	battle.retry_requested.connect(retry)
+	menu = null
 	_replace(battle)
 
 
@@ -53,6 +73,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		if screen is BattleScreen:
 			(screen as BattleScreen).handle_back()
+		elif is_instance_valid(menu) and menu.handle_back():
+			return
 		else:
 			get_tree().quit()
 	elif what == NOTIFICATION_APPLICATION_PAUSED:

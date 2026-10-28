@@ -7,116 +7,200 @@ func before_each() -> void:
 	battle = BattleFixtures.battle(0)
 
 
-func _cycle_length() -> float:
-	return float(battle.state.level.spawns.cycle)
+func _nest() -> Building:
+	return battle.state.enemy_buildings()[0]
 
 
-func test_prep_counts_down_then_fight_starts() -> void:
-	var prep := battle.state.prep_left
-	battle.spawns.update(1.0)
-	assert_almost_eq(battle.state.prep_left, prep - 1.0, 0.001)
-	assert_eq(battle.state.phase, BattleState.Phase.PREP)
-	battle.spawns.update(prep)
-	assert_eq(battle.state.phase, BattleState.Phase.FIGHT)
-	assert_true(BattleFixtures.types(battle).has("fight_started"))
-	assert_eq(battle.state.cycle, 0)
-
-
-func test_skip_prep_grants_bonus() -> void:
-	battle.state.prep_left = 20.5
-	var money := battle.state.money
-	assert_eq(battle.spawns.skip_prep(), 20)
-	assert_eq(battle.state.money, money + 20)
-	assert_eq(battle.state.phase, BattleState.Phase.FIGHT)
-	assert_eq(battle.spawns.skip_prep(), 0)
-	battle.spawns.start_fight()
-	assert_eq(BattleFixtures.of_type(battle.events.drain(), "fight_started").size(), 1)
-
-
-func test_no_enemies_right_after_fight_starts() -> void:
-	battle.spawns.start_fight()
-	for i in int(5.0 / GameConfig.TICK):
+func _run(seconds: float) -> void:
+	for i in int(seconds / GameConfig.TICK):
+		battle.state.round_time += GameConfig.TICK
 		battle.spawns.update(GameConfig.TICK)
+
+
+func test_planning_has_no_enemies() -> void:
+	assert_eq(battle.state.phase, BattleState.Phase.PLAN)
+	battle.spawns.update(100.0)
 	assert_true(battle.state.enemies.is_empty())
+	assert_eq(battle.state.waves_sent, 0)
 
 
-func test_packs_arrive_more_often_towards_cycle_end() -> void:
-	battle.spawns.start_fight()
-	var length := _cycle_length()
-	var steps := int(length / GameConfig.TICK)
-	var first_half := 0
-	var second_half := 0
-	for i in steps:
-		var before := battle.state.enemies.size()
-		battle.spawns.update(GameConfig.TICK)
-		var added := battle.state.enemies.size() - before
-		if i < steps / 2:
-			first_half += added
-		else:
-			second_half += added
-	var expected := Formulas.cycle_count(battle.state.level.spawns, 0, false)
-	assert_almost_eq(float(first_half + second_half), expected, float(GameConfig.PACK_BASE))
-	assert_eq((first_half + second_half) % GameConfig.PACK_BASE, 0)
-	assert_gt(second_half, first_half)
+func test_start_round_switches_to_fight_once() -> void:
+	assert_true(battle.spawns.start_round())
+	assert_eq(battle.state.phase, BattleState.Phase.FIGHT)
+	assert_eq(battle.state.round_time, 0.0)
+	assert_false(battle.spawns.start_round())
+	var started := BattleFixtures.of_type(battle.events.drain(), "fight_started")
+	assert_eq(started.size(), 1)
+	assert_eq(started[0].round, 1)
 
 
-func test_cycle_advances_and_announces_surge_once() -> void:
-	battle.spawns.start_fight()
-	var length := _cycle_length()
-	battle.spawns.update(length * GameConfig.SURGE_PHASE + 0.01)
-	battle.spawns.update(0.5)
-	var surges := BattleFixtures.of_type(battle.events.drain(), "surge")
-	assert_eq(surges.size(), 1)
-	assert_eq(surges[0].cycle, 0)
-	assert_true(battle.state.surge_announced)
-	battle.spawns.update(length * 0.3)
-	assert_eq(battle.state.cycle, 1)
-	assert_false(battle.state.surge_announced)
-	assert_almost_eq(battle.spawns.phase(), (length * (GameConfig.SURGE_PHASE + 0.3 - 1.0) + 0.51) / length, 0.001)
+func test_start_round_ends_full_refunds() -> void:
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, battle.state.core().position + Vector2(0, -150))
+	relay.plan_spent = 30
+	battle.spawns.start_round()
+	assert_eq(relay.plan_spent, 0)
 
 
-func test_night_spawns_more() -> void:
-	var spawns: Dictionary = battle.state.level.spawns
-	assert_gt(Formulas.spawn_rate(spawns, 0, 0.5, true), Formulas.spawn_rate(spawns, 0, 0.5, false))
+func test_first_wave_comes_quickly() -> void:
+	battle.spawns.start_round()
+	_run(GameConfig.WAVE_FIRST + 0.5)
+	assert_eq(battle.state.waves_sent, 1)
+	assert_false(battle.state.enemies.is_empty())
+	var waves := BattleFixtures.of_type(battle.events.drain(), "wave")
+	assert_eq(waves.size(), 1)
+	assert_eq(waves[0].index, 1)
+	assert_false(waves[0].night)
 
 
-func test_enemies_spawn_in_packs_once_per_tick() -> void:
-	battle.spawns.start_fight()
-	var nest: Building = battle.state.enemy_buildings()[0]
-	nest.spawn_progress = GameConfig.PACK_BASE - 0.5
-	battle.spawns.update(GameConfig.TICK * 0.01)
-	assert_true(battle.state.enemies.is_empty())
-	nest.spawn_progress = 30.0
+func test_every_wave_sends_at_least_one_enemy_per_spawner() -> void:
+	battle.spawns.start_round()
+	assert_gte(battle.spawns.send_wave(), 1)
+	assert_gte(_nest().spawn_queue, 1)
+
+
+func test_waves_trickle_out_of_the_spawner() -> void:
+	battle.spawns.start_round()
+	var nest := _nest()
+	nest.spawn_queue = 4
 	battle.spawns.update(GameConfig.TICK)
-	assert_eq(battle.state.enemies.size(), GameConfig.PACK_BASE)
-	assert_almost_eq(nest.spawn_progress, 30.0 - GameConfig.PACK_BASE, 0.1)
-	var center := Vector2.ZERO
-	for enemy in battle.state.enemies:
-		center += enemy.position - nest.position
-	assert_gt(center.length() / battle.state.enemies.size(), nest.half_extent() * 0.5)
+	assert_eq(battle.state.enemies.size(), 1)
+	battle.spawns.update(GameConfig.TICK)
+	assert_eq(battle.state.enemies.size(), 1)
+	battle.spawns.update(GameConfig.WAVE_TRICKLE)
+	assert_eq(battle.state.enemies.size(), 2)
+	assert_eq(nest.spawn_queue, 2)
 
 
-func test_pack_size_grows_and_caps() -> void:
-	assert_eq(Formulas.pack_size(0), GameConfig.PACK_BASE)
-	assert_eq(Formulas.pack_size(-3), GameConfig.PACK_BASE)
-	assert_eq(Formulas.pack_size(GameConfig.PACK_EVERY), GameConfig.PACK_BASE + 1)
-	assert_eq(Formulas.pack_size(200), GameConfig.PACK_MAX)
+func test_wave_queue_is_capped() -> void:
+	battle.spawns.start_round()
+	battle.state.round_number = 400
+	battle.spawns.send_wave()
+	assert_eq(_nest().spawn_queue, GameConfig.WAVE_MAX)
+
+
+func test_waves_get_bigger_towards_night() -> void:
+	battle.spawns.start_round()
+	var nest := _nest()
+	var first := battle.spawns.send_wave()
+	nest.spawn_queue = 0
+	battle.state.round_time = float(battle.state.level.day) + 10.0
+	var night := 0
+	for i in 5:
+		night += battle.spawns.send_wave()
+	assert_gt(night / 5.0, float(first))
+
+
+func test_whole_round_sends_all_waves_then_stops() -> void:
+	battle.spawns.start_round()
+	_run(DayCycle.length(battle.state.level) + 1.0)
+	assert_eq(battle.state.waves_sent, Formulas.wave_times(battle.state.level))
+	battle.spawns.end_night()
+	var count := battle.state.enemies.size()
+	_run(20.0)
+	assert_eq(battle.state.enemies.size(), count)
+	assert_eq(_nest().spawn_queue, 0)
+
+
+func test_end_night_is_announced_once() -> void:
+	battle.spawns.start_round()
+	battle.spawns.end_night()
+	battle.spawns.end_night()
+	assert_true(battle.state.night_over)
+	assert_eq(BattleFixtures.of_type(battle.events.drain(), "night_over").size(), 1)
+
+
+func test_night_waves_are_marked() -> void:
+	battle.spawns.start_round()
+	battle.state.round_time = float(battle.state.level.day) + 1.0
+	battle.spawns.send_wave()
+	var waves := BattleFixtures.of_type(battle.events.drain(), "wave")
+	assert_true(waves[0].night)
+	assert_eq(waves[0].total, Formulas.wave_times(battle.state.level))
+
+
+func test_night_brings_night_monsters() -> void:
+	battle.state.level = battle.state.level.duplicate(true)
+	battle.state.level.waves.roster = [["crawler", 0, 1.0]]
+	battle.state.level.waves.night_roster = [["stalker", 0, 1.0]]
+	battle.spawns.start_round()
+	var day := battle.spawns.spawn(_nest())
+	battle.state.round_time = float(battle.state.level.day) + 1.0
+	var night := battle.spawns.spawn(_nest())
+	assert_eq(day.kind, "crawler")
+	assert_eq(night.kind, "stalker")
+	assert_false(day.is_nocturnal())
+	assert_true(night.is_nocturnal())
+	assert_gt(night.max_hp, day.max_hp)
+	assert_gt(night.damage(), day.damage())
+
+
+func test_dawn_sets_night_monsters_on_fire() -> void:
+	battle.spawns.start_round()
+	var day := BattleFixtures.enemy(battle, "crawler", _nest().position + Vector2(0, 300))
+	var night := BattleFixtures.enemy(battle, "stalker", _nest().position + Vector2(0, 320))
+	var boss := BattleFixtures.enemy(battle, "behemoth", _nest().position + Vector2(0, 340))
+	battle.events.drain()
+	battle.spawns.end_night()
+	assert_false(day.is_burning())
+	assert_true(night.is_burning())
+	assert_between(night.burn, GameConfig.BURN_MIN, GameConfig.BURN_MAX)
+	var over := BattleFixtures.of_type(battle.events.drain(), "night_over")[0]
+	assert_eq(over.left, 1)
+	assert_eq(over.burning, 2)
+	var kills := battle.state.kills
+	assert_eq(battle.spawns.burn(GameConfig.BURN_MAX + 0.1), 2)
+	assert_false(night.is_alive())
+	assert_false(boss.is_alive())
+	assert_true(day.is_alive())
+	assert_eq(battle.state.kills, kills)
+	assert_true(battle.state.pickups.is_empty())
+	var burned := BattleFixtures.of_type(battle.events.drain(), "burned")
+	assert_eq(burned.size(), 2)
+	assert_eq(battle.spawns.burn(1.0), 0)
+
+
+func test_burning_runs_after_the_night() -> void:
+	battle.spawns.start_round()
+	var night := BattleFixtures.enemy(battle, "raider", _nest().position + Vector2(0, 300))
+	battle.spawns.end_night()
+	battle.spawns.update(GameConfig.BURN_MIN * 0.5)
+	assert_true(night.is_alive())
+	battle.spawns.update(GameConfig.BURN_MAX)
+	assert_false(night.is_alive())
+
+
+func test_burning_waits_while_planning() -> void:
+	var night := BattleFixtures.enemy(battle, "stalker", _nest().position + Vector2(0, 300))
+	night.burn = 0.1
+	battle.spawns.update(1.0)
+	assert_true(night.is_alive())
+
+
+func test_later_rounds_spawn_stronger_enemies() -> void:
+	battle.state.level = battle.state.level.duplicate(true)
+	battle.state.level.waves.roster = [["crawler", 0, 1.0]]
+	battle.spawns.start_round()
+	var first := battle.spawns.spawn(_nest())
+	battle.state.round_number = 5
+	var later := battle.spawns.spawn(_nest())
+	assert_almost_eq(later.max_hp, first.max_hp * pow(GameConfig.ROUND_HP_GROWTH, 4), 0.01)
+	assert_gt(later.bounty, first.bounty)
 
 
 func test_turrets_do_not_spawn() -> void:
 	battle = BattleFixtures.battle(3)
-	battle.spawns.start_fight()
-	for i in int(_cycle_length() / GameConfig.TICK):
-		battle.spawns.update(GameConfig.TICK)
+	battle.spawns.start_round()
+	battle.spawns.send_wave()
 	for building in battle.state.enemy_buildings():
 		if building.kind == GameConfig.TURRET:
-			assert_eq(building.spawn_progress, 0.0)
+			assert_eq(building.spawn_queue, 0)
+	_run(10.0)
 	for enemy in battle.state.enemies:
 		assert_true(GameConfig.SPAWNER_FACTIONS[GameConfig.CAMP].has(enemy.kind))
 
 
 func test_spawned_enemies_appear_near_spawner() -> void:
-	var nest: Building = battle.state.enemy_buildings()[0]
+	var nest := _nest()
 	var enemy := battle.spawns.spawn(nest)
 	assert_eq(enemy.kind, "crawler")
 	assert_lte(enemy.position.distance_to(nest.position), nest.half_extent() + GameConfig.CELL * (1.5 + GameConfig.SPAWN_RING))
@@ -124,22 +208,29 @@ func test_spawned_enemies_appear_near_spawner() -> void:
 	assert_eq(BattleFixtures.of_type(battle.events.drain(), "spawn").size(), 1)
 
 
-func test_pick_kind_respects_cycle_and_faction() -> void:
+func test_pick_kind_respects_round_night_and_faction() -> void:
 	battle = BattleFixtures.battle(7)
-	battle.state.cycle = 0
+	battle.spawns.start_round()
 	var nest_kinds := battle.spawns.candidates(GameConfig.NEST).map(func(entry: Array) -> String: return entry[0])
 	assert_eq(nest_kinds, ["crawler"])
 	assert_eq(battle.spawns.candidates(GameConfig.CAMP).map(func(entry: Array) -> String: return entry[0]), ["soldier"])
-	battle.state.cycle = 10
-	assert_eq(battle.spawns.candidates(GameConfig.NEST).size(), 5)
+	battle.state.round_time = float(battle.state.level.day) + 1.0
+	assert_eq(battle.spawns.candidates(GameConfig.NEST).map(func(entry: Array) -> String: return entry[0]), ["stalker"])
+	assert_eq(battle.spawns.candidates(GameConfig.CAMP).map(func(entry: Array) -> String: return entry[0]), ["raider"])
+	battle.state.round_number = 3
+	for entry: Array in battle.spawns.candidates(GameConfig.NEST) + battle.spawns.candidates(GameConfig.CAMP):
+		assert_true(GameConfig.is_nocturnal(entry[0]), entry[0])
+	battle.state.round_time = 0.0
+	battle.state.round_number = 10
+	assert_eq(battle.spawns.candidates(GameConfig.NEST).size(), 4)
 	for i in 50:
 		assert_true(GameConfig.SPAWNER_FACTIONS[GameConfig.CAMP].has(battle.spawns.pick_kind(GameConfig.CAMP)))
 
 
 func test_flyers_spawn_without_grid_snapping() -> void:
 	battle.state.level = battle.state.level.duplicate(true)
-	battle.state.level.spawns.roster = [["wasp", 0, 1.0]]
-	var nest: Building = battle.state.enemy_buildings()[0]
+	battle.state.level.waves.roster = [["wasp", 0, 1.0]]
+	var nest := _nest()
 	var wasp := battle.spawns.spawn(nest)
 	assert_eq(wasp.kind, "wasp")
 	assert_lte(wasp.position.distance_to(nest.position), nest.half_extent() + GameConfig.CELL * (0.5 + GameConfig.SPAWN_RING) + 0.01)
@@ -148,14 +239,20 @@ func test_flyers_spawn_without_grid_snapping() -> void:
 func test_pick_kind_falls_back_to_faction() -> void:
 	assert_eq(battle.spawns.pick_kind(GameConfig.CAMP), "soldier")
 	assert_eq(battle.spawns.pick_kind("unknown"), "crawler")
+	battle.spawns.start_round()
+	battle.state.round_time = float(battle.state.level.day) + 1.0
+	assert_eq(battle.spawns.pick_kind(GameConfig.CAMP), "raider")
+	assert_eq(battle.spawns.fallback_kind(GameConfig.NEST), "stalker")
+	assert_eq(battle.spawns.pick_kind("unknown"), "crawler")
 
 
-func test_enemy_hp_scales_with_cycle() -> void:
-	var early := Enemy.new(1, "crawler", Vector2.ZERO, 0)
-	var late := Enemy.new(2, "crawler", Vector2.ZERO, 3)
+func test_enemy_scales() -> void:
 	var base := float(GameConfig.enemy("crawler").hp)
-	assert_eq(early.max_hp, base)
-	assert_almost_eq(late.max_hp, base * (1.0 + GameConfig.HP_GROWTH * 3), 0.001)
-	assert_gt(late.bounty, early.bounty)
-	var capped := Enemy.new(3, "crawler", Vector2.ZERO, GameConfig.HP_GROWTH_CYCLES + 40)
-	assert_almost_eq(capped.max_hp, base * (1.0 + GameConfig.HP_GROWTH * GameConfig.HP_GROWTH_CYCLES), 0.001)
+	var plain := Enemy.new(1, "crawler", Vector2.ZERO)
+	var strong := Enemy.new(2, "crawler", Vector2.ZERO, 3.0, 2.0, 2.0)
+	assert_eq(plain.max_hp, base)
+	assert_eq(strong.max_hp, base * 3.0)
+	assert_eq(strong.hp, strong.max_hp)
+	assert_eq(strong.damage(), float(GameConfig.enemy("crawler").damage) * 2.0)
+	assert_eq(strong.bounty, int(GameConfig.enemy("crawler").bounty) * 2)
+	assert_eq(Enemy.new(3, "crawler", Vector2.ZERO, 1.0, 1.0, 0.0).bounty, 1)

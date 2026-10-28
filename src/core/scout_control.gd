@@ -4,9 +4,9 @@ extends RefCounted
 const OK := ""
 const MISSING := "missing"
 const LANDING := "landing"
-const BOUNDS := "bounds"
-const BLOCKED := "blocked"
-const UNREACHABLE := "unreachable"
+const BOARDED := "boarded"
+const NOTHING := "nothing"
+const TOO_FAR := "too_far"
 
 var state: BattleState
 var events: BattleEvents
@@ -17,33 +17,65 @@ func _init(p_state: BattleState, p_events: BattleEvents) -> void:
 	events = p_events
 
 
-func command(world: Vector2) -> String:
+func _availability() -> String:
 	var scout := state.scout
 	if scout == null:
 		return MISSING
+	if scout.boarded:
+		return BOARDED
 	if not scout.is_landed():
 		return LANDING
+	return OK
+
+
+func steer(direction: Vector2) -> String:
+	var reason := _availability()
+	if reason != OK:
+		return reason
+	var scout := state.scout
+	var value := direction.limit_length(1.0)
+	if scout.steer == Vector2.ZERO and value != Vector2.ZERO:
+		events.emit("scout_steer", {"position": scout.position})
+	scout.steer = value
+	return OK
+
+
+func clear(world: Vector2) -> String:
+	var reason := _availability()
+	if reason != OK:
+		return reason
+	var scout := state.scout
 	var map := state.map
 	var cell := map.cell_of(world)
-	if not map.has_cell(cell):
-		return BOUNDS
-	var clearing := map.is_clearable(cell)
-	if not clearing and state.nav.walker.is_point_solid(cell):
-		return BLOCKED
-	var path := state.nav.walker_path(scout.position, cell)
-	if path.is_empty() and map.cell_of(scout.position) != cell:
-		return UNREACHABLE
-	scout.path = path
-	scout.path_index = 0
-	scout.clear_cell = cell if clearing else Scout.NO_CELL
+	if not map.is_clearable(cell):
+		return NOTHING
+	if not in_reach(cell):
+		return TOO_FAR
+	scout.clear_cell = cell
 	scout.clear_progress = 0.0
-	events.emit("scout_order", {"position": map.center_of(cell), "clear": clearing})
+	events.emit("clear_order", {"position": map.center_of(cell)})
 	return OK
+
+
+func in_reach(cell: Vector2i) -> bool:
+	return state.scout.position.distance_to(state.map.center_of(cell)) <= GameConfig.CELL * GameConfig.CLEAR_REACH
+
+
+func board(core: Building) -> void:
+	var scout := state.scout
+	if scout == null:
+		return
+	scout.boarded = true
+	scout.position = core.position
+	scout.steer = Vector2.ZERO
+	scout.clear_cell = Scout.NO_CELL
+	scout.clear_progress = 0.0
+	events.emit("scout_boarded", {"position": core.position})
 
 
 func update(delta: float) -> void:
 	var scout := state.scout
-	if scout == null:
+	if scout == null or scout.boarded:
 		return
 	if not scout.is_landed():
 		scout.drop_left -= delta
@@ -52,40 +84,31 @@ func update(delta: float) -> void:
 		return
 	if scout.is_moving():
 		_walk(scout, delta)
-		return
 	if scout.is_clearing():
 		_clear(scout, delta)
 
 
 func _walk(scout: Scout, delta: float) -> void:
-	var budget := GameConfig.SCOUT_SPEED * delta
-	while budget > 0.0 and scout.is_moving():
-		var goal := scout.path[scout.path_index]
-		var offset := goal - scout.position
-		if offset.length() <= budget:
-			scout.position = goal
-			budget -= offset.length()
-			scout.path_index += 1
-		else:
-			scout.heading = offset.normalized()
-			scout.position += scout.heading * budget
-			budget = 0.0
+	scout.heading = scout.steer.normalized()
+	var walker := state.nav.walker
+	var blocked := func(cell: Vector2i) -> bool: return not state.map.has_cell(cell) or walker.is_point_solid(cell)
+	scout.position = Steering.slide(state.map, scout.position, scout.steer * GameConfig.SCOUT_SPEED * delta, GameConfig.SCOUT_RADIUS, blocked)
 
 
 func _clear(scout: Scout, delta: float) -> void:
 	var map := state.map
 	var cell := scout.clear_cell
 	var target := map.center_of(cell)
-	if not map.is_clearable(cell) or scout.position.distance_to(target) > GameConfig.CELL * GameConfig.CLEAR_REACH:
+	if not map.is_clearable(cell) or not in_reach(cell):
 		scout.clear_cell = Scout.NO_CELL
 		return
-	scout.heading = (target - scout.position).normalized() if target != scout.position else scout.heading
+	if not scout.is_moving():
+		scout.heading = (target - scout.position).normalized() if target != scout.position else scout.heading
 	scout.clear_progress += delta
 	var type := map.obstacle_type(cell)
 	if scout.clear_progress < float(GameConfig.CLEAR_TIME[type]):
 		return
-	map.clear(cell)
-	state.nav.terrain_changed(cell)
+	state.clear_obstacle(cell)
 	scout.clear_cell = Scout.NO_CELL
 	scout.clear_progress = 0.0
 	events.emit("cleared", {"position": target, "obstacle": type, "cell": cell})

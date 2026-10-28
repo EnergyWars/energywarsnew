@@ -3,7 +3,9 @@ extends Control
 
 signal pause_pressed
 signal speed_pressed
-signal skip_pressed
+signal start_pressed
+signal undo_pressed
+signal reset_pressed
 
 const BANNER_TIME := 1.8
 const TOAST_TIME := 1.6
@@ -21,7 +23,12 @@ var _day_label: Label
 var _speed: Button
 var _prep: PanelContainer
 var _prep_label: Label
-var _skip: Button
+var _prep_icon: Label
+var _start: Button
+var _undo: Button
+var _reset: Button
+var _stats_button: Button
+var stats_panel: EnergyStatsPanel
 var _hint: PanelContainer
 var _hint_label: Label
 var _combo: VBoxContainer
@@ -49,6 +56,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_top()
 	_build_prep()
+	_build_stats()
 	_build_hint()
 	_build_combo()
 	_build_banner()
@@ -80,6 +88,8 @@ func _build_top() -> void:
 	_energy_bar = UiKit.progress_bar(AppTheme.ENERGY, 10.0)
 	energy.add_child(_energy_bar)
 	row.add_child(energy)
+	_stats_button = UiKit.icon_button(Icons.CHART, toggle_stats, 52.0)
+	row.add_child(_stats_button)
 	var cycle := UiKit.vbox(0)
 	var cycle_row := UiKit.hbox(2)
 	_cycle_icon = UiKit.icon(Icons.SUN, AppTheme.GOLD, 24)
@@ -103,12 +113,34 @@ func _build_prep() -> void:
 	_prep.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_prep)
 	var row := UiKit.hbox(AppTheme.SPACING_MD)
-	row.add_child(UiKit.icon(Icons.TIMER, AppTheme.ENERGY, 30))
+	_prep_icon = UiKit.icon(Icons.FLAG, AppTheme.ENERGY, 30)
+	row.add_child(_prep_icon)
 	_prep_label = UiKit.label("", "Title")
 	row.add_child(_prep_label)
-	_skip = UiKit.button("", "PrimaryButton", func() -> void: skip_pressed.emit())
-	row.add_child(_skip)
+	_undo = UiKit.icon_button(Icons.UNDO, func() -> void: undo_pressed.emit(), 52.0)
+	row.add_child(_undo)
+	_reset = UiKit.icon_button(Icons.RESET, func() -> void: reset_pressed.emit(), 52.0)
+	row.add_child(_reset)
+	_start = UiKit.button("", "PrimaryButton", func() -> void: start_pressed.emit())
+	row.add_child(_start)
 	_prep.add_child(row)
+
+
+func _build_stats() -> void:
+	stats_panel = EnergyStatsPanel.new()
+	stats_panel.visible = false
+	stats_panel.closed.connect(hide_stats)
+	add_child(stats_panel)
+
+
+func toggle_stats() -> void:
+	stats_panel.visible = not stats_panel.visible
+	if stats_panel.visible:
+		Juice.pop_in(stats_panel)
+
+
+func hide_stats() -> void:
+	stats_panel.visible = false
 
 
 func _build_hint() -> void:
@@ -173,31 +205,55 @@ func pulse_money() -> void:
 	Juice.pop(_money, 1.25)
 
 
-func refresh(state: BattleState, speed: float, tutorial_text: String, shown_money: int) -> void:
+func refresh(state: BattleState, speed: float, tutorial_text: String, shown_money: int, history: PlanHistory = null) -> void:
 	money_roll.set_target(shown_money)
 	var capacity := maxf(state.storage_capacity(), 1.0)
-	_energy_bar.value = state.stored_energy() / capacity
-	_energy_label.text = "%d / %d   +%d/s" % [int(state.stored_energy()), int(capacity), int(round(state.generation()))]
+	var stored := state.stored_energy()
+	_energy_bar.value = stored / capacity
+	_energy_label.text = "%d / %d   +%d/s" % [int(stored), int(capacity), int(round(state.generation()))]
 	var night := state.is_night()
-	_cycle_icon.text = Icons.MOON if night else Icons.SUN
+	var fighting := state.is_fighting()
+	_cycle_icon.text = Icons.MOON if night else (Icons.SUN if fighting else Icons.FLAG)
 	_cycle_icon.add_theme_color_override(&"font_color", AppTheme.VIOLET if night else AppTheme.GOLD)
-	_cycle_label.text = NumberFormat.clock(DayCycle.time_to_switch(state.time, state.level))
-	_day_label.text = Texts.format("HUD_DAY", [DayCycle.day_number(state.time, state.level)])
+	_cycle_label.text = NumberFormat.clock(DayCycle.time_to_switch(state.round_time, state.level)) if fighting else Texts.t("HUD_PLAN")
+	_day_label.text = day_text(state)
 	_speed.text = "%d×" % int(speed)
-	var prepping := state.phase == BattleState.Phase.PREP
+	var planning := state.is_planning()
 	var scouting := state.is_scouting()
-	_prep.visible = prepping or scouting
-	_skip.visible = prepping
+	var mopping := fighting and state.night_over
+	_prep.visible = planning or scouting or mopping
+	_start.visible = planning
+	var undoable := planning and history != null and history.can_undo()
+	_undo.visible = planning
+	_reset.visible = planning
+	_undo.disabled = not undoable
+	_reset.disabled = not undoable
+	_stats_button.visible = not scouting
+	if scouting:
+		stats_panel.visible = false
+	if stats_panel.visible:
+		stats_panel.refresh(state, history.baseline_stats if history != null else null)
+	_prep_icon.text = Icons.SCOUT if scouting else (Icons.SUN if mopping else Icons.FLAG)
 	if scouting:
 		_prep_label.text = Texts.t("HUD_SCOUT")
-	elif prepping:
-		_prep_label.text = Texts.format("HUD_PREP", [NumberFormat.clock(state.prep_left)])
-		_skip.text = Texts.format("HUD_SKIP", [int(floor(state.prep_left)) * GameConfig.SKIP_PREP_BONUS])
+	elif planning:
+		_prep_label.text = Texts.format("HUD_PLAN_CARD", [state.round_number])
+		_start.text = "%s  %s" % [Icons.PLAY, Texts.format("HUD_START", [state.round_number])]
+	elif mopping:
+		_prep_label.text = Texts.format("HUD_MOP_UP", [state.enemies.size()])
 	_hint.visible = not tutorial_text.is_empty()
 	_hint_label.text = tutorial_text
 	if night != _night:
 		_night = night
 		Juice.pop(_cycle_icon, 1.5)
+
+
+static func day_text(state: BattleState) -> String:
+	var target := state.setup.days if state.is_survival() else 0
+	var day := Texts.format("HUD_DAY_OF", [state.round_number, target]) if target > 0 else Texts.format("HUD_DAY", [state.round_number])
+	if state.is_fighting() and not state.night_over:
+		return Texts.format("HUD_DAY_WAVE", [day, state.waves_sent, Formulas.wave_times(state.level)])
+	return day
 
 
 func _process(delta: float) -> void:
@@ -221,7 +277,11 @@ func _layout() -> void:
 	var width := size.x
 	var top := top_height()
 	_prep.position = Vector2((width - _prep.size.x) * 0.5, top + AppTheme.SPACING_MD)
-	_hint.position = Vector2((width - _hint.size.x) * 0.5, top + AppTheme.SPACING_MD + (_prep.size.y + AppTheme.SPACING_SM if _prep.visible else 0.0))
+	var below := top + AppTheme.SPACING_MD + (_prep.size.y + AppTheme.SPACING_SM if _prep.visible else 0.0)
+	stats_panel.position = Vector2((width - stats_panel.size.x) * 0.5, below)
+	if stats_panel.visible:
+		below += stats_panel.size.y + AppTheme.SPACING_SM
+	_hint.position = Vector2((width - _hint.size.x) * 0.5, below)
 	_combo.position = Vector2(width - _combo.size.x - AppTheme.SPACING_LG, top + 150.0)
 	_banner.size.x = width
 	_banner.position = Vector2(0, size.y * 0.34)

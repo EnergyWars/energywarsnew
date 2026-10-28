@@ -55,7 +55,8 @@ func test_solar_generates_only_in_daylight() -> void:
 	var solar := BattleFixtures.add(battle, GameConfig.SOLAR, core.position + Vector2(120, 0))
 	battle.network.flow(1.0)
 	assert_almost_eq(solar.energy, 8.0, 0.001)
-	battle.state.time = float(battle.state.level.day)
+	battle.start_round()
+	battle.state.round_time = float(battle.state.level.day)
 	solar.energy = 0.0
 	battle.network.flow(1.0)
 	assert_eq(solar.energy, 0.0)
@@ -73,8 +74,8 @@ func test_flow_respects_rate_and_space() -> void:
 	battle.network.connect_buildings(solar.id, battery.id)
 	solar.energy = 30.0
 	battle.network.flow(1.0)
-	assert_almost_eq(battery.energy, 10.0, 0.001)
-	assert_almost_eq(solar.energy, 20.0, 0.001)
+	assert_almost_eq(battery.energy, Formulas.output(solar), 0.001)
+	assert_almost_eq(solar.energy, 30.0 - Formulas.output(solar), 0.001)
 	assert_gt(battle.state.links[0].flow, 0.0)
 	battery.energy = Formulas.capacity(battery)
 	var before := solar.energy

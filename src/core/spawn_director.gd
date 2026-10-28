@@ -11,65 +11,91 @@ func _init(p_state: BattleState, p_events: BattleEvents) -> void:
 
 
 func update(delta: float) -> void:
-	match state.phase:
-		BattleState.Phase.PREP:
-			state.prep_left = maxf(state.prep_left - delta, 0.0)
-			if state.prep_left <= 0.0:
-				start_fight()
-		BattleState.Phase.FIGHT:
-			_advance_cycle(delta)
-			var rate_phase := phase()
-			var night := state.is_night()
-			for spawner in state.enemy_buildings():
-				if spawner.definition().get("spawns", false):
-					_feed(spawner, Formulas.spawn_rate(state.level.spawns, state.cycle, rate_phase, night) * delta)
-
-
-func start_fight() -> void:
-	if state.phase != BattleState.Phase.PREP:
+	if state.phase != BattleState.Phase.FIGHT:
 		return
+	burn(delta)
+	if state.night_over:
+		return
+	var level := state.level
+	while state.waves_sent < Formulas.wave_times(level) and state.round_time >= Formulas.wave_time(level, state.waves_sent):
+		send_wave()
+	for spawner in state.enemy_buildings():
+		if spawner.spawner and spawner.spawn_queue > 0:
+			_release(spawner, delta)
+
+
+func start_round() -> bool:
+	if state.phase != BattleState.Phase.PLAN:
+		return false
 	state.phase = BattleState.Phase.FIGHT
-	state.prep_left = 0.0
-	state.cycle = 0
-	state.cycle_time = 0.0
-	state.surge_announced = false
-	events.emit("fight_started")
+	state.round_time = 0.0
+	state.waves_sent = 0
+	state.night_over = false
+	for building in state.player_buildings():
+		building.plan_spent = 0
+	for spawner in state.enemy_buildings():
+		spawner.spawn_queue = 0
+		spawner.spawn_progress = 0.0
+	events.emit("fight_started", {"round": state.round_number})
+	return true
 
 
-func skip_prep() -> int:
-	if state.phase != BattleState.Phase.PREP:
-		return 0
-	var bonus := int(floor(state.prep_left)) * GameConfig.SKIP_PREP_BONUS
-	state.money += bonus
-	start_fight()
-	return bonus
-
-
-func phase() -> float:
-	return clampf(state.cycle_time / float(state.level.spawns.cycle), 0.0, 1.0)
-
-
-func _advance_cycle(delta: float) -> void:
-	var length := float(state.level.spawns.cycle)
-	state.cycle_time += delta
-	if state.cycle_time >= length:
-		state.cycle_time -= length
-		state.cycle += 1
-		state.surge_announced = false
-	if not state.surge_announced and phase() >= GameConfig.SURGE_PHASE:
-		state.surge_announced = true
-		events.emit("surge", {"cycle": state.cycle, "night": state.is_night()})
-
-
-func _feed(spawner: Building, amount: float) -> void:
-	spawner.spawn_progress += amount
-	var pack := Formulas.pack_size(state.cycle)
-	if spawner.spawn_progress < pack:
+func end_night() -> void:
+	if state.night_over:
 		return
-	spawner.spawn_progress -= pack
-	var heading := state.rng.randf() * TAU
-	for i in pack:
-		spawn(spawner, heading + (state.rng.randf() - 0.5) * GameConfig.PACK_SPREAD * TAU)
+	state.night_over = true
+	for spawner in state.enemy_buildings():
+		spawner.spawn_queue = 0
+	var ignited := 0
+	for enemy in state.enemies:
+		if enemy.is_alive() and enemy.is_nocturnal():
+			enemy.burn = state.rng.randf_range(GameConfig.BURN_MIN, GameConfig.BURN_MAX)
+			ignited += 1
+	events.emit("night_over", {"round": state.round_number, "left": state.enemies.size() - ignited, "burning": ignited})
+
+
+func burn(delta: float) -> int:
+	var burned := 0
+	for enemy in state.enemies:
+		if not enemy.is_alive() or not enemy.is_burning():
+			continue
+		enemy.burn -= delta
+		if enemy.burn > 0.0:
+			continue
+		enemy.burn = 0.0
+		enemy.hp = 0.0
+		burned += 1
+		events.emit("burned", {"position": enemy.position, "kind": enemy.kind, "boss": enemy.is_boss()})
+	return burned
+
+
+func send_wave() -> int:
+	var night := DayCycle.is_night(state.round_time, state.level)
+	var progress := state.round_time / DayCycle.length(state.level)
+	var count := Formulas.wave_count(state.level.waves, state.round_number, progress, night)
+	var total := 0
+	for spawner in state.enemy_buildings():
+		if not spawner.spawner:
+			continue
+		spawner.spawn_progress += count
+		var whole := maxi(int(floor(spawner.spawn_progress)), 1)
+		spawner.spawn_progress -= whole
+		spawner.spawn_queue = mini(spawner.spawn_queue + whole, GameConfig.WAVE_MAX)
+		spawner.spawn_heading = state.rng.randf() * TAU
+		spawner.spawn_timer = 0.0
+		total += whole
+	state.waves_sent += 1
+	events.emit("wave", {"index": state.waves_sent, "total": Formulas.wave_times(state.level), "night": night, "round": state.round_number, "count": total})
+	return total
+
+
+func _release(spawner: Building, delta: float) -> void:
+	spawner.spawn_timer -= delta
+	if spawner.spawn_timer > 0.0:
+		return
+	spawner.spawn_timer = GameConfig.WAVE_TRICKLE
+	spawner.spawn_queue -= 1
+	spawn(spawner, spawner.spawn_heading + (state.rng.randf() - 0.5) * GameConfig.PACK_SPREAD * TAU)
 
 
 func spawn(spawner: Building, angle: float = INF) -> Enemy:
@@ -82,7 +108,8 @@ func spawn(spawner: Building, angle: float = INF) -> Enemy:
 		var cell := state.nav.nearest_free(point)
 		if cell != Vector2i(-1, -1):
 			point = state.map.center_of(cell)
-	var enemy := Enemy.new(state.next_id(), kind, point, state.cycle)
+	var round_number := state.round_number
+	var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number), Formulas.enemy_bounty_scale(round_number))
 	enemy.approach = Vector2.from_angle(state.rng.randf() * TAU) * state.rng.randf()
 	state.enemies.append(enemy)
 	events.emit("spawn", {"position": enemy.position, "kind": kind, "boss": enemy.is_boss()})
@@ -91,18 +118,22 @@ func spawn(spawner: Building, angle: float = INF) -> Enemy:
 
 func candidates(spawner_kind: String) -> Array:
 	var faction: Array = GameConfig.SPAWNER_FACTIONS.get(spawner_kind, [])
+	var tier := Formulas.wave_tier(state.round_number)
 	var result := []
-	for entry: Array in state.level.spawns.roster:
-		if faction.has(entry[0]) and state.cycle >= int(entry[1]):
+	for entry: Array in roster():
+		if faction.has(entry[0]) and tier >= int(entry[1]):
 			result.append(entry)
 	return result
+
+
+func roster() -> Array:
+	return state.level.waves.get("night_roster", GameConfig.EMPTY_LIST) if state.is_night() else state.level.waves.roster
 
 
 func pick_kind(spawner_kind: String) -> String:
 	var options := candidates(spawner_kind)
 	if options.is_empty():
-		var faction: Array = GameConfig.SPAWNER_FACTIONS.get(spawner_kind, ["crawler"])
-		return str(faction[0])
+		return fallback_kind(spawner_kind)
 	var total := 0.0
 	for entry: Array in options:
 		total += float(entry[2])
@@ -112,3 +143,12 @@ func pick_kind(spawner_kind: String) -> String:
 		if roll <= 0.0:
 			return str(entry[0])
 	return str(options[options.size() - 1][0])
+
+
+func fallback_kind(spawner_kind: String) -> String:
+	var faction: Array = GameConfig.SPAWNER_FACTIONS.get(spawner_kind, ["crawler"])
+	var night := state.is_night()
+	for kind: String in faction:
+		if GameConfig.is_nocturnal(kind) == night:
+			return kind
+	return str(faction[0])

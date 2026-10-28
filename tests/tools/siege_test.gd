@@ -50,7 +50,7 @@ func _run(index: int, walls: bool, extra: int) -> int:
 			for x in [-_ring + 1, _ring]:
 				battle.place(GameConfig.BULWARK, state.map.center_of(core.origin + Vector2i(x, y)))
 	var spent := before - state.money
-	battle.skip_prep()
+	battle.start_round()
 	var first_loss := -1.0
 	var lost_walls := 0
 	var lost_towers := 0
@@ -69,5 +69,5 @@ func _run(index: int, walls: bool, extra: int) -> int:
 					first_loss = state.time
 	var label := "walls" if walls else ("towers+%d" % extra if extra > 0 else "towers")
 	print("%-12s %-10s spent=%4d %-5s t=%4d cycle=%2d first_loss=%5d lost_towers=%2d lost_walls=%3d kills=%4d core=%.2f" % [
-		state.level.id, label, spent, BattleState.Phase.keys()[state.phase], int(state.time), state.cycle, int(first_loss), lost_towers, lost_walls, state.kills, state.core_ratio()])
+		state.level.id, label, spent, BattleState.Phase.keys()[state.phase], int(state.time), state.round_number, int(first_loss), lost_towers, lost_walls, state.kills, state.core_ratio()])
 	return spent

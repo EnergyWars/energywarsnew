@@ -60,6 +60,9 @@ func _play(index: int) -> void:
 	var min_core := 1.0
 	var min_energy_night := INF
 	while not state.is_over() and state.time < MAX_TIME:
+		if state.is_planning():
+			_think(battle)
+			battle.start_round()
 		var started := Time.get_ticks_usec()
 		battle.tick(GameConfig.TICK)
 		_tick_usec += Time.get_ticks_usec() - started
@@ -88,8 +91,8 @@ func _play(index: int) -> void:
 		if _verbose and fmod(state.time, 30.0) < GameConfig.TICK:
 			_report(state)
 	print("%-12s lost_walls=%4d lost_other=%4d first_loss=%5ds" % [state.level.id, _lost_walls, _lost_other, int(_first_loss)])
-	print("%-12s %-5s walls=%3d t=%4ds cycles=%2d kills=%4d lost=%2d core_min=%.2f stars=%d money=%d earned=%d buildings=%d night_min_energy=%d" % [
-		state.level.id, BattleState.Phase.keys()[state.phase], state.count_kind(GameConfig.BULWARK), int(state.time), state.cycle, state.kills, state.lost, min_core,
+	print("%-12s %-5s walls=%3d t=%4ds rounds=%2d kills=%4d lost=%2d core_min=%.2f stars=%d money=%d earned=%d buildings=%d night_min_energy=%d" % [
+		state.level.id, BattleState.Phase.keys()[state.phase], state.count_kind(GameConfig.BULWARK), int(state.time), state.round_number, state.kills, state.lost, min_core,
 		state.stars(), state.money, state.earned, state.player_buildings().size(), int(min_energy_night if min_energy_night != INF else -1)])
 
 
@@ -101,7 +104,7 @@ func _report(state: BattleState) -> void:
 	var unlinked := state.player_buildings().filter(func(b: Building) -> bool: return GameConfig.is_tower(b.kind) and b.kind != GameConfig.CORE and not state.links.any(func(l: EnergyLink) -> bool: return l.target == b.id)).size()
 	print("  starved=%d unlinked=%d links=%d exporters=%d full=%.2f" % [starved, unlinked, state.links.size(), _count(state, GameConfig.EXPORTER), state.stored_energy() / state.storage_capacity()])
 	print("  t=%4d cycle=%2d money=%4d towers=%2d relays=%2d solar=%2d enemies=%3d front_dist=%4d target_hp=%4d core=%.2f energy=%d" % [
-		int(state.time), state.cycle, state.money, towers, _count(state, GameConfig.RELAY), _count(state, GameConfig.SOLAR), state.enemies.size(),
+		int(state.time), state.round_number, state.money, towers, _count(state, GameConfig.RELAY), _count(state, GameConfig.SOLAR), state.enemies.size(),
 		int(front.position.distance_to(target.position)) if front != null else -1, int(target.hp) if target != null else -1, state.core_ratio(), int(state.stored_energy())])
 
 
@@ -229,7 +232,7 @@ func _unlink_exporters(battle: Battle) -> void:
 func _defend(battle: Battle, core: Building, kinds: Array[String], enemy: Vector2) -> void:
 	var state := battle.state
 	var threat := state.enemies.filter(func(e: Enemy) -> bool: return e.position.distance_to(core.position) < 700.0).size()
-	var wanted := 2 + (2 if state.core_ratio() < 0.85 else 0) + mini(state.cycle / 2, 2) + threat / 4
+	var wanted := 2 + (2 if state.core_ratio() < 0.85 else 0) + mini(state.round_number / 2, 2) + threat / 4
 	if _towers_near(state, core.position, 300.0) >= wanted:
 		return
 	var kind := _best_tower(kinds, state.money)

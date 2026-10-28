@@ -2,11 +2,14 @@ class_name Progress
 extends RefCounted
 
 const DEFAULT_PATH := "user://progress.json"
-const VERSION := 1
+const VERSION := 2
+const LEGACY_VERSION := 1
 const MAX_STARS := 3
 
 var path: String
-var stars := {}
+var regions := {}
+var techs: Array[String] = []
+var location := 0
 var total_kills := 0
 var best_combo := 0
 
@@ -25,22 +28,70 @@ func load_progress() -> Progress:
 
 
 func apply(data: Dictionary) -> void:
-	stars = {}
+	regions = {}
+	techs = []
+	location = 0
 	total_kills = 0
 	best_combo = 0
-	if int(data.get("version", 0)) != VERSION:
+	var version := int(data.get("version", 0))
+	if version == LEGACY_VERSION:
+		_apply_legacy(data)
+	elif version == VERSION:
+		_apply_current(data)
+	else:
 		return
-	var stored: Variant = data.get("stars", {})
-	if stored is Dictionary:
-		for id: Variant in stored:
-			if _level_index(str(id)) >= 0:
-				stars[str(id)] = clampi(int(stored[id]), 0, MAX_STARS)
 	total_kills = maxi(int(data.get("total_kills", 0)), 0)
 	best_combo = maxi(int(data.get("best_combo", 0)), 0)
 
 
+func _apply_legacy(data: Dictionary) -> void:
+	var stored: Variant = data.get("stars", {})
+	if not stored is Dictionary:
+		return
+	for id: Variant in stored:
+		var index := GameConfig.level_index(str(id))
+		if index >= 0 and int(stored[id]) > 0:
+			mark_conquered(index)
+			location = maxi(location, index)
+
+
+func _apply_current(data: Dictionary) -> void:
+	var stored: Variant = data.get("regions", {})
+	if stored is Dictionary:
+		for id: Variant in stored:
+			var index := GameConfig.level_index(str(id))
+			if index >= 0 and stored[id] is Dictionary:
+				regions[str(id)] = _sanitize_region(index, stored[id])
+	var owned: Variant = data.get("techs", [])
+	if owned is Array:
+		for id: Variant in owned:
+			if GameConfig.TECHS.has(str(id)) and not techs.has(str(id)):
+				techs.append(str(id))
+	if spent_points() > earned_points():
+		techs = []
+	location = clampi(int(data.get("location", 0)), 0, GameConfig.level_count() - 1)
+
+
+static func _sanitize_region(index: int, raw: Dictionary) -> Dictionary:
+	var done: Array[String] = []
+	var stored: Variant = raw.get("done", [])
+	if stored is Array:
+		var valid := Challenges.ids(index)
+		for id: Variant in stored:
+			if valid.has(str(id)) and not done.has(str(id)):
+				done.append(str(id))
+	var conquered: Variant = raw.get("conquered", false)
+	return {
+		"conquered": (conquered is bool and conquered) or done.has(Challenges.CONQUER),
+		"stars": clampi(int(raw.get("stars", 0)), 0, MAX_STARS),
+		"best_days": maxi(int(raw.get("best_days", 0)), 0),
+		"done": done,
+	}
+
+
 func to_dict() -> Dictionary:
-	return {"version": VERSION, "stars": stars.duplicate(), "total_kills": total_kills, "best_combo": best_combo}
+	return {"version": VERSION, "regions": regions.duplicate(true), "techs": techs.duplicate(), "location": location,
+		"total_kills": total_kills, "best_combo": best_combo}
 
 
 func save() -> bool:
@@ -52,45 +103,114 @@ func save() -> bool:
 	return true
 
 
-static func _level_index(id: String) -> int:
-	for i in GameConfig.level_count():
-		if GameConfig.LEVELS[i].id == id:
-			return i
-	return -1
+func _region(index: int) -> Dictionary:
+	if index < 0 or index >= GameConfig.level_count():
+		return GameConfig.EMPTY
+	return regions.get(GameConfig.LEVELS[index].id, GameConfig.EMPTY)
+
+
+func _writable(index: int) -> Dictionary:
+	var id := str(GameConfig.LEVELS[index].id)
+	if not regions.has(id):
+		regions[id] = {"conquered": false, "stars": 0, "best_days": 0, "done": [] as Array[String]}
+	return regions[id]
+
+
+func mark_conquered(index: int) -> void:
+	if index < 0 or index >= GameConfig.level_count():
+		return
+	var region := _writable(index)
+	region.conquered = true
+	if not region.done.has(Challenges.CONQUER):
+		region.done.append(Challenges.CONQUER)
+
+
+func is_conquered(index: int) -> bool:
+	return bool(_region(index).get("conquered", false))
 
 
 func stars_for(index: int) -> int:
-	if index < 0 or index >= GameConfig.level_count():
-		return 0
-	return int(stars.get(GameConfig.LEVELS[index].id, 0))
+	return int(_region(index).get("stars", 0))
 
 
-func is_unlocked(index: int) -> bool:
-	if index < 0 or index >= GameConfig.level_count():
-		return false
-	return index == 0 or stars_for(index - 1) > 0
+func best_days(index: int) -> int:
+	return int(_region(index).get("best_days", 0))
+
+
+func completed(index: int) -> Array:
+	return _region(index).get("done", GameConfig.EMPTY_LIST)
+
+
+func is_done(index: int, challenge: String) -> bool:
+	return completed(index).has(challenge)
+
+
+func conquered_count() -> int:
+	var count := 0
+	for index in GameConfig.level_count():
+		if is_conquered(index):
+			count += 1
+	return count
 
 
 func total_stars() -> int:
 	var total := 0
-	for value: int in stars.values():
-		total += value
+	for index in GameConfig.level_count():
+		total += stars_for(index)
 	return total
 
 
-func next_level() -> int:
-	for i in GameConfig.level_count():
-		if is_unlocked(i) and stars_for(i) == 0:
-			return i
-	return GameConfig.level_count() - 1
+func earned_points() -> int:
+	var total := 0
+	for index in GameConfig.level_count():
+		total += Challenges.points(index, completed(index))
+	return total
 
 
-func record(index: int, result_stars: int, kills: int, combo: int) -> bool:
-	total_kills += maxi(kills, 0)
-	best_combo = maxi(best_combo, combo)
+func spent_points() -> int:
+	return TechTree.total_cost(techs)
+
+
+func skill_points() -> int:
+	return earned_points() - spent_points()
+
+
+func has_tech(id: String) -> bool:
+	return techs.has(id)
+
+
+func reset_techs() -> int:
+	var refund := spent_points()
+	techs = []
+	return refund
+
+
+func arsenal() -> Arsenal:
+	return Arsenal.from_techs(techs)
+
+
+func record(report: BattleReport) -> BattleReport:
+	total_kills += maxi(report.kills, 0)
+	best_combo = maxi(best_combo, report.combo)
+	var index := report.level_index
 	if index < 0 or index >= GameConfig.level_count():
-		return false
-	var improved := result_stars > stars_for(index)
-	if improved:
-		stars[GameConfig.LEVELS[index].id] = clampi(result_stars, 0, MAX_STARS)
-	return improved
+		return report
+	var region := _writable(index)
+	report.first_conquest = not report.survival and report.won and not bool(region.conquered)
+	if report.first_conquest:
+		region.conquered = true
+		location = index
+	report.new_challenges = []
+	for id in report.completed:
+		if not region.done.has(id):
+			region.done.append(id)
+			report.new_challenges.append(id)
+	report.points = Challenges.points(index, report.new_challenges)
+	if report.is_endless():
+		report.improved = report.days > int(region.best_days)
+		region.best_days = maxi(int(region.best_days), report.days)
+	elif report.survival:
+		report.improved = report.stars > int(region.stars)
+		region.stars = maxi(int(region.stars), report.stars)
+		region.best_days = maxi(int(region.best_days), report.days)
+	return report

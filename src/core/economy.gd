@@ -57,12 +57,18 @@ func credit(amount: int) -> void:
 
 func update(delta: float) -> void:
 	_export(delta)
+	update_pickups(delta)
+
+
+func update_pickups(delta: float) -> void:
 	if combo > 0:
 		combo_timer -= delta
 		if combo_timer <= 0.0:
 			if combo >= GameConfig.COMBO_TIERS[0]:
 				events.emit("combo_end", {"count": combo})
 			combo = 0
+	if state.pickups.is_empty():
+		return
 	for pickup: Pickup in state.pickups.duplicate():
 		pickup.age += delta
 		pickup.position += pickup.velocity * delta
@@ -71,8 +77,15 @@ func update(delta: float) -> void:
 			collect(pickup)
 
 
+func reset_combo() -> void:
+	if combo >= GameConfig.COMBO_TIERS[0]:
+		events.emit("combo_end", {"count": combo})
+	combo = 0
+	combo_timer = 0.0
+
+
 func _export(delta: float) -> void:
-	for building in state.player_buildings():
+	for building in state.of_kind(GameConfig.EXPORTER):
 		var rate := Formulas.export_rate(building)
 		if rate <= 0.0:
 			continue

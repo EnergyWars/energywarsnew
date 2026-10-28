@@ -4,6 +4,7 @@ extends GutTest
 func _state() -> BattleState:
 	var state := BattleState.create(0)
 	state.fog.cells.fill(FogOfWar.HIDDEN)
+	state.fog.invalidate()
 	return state
 
 
@@ -53,6 +54,9 @@ func test_update_is_throttled() -> void:
 	state.fog.update(state, 0.01)
 	assert_eq(state.fog.version, version)
 	state.fog.update(state, GameConfig.FOG_INTERVAL)
+	assert_eq(state.fog.version, version)
+	state.scout.position += Vector2(GameConfig.CELL, 0)
+	state.fog.update(state, GameConfig.FOG_INTERVAL)
 	assert_gt(state.fog.version, version)
 
 
@@ -71,16 +75,56 @@ func test_building_vision_is_cached_until_buildings_change() -> void:
 	state.money = 100000
 	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(0, -280))
 	state.fog.cells.fill(FogOfWar.HIDDEN)
+	state.fog.invalidate()
 	state.fog.refresh(state)
 	var near := zapper.position + Vector2(0, -Formulas.vision(zapper) + 20.0)
 	var edge := zapper.position + Vector2(0, -Formulas.vision(zapper) - 20.0)
 	assert_gt(core.position.distance_to(near), Formulas.vision(core))
 	assert_true(state.fog.is_visible(near))
 	assert_false(state.fog.is_visible(edge))
-	assert_true(battle.upgrade(zapper.id, GameConfig.TRACK_RANGE))
+	for i in 6:
+		assert_true(battle.upgrade(zapper.id, GameConfig.TRACK_RANGE))
 	state.fog.refresh(state)
 	assert_true(state.fog.is_visible(edge))
 	battle.combat.destroy(zapper)
 	state.fog.refresh(state)
 	assert_false(state.fog.is_visible(near))
 	assert_true(state.fog.is_explored_at(near))
+
+
+func test_overlapping_vision_stays_until_the_last_source_leaves() -> void:
+	var battle := BattleFixtures.deployed(0)
+	var state := battle.state
+	var core := state.core()
+	var first := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -300))
+	var second := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -360))
+	state.fog.refresh(state)
+	var shared := core.position + Vector2(0, -520)
+	assert_true(state.fog.is_visible(shared))
+	battle.combat.destroy(first)
+	state.fog.refresh(state)
+	assert_true(state.fog.is_visible(shared))
+	battle.combat.destroy(second)
+	state.fog.refresh(state)
+	assert_false(state.fog.is_visible(shared))
+	assert_true(state.fog.is_explored_at(shared))
+
+
+func test_refresh_without_changes_keeps_version() -> void:
+	var battle := BattleFixtures.deployed(0)
+	var state := battle.state
+	state.fog.refresh(state)
+	var version := state.fog.version
+	state.fog.refresh(state)
+	assert_eq(state.fog.version, version)
+
+
+func test_reveal_is_settled_on_next_refresh() -> void:
+	var state := _state()
+	state.scout = null
+	var far := state.map.drop + Vector2(0, -1500)
+	state.fog.reveal(far, 100.0)
+	assert_true(state.fog.is_visible(far))
+	state.fog.refresh(state)
+	assert_false(state.fog.is_visible(far))
+	assert_true(state.fog.is_explored_at(far))

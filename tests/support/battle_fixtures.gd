@@ -36,8 +36,8 @@ static func add(battle: Battle, kind: String, position: Vector2) -> Building:
 	return battle.state.add_building(kind, position)
 
 
-static func enemy(battle: Battle, kind: String, position: Vector2, wave: int = 0) -> Enemy:
-	var unit := Enemy.new(battle.state.next_id(), kind, position, wave)
+static func enemy(battle: Battle, kind: String, position: Vector2, hp_scale: float = 1.0) -> Enemy:
+	var unit := Enemy.new(battle.state.next_id(), kind, position, hp_scale)
 	battle.state.enemies.append(unit)
 	return unit
 

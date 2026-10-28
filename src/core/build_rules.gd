@@ -9,11 +9,14 @@ const BOUNDS := "bounds"
 const BLOCKED := "blocked"
 const OVERLAP := "overlap"
 const ENEMY_NEAR := "enemy_near"
+const ENEMY_ZONE := "enemy_zone"
 const TOO_FAR := "too_far"
 const UNEXPLORED := "unexplored"
 const UNITS := "units"
 const SCOUT_FAR := "scout_far"
 const PHASE := "phase"
+const IMMOBILE := "immobile"
+const SAME := "same"
 
 
 static func reason(state: BattleState, kind: String, position: Vector2) -> String:
@@ -28,18 +31,40 @@ static func reason(state: BattleState, kind: String, position: Vector2) -> Strin
 		return LOCKED
 	if state.money < Formulas.build_cost(state, kind):
 		return MONEY
-	var probe := Building.new(-1, kind, position)
-	var terrain := _terrain_reason(state, probe)
+	return _site_reason(state, Building.new(-1, kind, position), -1)
+
+
+static func relocate_reason(state: BattleState, building: Building, position: Vector2) -> String:
+	if building == null or not building.is_player() or not building.is_alive() or state.is_over():
+		return INVALID
+	if building.id == state.core_id or GameConfig.is_mobile(building.kind):
+		return IMMOBILE
+	if state.money < Formulas.relocate_cost(building, state.is_planning()):
+		return MONEY
+	var probe := Building.new(-1, building.kind, position)
+	if probe.origin == building.origin:
+		return SAME
+	return _site_reason(state, probe, building.id)
+
+
+static func _site_reason(state: BattleState, probe: Building, ignore_id: int) -> String:
+	var terrain := _terrain_reason(state, probe, ignore_id)
 	if terrain != OK:
 		return terrain
-	var in_reach := false
-	for building in state.player_buildings():
-		if building.position.distance_to(probe.position) <= Formulas.build_radius(building):
-			in_reach = true
-			break
-	if not in_reach:
+	if not in_build_reach(state, probe.position, ignore_id):
 		return TOO_FAR
-	return _enemy_reason(state, probe, GameConfig.ENEMY_NO_BUILD)
+	return _enemy_reason(state, probe, enemy_clearance(state))
+
+
+static func enemy_clearance(state: BattleState) -> float:
+	return GameConfig.ENEMY_PLAN_CLEAR if state.is_planning() else GameConfig.ENEMY_NO_BUILD
+
+
+static func in_build_reach(state: BattleState, position: Vector2, ignore_id: int = -1) -> bool:
+	for building in state.player_buildings():
+		if building.id != ignore_id and building.position.distance_to(position) <= Formulas.build_radius(building):
+			return true
+	return false
 
 
 static func _core_reason(state: BattleState, position: Vector2) -> String:
@@ -57,7 +82,7 @@ static func _core_reason(state: BattleState, position: Vector2) -> String:
 	return _enemy_reason(state, probe, GameConfig.CORE_ENEMY_CLEAR)
 
 
-static func _terrain_reason(state: BattleState, probe: Building) -> String:
+static func _terrain_reason(state: BattleState, probe: Building, ignore_id: int = -1) -> String:
 	if not state.map.contains(probe.position, probe.half_extent()):
 		return BOUNDS
 	for cell in probe.footprint():
@@ -65,7 +90,8 @@ static func _terrain_reason(state: BattleState, probe: Building) -> String:
 			return UNEXPLORED
 		if not state.map.is_buildable(cell):
 			return BLOCKED
-		if state.nav.occupant_at(cell) != NavGrid.FREE:
+		var occupant := state.nav.occupant_at(cell)
+		if occupant != NavGrid.FREE and occupant != ignore_id:
 			return OVERLAP
 	for enemy in state.enemies:
 		if enemy.is_alive() and not enemy.is_air() and probe.edge_distance(enemy.position) < enemy.radius():
@@ -75,8 +101,9 @@ static func _terrain_reason(state: BattleState, probe: Building) -> String:
 
 static func _enemy_reason(state: BattleState, probe: Building, clearance: float) -> String:
 	for building in state.enemy_buildings():
-		if building.edge_distance(probe.position) < clearance:
-			return ENEMY_NEAR
+		var distance := building.edge_distance(probe.position)
+		if distance < clearance:
+			return ENEMY_ZONE if distance >= GameConfig.ENEMY_NO_BUILD and state.is_planning() else ENEMY_NEAR
 	return OK
 
 

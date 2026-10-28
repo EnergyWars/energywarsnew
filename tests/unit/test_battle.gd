@@ -32,7 +32,7 @@ func test_scouting_freezes_time_and_spawns() -> void:
 	assert_true(BattleFixtures.types(fresh).has("landed"))
 
 
-func test_deploy_core_starts_preparation() -> void:
+func test_deploy_core_starts_planning() -> void:
 	var fresh := Battle.start(0)
 	assert_eq(fresh.deploy_core(fresh.state.map.drop), BuildRules.PHASE)
 	fresh.state.scout.drop_left = 0.0
@@ -40,19 +40,22 @@ func test_deploy_core_starts_preparation() -> void:
 	assert_eq(reason, BuildRules.OK)
 	var core_now := fresh.state.core()
 	assert_not_null(core_now)
-	assert_eq(fresh.state.phase, BattleState.Phase.PREP)
+	assert_eq(fresh.state.phase, BattleState.Phase.PLAN)
+	assert_eq(fresh.state.round_number, 1)
 	assert_gt(core_now.energy, 0.0)
 	assert_eq(BattleFixtures.of_type(fresh.events.drain(), "core_deployed").size(), 1)
-	assert_gt(core_now.edge_distance(fresh.state.scout.position), GameConfig.SCOUT_RADIUS)
+	assert_true(fresh.state.scout.boarded)
 	assert_eq(fresh.deploy_core(fresh.state.map.drop + Vector2(300, 0)), BuildRules.INVALID)
 
 
-func test_scout_command_delegates() -> void:
+func test_scout_commands_delegate() -> void:
 	var fresh := Battle.start(0)
-	assert_eq(fresh.command_scout(fresh.state.map.drop), ScoutControl.LANDING)
+	assert_eq(fresh.steer_scout(Vector2.RIGHT), ScoutControl.LANDING)
+	assert_eq(fresh.clear_with_scout(fresh.state.map.drop), ScoutControl.LANDING)
 
 
 func test_advance_uses_fixed_steps() -> void:
+	battle.start_round()
 	assert_eq(battle.advance(GameConfig.TICK * 3.5), 3)
 	assert_almost_eq(battle.state.time, GameConfig.TICK * 3.0, 0.0001)
 	assert_eq(battle.advance(GameConfig.TICK * 0.6), 1)
@@ -87,7 +90,11 @@ func test_upgrade_building() -> void:
 	assert_eq(core.level(GameConfig.TRACK_RATE), 1)
 	assert_eq(battle.state.money, start - cost)
 	assert_eq(core.spent, cost)
+	assert_eq(core.plan_spent, cost)
 	assert_eq(BattleFixtures.of_type(battle.events.drain(), "upgraded")[0].level, 1)
+	battle.start_round()
+	assert_true(battle.upgrade(core.id, GameConfig.TRACK_RATE))
+	assert_eq(core.plan_spent, 0)
 
 
 func test_hull_upgrade_heals_by_the_added_hp() -> void:
@@ -95,7 +102,7 @@ func test_hull_upgrade_heals_by_the_added_hp() -> void:
 	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
 	wall.hp = 100.0
 	assert_true(battle.upgrade(wall.id, GameConfig.TRACK_HULL))
-	assert_eq(wall.hp, 100.0 + 1000.0)
+	assert_almost_eq(wall.hp, 100.0 + 2000.0 * float(GameConfig.TRACKS[GameConfig.TRACK_HULL].step), 0.001)
 
 
 func test_target_priority_controls() -> void:
@@ -115,17 +122,43 @@ func test_target_priority_controls() -> void:
 
 
 func test_upgrade_rejections() -> void:
-	assert_false(battle.upgrade(core.id, GameConfig.TRACK_CAPACITY))
+	assert_false(battle.upgrade(core.id, GameConfig.TRACK_SPLASH))
 	assert_false(battle.upgrade(999, GameConfig.TRACK_RATE))
 	var nest: Building = battle.state.enemy_buildings()[0]
 	assert_false(battle.upgrade(nest.id, GameConfig.TRACK_RATE))
-	core.levels[GameConfig.TRACK_LINKS] = 3
+	core.set_level(GameConfig.TRACK_LINKS, Formulas.max_level(GameConfig.TRACK_LINKS))
 	assert_false(battle.upgrade(core.id, GameConfig.TRACK_LINKS))
 	battle.state.money = 0
 	assert_false(battle.upgrade(core.id, GameConfig.TRACK_RATE))
 
 
+func test_sell_in_planning_refunds_full_price() -> void:
+	battle.place(GameConfig.BATTERY, core.position + Vector2(150, 0))
+	var battery: Building = battle.state.of_kind(GameConfig.BATTERY)[0]
+	assert_eq(battery.plan_spent, 80)
+	var money := battle.state.money
+	assert_eq(battle.sell(battery.id), 80)
+	assert_eq(battle.state.money, money + 80)
+
+
+func test_full_refund_ends_with_the_planning_phase() -> void:
+	battle.place(GameConfig.BATTERY, core.position + Vector2(150, 0))
+	var battery: Building = battle.state.of_kind(GameConfig.BATTERY)[0]
+	battle.start_round()
+	battle.state.phase = BattleState.Phase.PLAN
+	assert_eq(battle.sell(battery.id), 40)
+
+
+func test_damaged_buildings_sell_for_less() -> void:
+	battle.start_round()
+	battle.place(GameConfig.BATTERY, core.position + Vector2(150, 0))
+	var battery: Building = battle.state.of_kind(GameConfig.BATTERY)[0]
+	battery.hp = battery.max_hp() * 0.25
+	assert_eq(battle.sell(battery.id), 10)
+
+
 func test_sell_building() -> void:
+	battle.start_round()
 	battle.place(GameConfig.BATTERY, core.position + Vector2(150, 0))
 	var battery: Building = battle.state.player_buildings().filter(func(b: Building) -> bool: return b.kind == GameConfig.BATTERY)[0]
 	battle.connect_buildings(core.id, battery.id)
@@ -148,14 +181,77 @@ func test_connect_and_cut() -> void:
 	assert_eq(battle.cut(core.position + Vector2(-50, -100), core.position + Vector2(50, -100)), 1)
 
 
-func test_skip_prep() -> void:
-	battle.state.prep_left = 10.0
-	assert_eq(battle.skip_prep(), 10)
+func test_start_round() -> void:
+	assert_true(battle.start_round())
+	assert_eq(battle.state.phase, BattleState.Phase.FIGHT)
+	assert_false(battle.start_round())
+
+
+func test_planning_freezes_energy_time_and_combat() -> void:
+	var solar := BattleFixtures.add(battle, GameConfig.SOLAR, core.position + Vector2(150, 0))
+	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(-150, 0))
+	var exporter := BattleFixtures.add(battle, GameConfig.EXPORTER, core.position + Vector2(0, 150))
+	zapper.energy = Formulas.capacity(zapper)
+	exporter.energy = Formulas.capacity(exporter)
+	battle.connect_buildings(core.id, zapper.id)
+	var crawler := BattleFixtures.enemy(battle, "crawler", zapper.position + Vector2(0, -80))
+	var energy := core.energy
+	var money := battle.state.money
+	for i in 90:
+		battle.tick(GameConfig.TICK)
+	assert_eq(battle.state.time, 0.0)
+	assert_eq(core.energy, energy)
+	assert_eq(solar.energy, 0.0)
+	assert_eq(zapper.energy, Formulas.capacity(zapper))
+	assert_eq(exporter.energy, Formulas.capacity(exporter))
+	assert_eq(crawler.hp, crawler.max_hp)
+	assert_eq(battle.state.money, money)
+	assert_eq(battle.state.light(), 1.0)
+	assert_false(battle.state.is_night())
+
+
+func test_round_runs_day_night_and_returns_to_planning() -> void:
+	var level := battle.state.level
+	battle.state.money = 0
+	battle.start_round()
+	battle.state.round_time = float(level.day) - GameConfig.TICK * 0.5
+	battle.tick(GameConfig.TICK)
+	assert_true(battle.state.is_night())
+	assert_true(BattleFixtures.types(battle).has("nightfall"))
+	battle.state.round_time = DayCycle.length(level) - GameConfig.TICK * 0.5
+	battle.tick(GameConfig.TICK)
+	assert_true(battle.state.night_over)
+	assert_false(battle.state.is_night())
+	assert_eq(battle.state.phase, BattleState.Phase.FIGHT)
+	assert_true(BattleFixtures.types(battle).has("night_over"))
+	assert_false(battle.state.enemies.is_empty())
+	for enemy in battle.state.enemies:
+		battle.combat.damage_enemy(enemy, 100000.0, false)
+	battle.tick(GameConfig.TICK)
+	assert_eq(battle.state.phase, BattleState.Phase.PLAN)
+	assert_eq(battle.state.round_number, 2)
+	assert_eq(battle.state.round_time, 0.0)
+	assert_eq(battle.state.waves_sent, 0)
+	assert_true(battle.state.pickups.is_empty())
+	assert_gt(battle.state.money, 0)
+	var cleared := BattleFixtures.of_type(battle.events.drain(), "round_cleared")
+	assert_eq(cleared.size(), 1)
+	assert_eq(cleared[0].round, 1)
+	assert_eq(cleared[0].next, 2)
+	assert_true(battle.start_round())
+	assert_eq(battle.state.round_number, 2)
+
+
+func test_round_does_not_end_while_enemies_live() -> void:
+	battle.start_round()
+	battle.spawns.end_night()
+	BattleFixtures.enemy(battle, "crawler", core.position + Vector2(0, -900))
+	battle.tick(GameConfig.TICK)
 	assert_eq(battle.state.phase, BattleState.Phase.FIGHT)
 
 
 func test_victory_purges_enemies_and_collects() -> void:
-	battle.skip_prep()
+	battle.start_round()
 	var crawler := BattleFixtures.enemy(battle, "crawler", core.position + Vector2(0, -900))
 	var nest: Building = battle.state.enemy_buildings()[0]
 	battle.combat.destroy(nest)
@@ -164,10 +260,10 @@ func test_victory_purges_enemies_and_collects() -> void:
 	assert_true(battle.state.enemies.is_empty())
 	assert_false(crawler.is_alive())
 	assert_true(battle.state.pickups.is_empty())
-	assert_eq(battle.state.stars(), 3)
+	assert_eq(battle.state.stars(), 0)
 	var events := battle.events.drain()
 	assert_eq(BattleFixtures.of_type(events, "purge").size(), 1)
-	assert_eq(BattleFixtures.of_type(events, "victory")[0].stars, 3)
+	assert_eq(BattleFixtures.of_type(events, "victory")[0].stars, 0)
 	var time := battle.state.time
 	battle.tick(1.0)
 	assert_eq(battle.state.time, time)
@@ -176,24 +272,13 @@ func test_victory_purges_enemies_and_collects() -> void:
 
 
 func test_defeat_when_core_destroyed() -> void:
+	battle.start_round()
 	battle.combat.damage_building(core, 100000.0)
 	battle.tick(GameConfig.TICK)
 	assert_eq(battle.state.phase, BattleState.Phase.LOST)
 	assert_eq(battle.state.stars(), 0)
 	assert_true(BattleFixtures.types(battle).has("defeat"))
 	assert_false(battle.can_upgrade(core.id, GameConfig.TRACK_RATE))
-
-
-func test_night_and_day_events() -> void:
-	var level := battle.state.level
-	battle.state.time = float(level.day) - GameConfig.DAWN_RAMP - GameConfig.TICK * 0.5
-	battle.tick(GameConfig.TICK)
-	assert_true(battle.state.is_night())
-	assert_true(BattleFixtures.types(battle).has("nightfall"))
-	battle.state.time = DayCycle.length(level) - GameConfig.DAWN_RAMP - GameConfig.TICK * 0.5
-	battle.tick(GameConfig.TICK)
-	assert_false(battle.state.is_night())
-	assert_true(BattleFixtures.types(battle).has("daybreak"))
 
 
 func test_building_at() -> void:
@@ -208,7 +293,8 @@ func test_state_totals() -> void:
 	assert_almost_eq(battle.state.stored_energy(), core.energy + 10.0, 0.001)
 	assert_eq(battle.state.storage_capacity(), 330.0)
 	assert_almost_eq(battle.state.generation(), Formulas.output(core) + Formulas.output(solar), 0.001)
-	battle.state.time = float(battle.state.level.day)
+	battle.start_round()
+	battle.state.round_time = float(battle.state.level.day)
 	assert_almost_eq(battle.state.generation(), Formulas.output(core), 0.001)
 	assert_true(battle.state.is_available(GameConfig.ZAPPER))
 	assert_false(battle.state.is_available(GameConfig.TESLA))
@@ -218,17 +304,17 @@ func test_state_totals() -> void:
 
 func test_undefended_core_falls() -> void:
 	var fresh := BattleFixtures.deployed(0)
-	fresh.skip_prep()
 	for i in 2400:
-		fresh.advance(1.0 / 6.0)
-		for j in 4:
+		if fresh.state.is_planning():
+			fresh.start_round()
+		for j in 5:
 			fresh.advance(1.0 / 6.0)
 		if fresh.state.is_over():
 			break
 	assert_eq(fresh.state.phase, BattleState.Phase.LOST)
 
 
-func test_defended_core_holds_first_cycles() -> void:
+func test_defended_core_survives_the_first_round() -> void:
 	var fresh := BattleFixtures.deployed(0)
 	var center := fresh.state.core().position
 	for offset: Vector2 in [Vector2(-110, -40), Vector2(110, -40), Vector2(0, -120)]:
@@ -239,9 +325,12 @@ func test_defended_core_holds_first_cycles() -> void:
 	battery.energy = Formulas.capacity(battery)
 	var third: Building = fresh.state.player_buildings().filter(func(b: Building) -> bool: return b.kind == GameConfig.ZAPPER)[2]
 	fresh.network.connect_buildings(battery.id, third.id)
-	fresh.skip_prep()
+	fresh.start_round()
 	for i in 240 * 30:
 		fresh.tick(GameConfig.TICK)
-	assert_eq(fresh.state.phase, BattleState.Phase.FIGHT)
+		if fresh.state.is_planning():
+			break
+	assert_eq(fresh.state.phase, BattleState.Phase.PLAN)
+	assert_eq(fresh.state.round_number, 2)
 	assert_gt(fresh.state.kills, 10)
 	assert_gt(fresh.state.core_ratio(), 0.5)

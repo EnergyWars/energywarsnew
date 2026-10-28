@@ -46,3 +46,23 @@ static func tutorial(step: String) -> String:
 
 static func format(key: String, values: Array) -> String:
 	return t(key) % values
+
+
+static func tech_name(id: String) -> String:
+	return t("TECH_%s" % id.to_upper())
+
+
+static func tech_info(id: String) -> String:
+	return t("TECH_%s_INFO" % id.to_upper())
+
+
+static func branch_name(branch: String) -> String:
+	return t("BRANCH_%s" % branch.to_upper())
+
+
+static func challenge(challenge: Dictionary) -> String:
+	return format("CHALLENGE_%s" % str(challenge.id).to_upper(), [int(challenge.get("value", 0))])
+
+
+static func survival_target(days: int) -> String:
+	return format("SURVIVAL_DAYS", [days]) if days > 0 else t("SURVIVAL_ENDLESS")

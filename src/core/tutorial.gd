@@ -9,11 +9,12 @@ const BUILD_TOWER := "build_tower"
 const POWER_TOWER := "power_tower"
 const BUILD_WALL := "build_wall"
 const CAMERA := "camera"
+const START_DAY := "start_day"
 const STORAGE := "storage"
 const CUT := "cut"
 const DONE := ""
 
-const ORDER: Array[String] = [MOVE_SCOUT, DEPLOY_CORE, BUILD_SOLAR, CONNECT, BUILD_TOWER, POWER_TOWER, BUILD_WALL, CAMERA, STORAGE, CUT]
+const ORDER: Array[String] = [MOVE_SCOUT, DEPLOY_CORE, BUILD_SOLAR, CONNECT, BUILD_TOWER, POWER_TOWER, BUILD_WALL, CAMERA, START_DAY, STORAGE, CUT]
 
 var step := DONE
 var _index := -1
@@ -42,7 +43,7 @@ static func matches(current: String, event: Dictionary) -> bool:
 	var kind := str(event.get("kind", ""))
 	match current:
 		MOVE_SCOUT:
-			return type == "scout_order" or type == "core_deployed"
+			return type == "scout_steer" or type == "core_deployed"
 		DEPLOY_CORE:
 			return type == "core_deployed"
 		BUILD_SOLAR:
@@ -57,6 +58,8 @@ static func matches(current: String, event: Dictionary) -> bool:
 			return (type == "placed" and kind == GameConfig.BULWARK) or type == "fight_started"
 		CAMERA:
 			return type == "camera" or type == "fight_started"
+		START_DAY:
+			return type == "fight_started"
 		STORAGE:
 			return (type == "placed" and kind == GameConfig.BATTERY) or type == "nightfall"
 		CUT:

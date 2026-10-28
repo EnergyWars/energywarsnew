@@ -47,9 +47,15 @@ static func needed_energy(building: Building) -> float:
 
 
 static func rank(candidates: Array[Building]) -> Array:
-	var ranked := []
+	var buckets := []
+	for i in TIER_EXPORTER + 1:
+		buckets.append([])
 	for building in candidates:
-		ranked.append([building, tier(building)])
+		var value := tier(building)
+		buckets[value].append([building, value])
+	var ranked := []
+	for i in range(TIER_EXPORTER, -1, -1):
+		ranked.append_array(buckets[i])
 	return ranked
 
 
@@ -64,7 +70,7 @@ static func best_ranked(origin: Vector2, ranked: Array) -> Building:
 	for entry: Array in ranked:
 		var rank_value: int = entry[1]
 		if rank_value < best_tier:
-			continue
+			break
 		var building: Building = entry[0]
 		if not building.is_alive():
 			continue

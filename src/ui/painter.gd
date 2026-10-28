@@ -67,6 +67,8 @@ static func building(ci: CanvasItem, kind: String, center: Vector2, radius: floa
 			_healer(ci, center, radius, time, fill)
 		GameConfig.BULWARK:
 			_bulwark(ci, center, radius, time, fill)
+		GameConfig.ROVER:
+			_rover(ci, center, radius, time, aim, fill)
 		GameConfig.NEST:
 			_nest(ci, center, radius, time)
 		GameConfig.CAMP:
@@ -213,6 +215,21 @@ static func _healer(ci: CanvasItem, center: Vector2, radius: float, time: float,
 	ci.draw_arc(center, radius * 0.72, time * 1.5 + PI, time * 1.5 + PI * 1.5, 12, Color(color, 0.8), 2.5, true)
 
 
+static func _rover(ci: CanvasItem, center: Vector2, radius: float, time: float, aim: float, fill: float) -> void:
+	shadow(ci, center, radius)
+	var color := AppTheme.building_color(GameConfig.ROVER)
+	for side in [-1.0, 1.0]:
+		var track := Rect2(center + Vector2(-radius, side * radius * 0.62 - radius * 0.26), Vector2(radius * 2.0, radius * 0.52))
+		ci.draw_rect(track, AppTheme.METAL_DEEP)
+		for i in 5:
+			var x := track.position.x + fposmod(time * 30.0 + i * radius * 0.4, radius * 2.0)
+			ci.draw_line(Vector2(x, track.position.y), Vector2(x, track.end.y), AppTheme.METAL_DARK, 2.0)
+	ci.draw_rect(Rect2(center - Vector2(radius * 0.8, radius * 0.5), Vector2(radius * 1.6, radius)), AppTheme.METAL_DARK)
+	ci.draw_circle(center, radius * 0.48, AppTheme.METAL)
+	ci.draw_line(center, center + Vector2.from_angle(aim) * radius * 1.05, AppTheme.METAL_DEEP, 6.0, true)
+	glow(ci, center, radius * 0.22, color, 0.35 + fill * 0.65)
+
+
 static func _bulwark(ci: CanvasItem, center: Vector2, radius: float, _time: float, _fill: float) -> void:
 	var color := AppTheme.building_color(GameConfig.BULWARK)
 	var half := Vector2(radius, radius)
@@ -304,10 +321,22 @@ static func enemy(ci: CanvasItem, kind: String, center: Vector2, radius: float, 
 			ci.draw_circle(Vector2(radius * 1.05, 0), radius * 0.3, Color("#d6ff7a"))
 		"drone":
 			_drone(ci, radius, time)
-	var eyes := kind != "tank" and kind != "drone"
+		"stalker":
+			_bug(ci, radius, time, AppTheme.STALKER, AppTheme.STALKER_SHELL, 4)
+			for side in [-1.0, 1.0]:
+				ci.draw_line(Vector2(radius * 0.9, side * radius * 0.3), Vector2(radius * 1.5, side * radius * 0.55), Color("#e8d8f0"), 2.5)
+		"nightwing":
+			_nightwing(ci, radius, time)
+		"raider":
+			_soldier(ci, radius, AppTheme.RAIDER, AppTheme.RAIDER_HELMET)
+			ci.draw_line(Vector2(radius * 0.25, -radius * 0.3), Vector2(radius * 0.25, radius * 0.3), AppTheme.DANGER, 3.0)
+		"phantom":
+			_drone(ci, radius, time)
+			ci.draw_circle(Vector2.ZERO, radius * 0.35, Color(AppTheme.IMMUNE, 0.8))
+	var eyes := kind != "tank" and kind != "drone" and kind != "phantom"
 	if eyes:
 		var eye_color := Color(1.0, 0.85, 0.2).lerp(Color(1.0, 0.25, 0.2), night)
-		var eye_x := radius * (0.95 if kind in ["crawler", "beetle", "behemoth", "wasp", "spitter"] else 0.35)
+		var eye_x := radius * (0.95 if kind in ["crawler", "beetle", "behemoth", "wasp", "spitter", "stalker", "nightwing"] else 0.35)
 		for side in [-1.0, 1.0]:
 			var eye := Vector2(eye_x, side * radius * 0.22)
 			if night > 0.2:
@@ -337,6 +366,26 @@ static func _wasp(ci: CanvasItem, radius: float, time: float) -> void:
 		var x := -radius * (0.1 + i * 0.5)
 		ci.draw_line(Vector2(x, -radius * 0.5), Vector2(x, radius * 0.5), AppTheme.WASP_DARK, 3.0)
 	ci.draw_circle(Vector2(radius * 0.75, 0), radius * 0.45, AppTheme.WASP_DARK)
+
+
+static func _nightwing(ci: CanvasItem, radius: float, time: float) -> void:
+	var flap := 0.6 + 0.4 * sin(time * 16.0)
+	for side in [-1.0, 1.0]:
+		var tip := Vector2(-radius * 0.2, side * radius * 1.9 * flap)
+		ci.draw_colored_polygon(PackedVector2Array([Vector2(radius * 0.3, side * radius * 0.2), tip, Vector2(-radius * 0.9, side * radius * 0.9 * flap), Vector2(-radius * 0.5, side * radius * 0.2)]), AppTheme.NIGHTWING_WING)
+	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.1, 0), Vector2(radius * 0.8, radius * 0.45)), AppTheme.NIGHTWING)
+	ci.draw_circle(Vector2(radius * 0.7, 0), radius * 0.4, AppTheme.NIGHTWING.darkened(0.3))
+
+
+static func flames(ci: CanvasItem, center: Vector2, radius: float, time: float, strength: float = 1.0) -> void:
+	for i in 5:
+		var phase := time * 9.0 + i * 1.7
+		var sway := sin(phase) * radius * 0.25
+		var base := center + Vector2((float(i) - 2.0) * radius * 0.35, radius * 0.3)
+		var height := radius * (1.1 + 0.5 * absf(sin(phase * 1.3))) * strength
+		var tongue := PackedVector2Array([base + Vector2(-radius * 0.28, 0), base + Vector2(sway, -height), base + Vector2(radius * 0.28, 0)])
+		ci.draw_colored_polygon(tongue, Color(AppTheme.FLAME, 0.85))
+		ci.draw_colored_polygon(PackedVector2Array([tongue[0].lerp(tongue[2], 0.3), base.lerp(tongue[1], 0.6), tongue[0].lerp(tongue[2], 0.7)]), Color(AppTheme.FLAME_CORE, 0.9))
 
 
 static func _soldier(ci: CanvasItem, radius: float, body: Color, helmet: Color) -> void:

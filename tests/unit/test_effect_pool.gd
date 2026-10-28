@@ -30,6 +30,10 @@ func test_effects_expire() -> void:
 func test_limits() -> void:
 	pool.burst(Vector2.ZERO, Color.RED, EffectPool.MAX_PARTICLES + 20, 10.0, 1.0, 1.0)
 	assert_eq(pool.particles.size(), EffectPool.MAX_PARTICLES)
+	var first: Dictionary = pool.particles[0]
+	pool.burst(Vector2.ONE, Color.BLUE, 5, 10.0, 1.0, 1.0)
+	assert_eq(pool.particles.size(), EffectPool.MAX_PARTICLES)
+	assert_same(pool.particles[0], first)
 	for i in EffectPool.MAX_FLOATERS + 5:
 		pool.floater(str(i), Vector2.ZERO, Color.WHITE)
 	assert_eq(pool.floaters.size(), EffectPool.MAX_FLOATERS)

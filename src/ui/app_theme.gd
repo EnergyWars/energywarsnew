@@ -79,6 +79,21 @@ const SOLDIER_HELMET := Color("#3c4626")
 const SABOTEUR := Color("#2c2c3a")
 const TANK := Color("#55603a")
 const TANK_DARK := Color("#343b22")
+const STALKER := Color("#2a1838")
+const STALKER_SHELL := Color("#5b2f7a")
+const NIGHTWING := Color("#2b2140")
+const NIGHTWING_WING := Color("#6a4a9a")
+const RAIDER := Color("#2f3340")
+const RAIDER_HELMET := Color("#1a1c24")
+const PHANTOM := Color("#3a3550")
+const FLAME := Color("#ff7a1a")
+const FLAME_CORE := Color("#ffe27a")
+const IMMUNE := Color("#b57bff")
+const WORLD_SEA := Color("#0d1a33")
+const WORLD_SEA_LIGHT := Color("#14274a")
+const WORLD_LAND := Color("#2c4a2c")
+const WORLD_LAND_LIGHT := Color("#3c6238")
+const WORLD_COAST := Color("#c8b48a")
 const SHADOW := Color(0.0, 0.0, 0.0, 0.3)
 const HP_GOOD := Color("#4be38a")
 const HP_LOW := Color("#ff4d6d")
@@ -96,6 +111,7 @@ const BUILDING_COLORS := {
 	GameConfig.EXPORTER: Color("#ffc83d"),
 	GameConfig.HEALER: Color("#6dff9e"),
 	GameConfig.BULWARK: Color("#ff9f43"),
+	GameConfig.ROVER: Color("#c6ff5a"),
 	GameConfig.NEST: Color("#d14b8f"),
 	GameConfig.CAMP: Color("#c9b458"),
 	GameConfig.TURRET: Color("#e0384f"),
@@ -111,6 +127,10 @@ const ENEMY_COLORS := {
 	"tank": Color("#c8d070"),
 	"spitter": Color("#a8e05a"),
 	"drone": Color("#9fb0c8"),
+	"stalker": Color("#a060e0"),
+	"nightwing": Color("#8a6ad0"),
+	"raider": Color("#8890b0"),
+	"phantom": Color("#b090ff"),
 }
 
 const COMBO_COLORS: Array[Color] = [Color("#ffffff"), Color("#9ff3ff"), Color("#4be38a"), Color("#ffc83d"), Color("#ff8a3d"), Color("#ff4d6d"), Color("#b57bff"), Color("#ffffff")]
@@ -183,7 +203,15 @@ static func build() -> Theme:
 	_labels(theme)
 	_buttons(theme)
 	_panels(theme)
+	_joystick(theme)
 	return theme
+
+
+static func _joystick(theme: Theme) -> void:
+	theme.set_stylebox(&"normal_joystick", &"VirtualJoystick", box(Color(SURFACE, 0.45), RADIUS_PILL, Color(ENERGY, 0.5), 0, 3))
+	theme.set_stylebox(&"pressed_joystick", &"VirtualJoystick", box(Color(SURFACE, 0.6), RADIUS_PILL, ENERGY, 0, 3))
+	theme.set_stylebox(&"normal_tip", &"VirtualJoystick", box(Color(ENERGY, 0.45), RADIUS_PILL, ENERGY_CORE, 0, 2))
+	theme.set_stylebox(&"pressed_tip", &"VirtualJoystick", box(Color(ENERGY, 0.8), RADIUS_PILL, ENERGY_CORE, 0, 2))
 
 
 static func _label(theme: Theme, name: String, font: Font, size: int, color: Color) -> void:

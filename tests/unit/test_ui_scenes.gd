@@ -57,7 +57,12 @@ func test_battle_screen_starts_with_scouting() -> void:
 	assert_gt(screen.view.chunk_count(), 1)
 
 
-func test_scout_lands_explores_and_deploys_the_core() -> void:
+func _release_steering() -> void:
+	for action in [&"steer_left", &"steer_right", &"steer_up", &"steer_down"]:
+		Input.action_release(action)
+
+
+func test_scout_lands_steers_and_boards_the_core() -> void:
 	var screen := _screen()
 	var state := screen.battle.state
 	_frames(screen, int(GameConfig.DROP_TIME * 30) + 3)
@@ -65,12 +70,17 @@ func test_scout_lands_explores_and_deploys_the_core() -> void:
 	assert_true(screen.view.scout_active)
 	assert_true(screen.scout_chip.visible)
 	assert_true(screen.scout_button.visible)
-	var goal := state.map.drop + Vector2(0, -120)
-	screen.view.begin(goal)
-	assert_eq(screen.view.gesture, BattleView.Gesture.CUT_PENDING)
-	screen.view.tap(goal)
-	assert_true(state.scout.is_moving())
+	assert_true(screen.joystick.visible)
+	assert_eq(screen.joystick.action_up, &"steer_up")
+	var start := state.scout.position
+	Input.action_press(&"steer_up")
+	assert_eq(screen.steering_input(), Vector2.UP)
 	_frames(screen, 30)
+	_release_steering()
+	_frames(screen, 2)
+	assert_lt(state.scout.position.y, start.y - 50.0)
+	assert_false(state.scout.is_moving())
+	assert_almost_eq(screen.view.center.distance_to(state.scout.position), 0.0, 200.0)
 	assert_eq(screen.tutorial.step, Tutorial.DEPLOY_CORE)
 	screen.choose_kind(GameConfig.CORE)
 	assert_eq(screen.view.build_kind, GameConfig.CORE)
@@ -78,37 +88,248 @@ func test_scout_lands_explores_and_deploys_the_core() -> void:
 	screen.view.tap(state.map.drop)
 	assert_not_null(state.core())
 	_frames(screen, 1)
-	assert_eq(state.phase, BattleState.Phase.PREP)
+	assert_eq(state.phase, BattleState.Phase.PLAN)
+	assert_true(state.scout.boarded)
 	assert_eq(screen.build_bar.kinds, GameConfig.available_kinds(0))
 	assert_false(screen.view.scout_active)
+	assert_false(screen.joystick.visible)
+	assert_false(screen.scout_button.visible)
 	assert_eq(screen.tutorial.step, Tutorial.BUILD_SOLAR)
 	assert_true(screen.mode_button.visible)
+	assert_eq(screen.steering_input(), Vector2.ZERO)
 
 
-func test_scout_selection_and_clearing_by_tap() -> void:
-	var screen := _deployed()
+func test_scout_clears_by_tap_while_scouting() -> void:
+	var screen := _screen()
 	var state := screen.battle.state
-	screen.focus_scout()
+	BattleFixtures.open_terrain(state)
+	_frames(screen, 2)
 	assert_true(screen.view.scout_active)
-	screen.view.begin(state.scout.position)
-	screen.view.tap(state.scout.position)
-	assert_false(screen.view.scout_active)
-	screen.view.begin(state.scout.position)
-	screen.view.tap(state.scout.position)
-	assert_true(screen.view.scout_active)
-	var tree := state.map.cell_of(state.scout.position) + Vector2i(-3, 0)
+	var origin := state.map.cell_of(state.scout.position)
+	state.scout.position = state.map.center_of(origin)
+	var tree := origin + Vector2i(-1, 0)
 	state.map.set_tile(tree, LevelMap.Tile.TREE)
 	state.nav.terrain_changed(tree)
 	screen.view.begin(state.map.center_of(tree))
 	screen.view.tap(state.map.center_of(tree))
 	assert_true(state.scout.is_clearing())
-	_frames(screen, 150)
+	_frames(screen, 80)
 	assert_true(state.map.is_walkable(tree))
+	var far := origin + Vector2i(6, 0)
+	state.map.set_tile(far, LevelMap.Tile.ROCK)
+	state.nav.terrain_changed(far)
 	watch_signals(screen.view)
-	screen.view.command_scout(Vector2(-900, -900))
+	screen.view.begin(state.map.center_of(far))
+	screen.view.tap(state.map.center_of(far))
 	assert_signal_emitted(screen.view, "action_failed")
+	assert_false(state.scout.is_clearing())
+	screen.focus_scout()
+	assert_true(screen.view.scout_active)
+
+
+func test_panel_connect_button_links_by_tapping() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	screen.battle.place(GameConfig.SOLAR, core.position + Vector2(150, 0))
+	var solar: Building = state.player_buildings().back()
+	screen.battle.place(GameConfig.SOLAR, core.position + Vector2(-150, 0))
+	var other: Building = state.player_buildings().back()
+	screen.view.select(solar.id)
+	_frames(screen, 1)
+	assert_true(screen.panel._link.visible)
+	assert_false(screen.panel._relocate.disabled)
+	assert_true(screen.panel._link.text.contains("0/1"))
+	screen.panel._link.pressed.emit()
+	assert_eq(screen.view.pick, BattleView.Pick.LINK)
+	assert_eq(screen.panel.active_pick, "link")
+	assert_eq(screen.view.link_candidates(solar), [core] as Array[Building])
+	_frames(screen, 2)
+	watch_signals(screen.view)
+	screen.view.begin(other.position)
+	assert_eq(screen.view.gesture, BattleView.Gesture.PICK)
+	screen.view.tap(other.position)
+	assert_signal_emitted(screen.view, "action_failed")
+	assert_eq(screen.view.pick, BattleView.Pick.LINK)
+	screen.view.begin(core.position)
+	screen.view.tap(core.position)
+	assert_not_null(state.find_link(solar.id, core.id))
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	assert_eq(screen.view.selected_id, solar.id)
+	_frames(screen, 2)
+	assert_true(screen.panel._link.disabled)
+	screen.start_link_pick(solar.id)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	screen.start_link_pick(core.id)
+	screen.start_link_pick(core.id)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	screen.start_link_pick(core.id)
+	screen.view.begin(core.position + Vector2(0, 400))
+	screen.view.drag_to(core.position + Vector2(0, 300), true, Vector2(0, 40))
+	assert_eq(screen.view.gesture, BattleView.Gesture.PAN)
+	screen.view.finish(core.position + Vector2(0, 300))
+	assert_eq(screen.view.pick, BattleView.Pick.LINK)
+	screen.view.begin(core.position + Vector2(0, 400))
+	screen.view.tap(core.position + Vector2(0, 400))
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	screen.start_link_pick(core.id)
 	screen.handle_back()
-	assert_false(screen.view.scout_active)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	screen.view.start_pick(BattleView.Pick.LINK, 9999)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+
+
+func test_panel_focus_button_orders_an_attack() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -150))
+	zapper.energy = Formulas.capacity(zapper)
+	var beetle := BattleFixtures.enemy(screen.battle, "beetle", zapper.position + Vector2(0, -120))
+	screen.view.select(zapper.id)
+	_frames(screen, 1)
+	assert_true(screen.panel._focus.visible)
+	assert_true(screen.panel._focus.text.contains(Texts.t("PANEL_FOCUS")))
+	screen.panel._focus.pressed.emit()
+	assert_eq(screen.view.pick, BattleView.Pick.FOCUS)
+	_frames(screen, 2)
+	watch_signals(screen.view)
+	screen.view.begin(core.position)
+	screen.view.tap(core.position)
+	assert_signal_emitted(screen.view, "action_failed")
+	screen.view.begin(beetle.position)
+	screen.view.tap(beetle.position)
+	assert_eq(zapper.focus, beetle)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	_frames(screen, 3)
+	assert_true(screen.panel._focus.text.contains(Texts.t("PANEL_UNFOCUS")))
+	screen.panel._focus.pressed.emit()
+	assert_null(zapper.focus)
+	screen.toggle_focus(zapper.id)
+	screen.toggle_focus(zapper.id)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	screen.toggle_focus(zapper.id)
+	screen.view.begin(core.position + Vector2(400, -400))
+	screen.view.tap(core.position + Vector2(400, -400))
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	screen.toggle_focus(9999)
+	screen.toggle_focus(zapper.id)
+	screen.view.select(core.id)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+
+
+func test_relocating_a_building_through_the_panel() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	screen.battle.place(GameConfig.RELAY, core.position + Vector2(150, 0))
+	var relay: Building = state.player_buildings().back()
+	screen.view.select(core.id)
+	_frames(screen, 1)
+	assert_false(screen.panel._relocate.visible)
+	screen.view.select(relay.id)
+	_frames(screen, 1)
+	assert_true(screen.panel._relocate.visible)
+	assert_true(screen.panel._relocate.text.contains(Texts.t("PANEL_RELOCATE_FREE")))
+	screen.panel._relocate.pressed.emit()
+	assert_true(screen.view.is_relocating())
+	assert_eq(screen.view.build_kind, GameConfig.RELAY)
+	assert_eq(screen.view.selected_id, -1)
+	_frames(screen, 2)
+	assert_eq(screen.view.coverage_mode(), "build")
+	watch_signals(screen.view)
+	screen.view.begin(core.position)
+	screen.view.tap(core.position)
+	assert_signal_emitted(screen.view, "action_failed")
+	assert_true(screen.view.is_relocating())
+	var money := state.money
+	var target := core.position + Vector2(-150, 0)
+	screen.view.begin(target)
+	screen.view.drag_to(target + Vector2(60, 0), true)
+	screen.view.finish(target)
+	assert_eq(relay.position, LevelMap.snap(target, 1))
+	assert_eq(state.money, money)
+	assert_false(screen.view.is_relocating())
+	assert_eq(screen.view.selected_id, relay.id)
+	screen.start_relocate(relay.id)
+	screen.handle_back()
+	assert_false(screen.view.is_relocating())
+	screen.start_round()
+	screen.panel.refresh()
+	assert_true(screen.panel._relocate.text.contains(str(Formulas.relocate_cost(relay, false))))
+	state.money = 0
+	screen.start_relocate(relay.id)
+	assert_false(screen.view.is_relocating())
+	screen.start_relocate(9999)
+	screen.view.start_relocate(9999)
+	assert_false(screen.view.is_relocating())
+	state.money = 500
+	screen.start_relocate(relay.id)
+	screen.battle.sell(relay.id)
+	_frames(screen, 1)
+	assert_false(screen.view.is_relocating())
+
+
+func test_build_mode_highlights_energy_coverage() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	screen.choose_kind(GameConfig.ZAPPER)
+	_frames(screen, 1)
+	assert_eq(screen.view.coverage_mode(), "build")
+	var spot := state.core().position + Vector2(0, -230)
+	assert_eq(screen.view.coverage_levels[state.map.index(state.map.cell_of(spot))], Coverage.ONE)
+	screen.choose_kind(GameConfig.ZAPPER)
+	_frames(screen, 1)
+	assert_eq(screen.view.coverage_mode(), "")
+	assert_true(screen.view.coverage_levels.is_empty())
+	screen.choose_kind(GameConfig.BULWARK)
+	_frames(screen, 1)
+	assert_eq(screen.view.coverage_mode(), "")
+
+
+func test_coverage_texture_paints_levels() -> void:
+	var map := LevelMap.blank(Vector2i(4, 3))
+	var texture := CoverageTexture.new(map)
+	var levels := PackedByteArray([0, 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 9])
+	texture.update(levels)
+	var image := texture.image
+	assert_eq(image.get_size(), Vector2i(4, 3))
+	assert_eq(image.get_pixel(0, 0).a, 0.0)
+	assert_almost_eq(image.get_pixel(1, 0).r, AppTheme.DANGER.r, 0.01)
+	assert_almost_eq(image.get_pixel(3, 0).g, AppTheme.SUCCESS.g, 0.01)
+	assert_almost_eq(image.get_pixel(0, 1).b, AppTheme.SHIELD_BLUE.b, 0.01)
+	assert_almost_eq(image.get_pixel(3, 2).a, CoverageTexture.ALPHA, 0.01)
+	assert_eq(CoverageTexture.palette().size(), 5)
+
+
+func test_mobile_tower_is_steered_with_the_joystick() -> void:
+	var screen := _deployed(1)
+	var state := screen.battle.state
+	var core := state.core()
+	var rover := BattleFixtures.add(screen.battle, GameConfig.ROVER, core.position + Vector2(0, -150))
+	rover.energy = Formulas.capacity(rover)
+	screen.battle.connect_buildings(core.id, rover.id)
+	screen.start_round()
+	_frames(screen, 1)
+	assert_false(screen.joystick.visible)
+	screen.view.select(rover.id)
+	_frames(screen, 1)
+	assert_true(screen.joystick.visible)
+	assert_eq(screen.view.selected_mobile(), rover)
+	assert_eq(screen.view.coverage_mode(), "mobile")
+	assert_gt(screen.view.coverage_levels[state.map.index(rover.origin)], 0)
+	assert_false(screen.panel._relocate.visible)
+	assert_true(screen.panel._focus.visible)
+	var start := rover.position
+	Input.action_press(&"steer_right")
+	_frames(screen, 20)
+	assert_gt(rover.position.x, start.x + 20.0)
+	assert_eq(rover.steer, Vector2.RIGHT)
+	screen.view.select(-1)
+	_frames(screen, 1)
+	_release_steering()
+	assert_eq(rover.steer, Vector2.ZERO)
+	assert_false(screen.joystick.visible)
 
 
 func test_build_flow_through_view() -> void:
@@ -317,6 +538,7 @@ func test_beams_only_visible_while_energy_flows() -> void:
 	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -150))
 	zapper.energy = 0.0
 	screen.battle.connect_buildings(core.id, zapper.id)
+	screen.start_round()
 	var link := state.links[0]
 	assert_eq(screen.view.beam_visibility(link), 0.0)
 	for i in 10:
@@ -363,11 +585,63 @@ func test_enemy_structure_panel() -> void:
 	_frames(screen, 2)
 
 
+func test_planning_card_and_start_button() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	_frames(screen, 1)
+	assert_true(screen.hud._prep.visible)
+	assert_true(screen.hud._start.visible)
+	assert_true(screen.hud._start.text.contains(Texts.format("HUD_START", [1])))
+	assert_eq(screen.hud._cycle_label.text, Texts.t("HUD_PLAN"))
+	assert_eq(BattleHud.day_text(state), Texts.format("HUD_DAY", [1]))
+	screen.choose_kind(GameConfig.SOLAR)
+	screen.hud._start.pressed.emit()
+	assert_eq(state.phase, BattleState.Phase.FIGHT)
+	assert_eq(screen.view.build_kind, "")
+	_frames(screen, 1)
+	assert_false(screen.hud._prep.visible)
+	assert_eq(BattleHud.day_text(state), Texts.format("HUD_DAY_WAVE", [1, state.waves_sent, Formulas.wave_times(state.level)]))
+	BattleFixtures.enemy(screen.battle, "crawler", state.core().position + Vector2(0, -900))
+	screen.battle.spawns.end_night()
+	_frames(screen, 1)
+	assert_true(screen.hud._prep.visible)
+	assert_false(screen.hud._start.visible)
+	assert_eq(screen.hud._prep_label.text, Texts.format("HUD_MOP_UP", [state.enemies.size()]))
+	screen.start_round()
+	assert_eq(state.phase, BattleState.Phase.FIGHT)
+
+
+func test_rover_joystick_only_while_fighting() -> void:
+	var screen := _deployed(1)
+	var state := screen.battle.state
+	var rover := BattleFixtures.add(screen.battle, GameConfig.ROVER, state.core().position + Vector2(0, -150))
+	screen.view.select(rover.id)
+	_frames(screen, 1)
+	assert_false(screen.joystick.visible)
+	screen.start_round()
+	_frames(screen, 1)
+	assert_true(screen.joystick.visible)
+
+
+func test_upgrade_list_scrolls_for_many_tracks() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	screen.view.select(core.id)
+	_frames(screen, 1)
+	assert_true(screen.panel._track_scroll.visible)
+	assert_eq(screen.panel._track_rows.size(), core.definition().tracks.size())
+	assert_eq(screen.panel._track_scroll.custom_minimum_size.y, BuildingPanel.VISIBLE_TRACKS * BuildingPanel.TRACK_ROW_HEIGHT)
+	var nest: Building = screen.battle.state.enemy_buildings()[0]
+	screen.view.select(nest.id)
+	_frames(screen, 1)
+	assert_false(screen.panel._track_scroll.visible)
+
+
 func test_pause_speed_and_skip() -> void:
 	var screen := _deployed()
 	screen.cycle_speed()
 	assert_eq(screen.speed_index, 1)
-	screen.skip_prep()
+	screen.start_round()
 	assert_eq(screen.battle.state.phase, BattleState.Phase.FIGHT)
 	screen.toggle_pause()
 	assert_true(screen.paused)
@@ -434,7 +708,7 @@ func test_long_fight_survives_all_feedback() -> void:
 				break
 	for building in state.player_buildings():
 		building.energy = Formulas.capacity(building)
-	screen.skip_prep()
+	screen.start_round()
 	screen.cycle_speed()
 	screen.cycle_speed()
 	_frames(screen, 900, 0.1)
@@ -466,17 +740,24 @@ func test_reward_director_handles_every_event() -> void:
 		{"type": "structure_destroyed", "position": position, "kind": GameConfig.NEST, "bounty": 160, "left": 0},
 		{"type": "collect", "position": position, "value": 5},
 		{"type": "export", "position": position, "value": GameConfig.EXPORT_BATCH},
-		{"type": "surge", "cycle": 2, "night": true},
-		{"type": "surge", "cycle": 3, "night": false},
+		{"type": "wave", "index": 9, "total": 16, "night": true, "round": 1, "count": 3},
+		{"type": "wave", "index": 2, "total": 16, "night": false, "round": 1, "count": 1},
 		{"type": "heal", "from": position, "to": position + Vector2(40, 0), "amount": 12.0},
 		{"type": "landed", "position": position},
 		{"type": "core_deployed", "id": 1, "position": position},
-		{"type": "scout_order", "position": position, "clear": true},
+		{"type": "clear_order", "position": position},
+		{"type": "scout_steer", "position": position},
+		{"type": "scout_boarded", "position": position},
+		{"type": "rifle", "from": position, "to": position + Vector2(80, 0)},
+		{"type": "focus", "id": 1, "from": position, "to": position},
+		{"type": "relocated", "id": 1, "kind": GameConfig.RELAY, "from": position, "position": position + Vector2(56, 0), "cost": 6},
+		{"type": "stalled", "id": 1, "position": position},
 		{"type": "cleared", "position": position, "obstacle": LevelMap.TREE, "cell": Vector2i(1, 1)},
 		{"type": "cleared", "position": position, "obstacle": LevelMap.ROCK, "cell": Vector2i(1, 1)},
-		{"type": "fight_started"},
-		{"type": "nightfall", "day": 1},
-		{"type": "daybreak", "day": 2},
+		{"type": "fight_started", "round": 1},
+		{"type": "nightfall", "round": 1},
+		{"type": "night_over", "round": 1, "left": 3},
+		{"type": "round_cleared", "round": 1, "next": 2},
 		{"type": "spawn", "position": position, "kind": "behemoth", "boss": true},
 		{"type": "placed", "id": 9, "kind": GameConfig.SOLAR, "position": position},
 		{"type": "link", "source": 1, "target": 2, "from": position, "to": position, "tower": false},
@@ -559,3 +840,133 @@ func test_main_switches_screens() -> void:
 	(main.screen as BattleScreen).menu_requested.emit()
 	assert_true(main.screen is CanvasLayer)
 	assert_gte(main.safe_top(), 0.0)
+
+
+
+func test_view_culls_everything_off_screen() -> void:
+	var screen := _deployed()
+	var view := screen.view
+	_frames(screen, 1)
+	var rect := view.visible_world_rect()
+	assert_true(rect.has_point(view.center))
+	assert_true(view.is_on_screen(view.center))
+	var outside := view.center + Vector2(rect.size.x, 0)
+	assert_false(view.is_on_screen(outside))
+	assert_true(view.is_on_screen(outside, rect.size.x))
+	assert_true(view._segment_on_screen(outside, view.center))
+	assert_false(view._segment_on_screen(outside, outside + Vector2(50, 50)))
+	var zoomed := rect.size
+	view.zoom *= 0.5
+	_frames(screen, 1)
+	assert_gt(view.visible_world_rect().size.x, zoomed.x)
+
+
+func test_energy_stats_panel_shows_changes_since_planning_began() -> void:
+	var scouting := _screen()
+	_frames(scouting, 1)
+	assert_false(scouting.hud._stats_button.visible)
+	var screen := _deployed()
+	var state := screen.battle.state
+	var hud := screen.hud
+	_frames(screen, 1)
+	assert_true(hud._stats_button.visible)
+	assert_false(hud.stats_panel.visible)
+	hud._stats_button.pressed.emit()
+	_frames(screen, 1)
+	assert_true(hud.stats_panel.visible)
+	assert_eq(hud.stats_panel.value_text(2), NumberFormat.grouped(int(Formulas.capacity(state.core()))))
+	assert_eq(hud.stats_panel.delta_text(2), "")
+	state.money = 1000
+	assert_eq(screen.battle.place(GameConfig.BATTERY, state.core().position + Vector2(0, -150)), BuildRules.OK)
+	_frames(screen, 1)
+	assert_eq(hud.stats_panel.delta_text(2), "+400")
+	assert_false(hud.stats_panel._pulse)
+	screen.handle_back()
+	assert_false(hud.stats_panel.visible)
+	hud.toggle_stats()
+	assert_true(hud.stats_panel.visible)
+	hud.stats_panel.closed.emit()
+	assert_false(hud.stats_panel.visible)
+
+
+func test_energy_stats_panel_helpers() -> void:
+	var detached := EnergyStatsPanel.new()
+	detached.refresh(BattleFixtures.battle(0).state, null)
+	detached.free()
+	assert_eq(EnergyStatsPanel.trend_color(1), AppTheme.SUCCESS)
+	assert_eq(EnergyStatsPanel.trend_color(-1), AppTheme.DANGER)
+	assert_eq(EnergyStatsPanel.trend_color(0), AppTheme.ON_SURFACE_VARIANT)
+
+
+func test_undo_button_reverts_the_last_planning_step() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	_frames(screen, 1)
+	assert_true(screen.hud._undo.visible)
+	assert_true(screen.hud._undo.disabled)
+	assert_true(screen.hud._reset.disabled)
+	var money := state.money
+	screen.battle.place(GameConfig.RELAY, core.position + Vector2(0, -150))
+	var relay: Building = state.player_buildings().back()
+	screen.view.select(relay.id)
+	_frames(screen, 1)
+	assert_false(screen.hud._undo.disabled)
+	assert_false(screen.hud._reset.disabled)
+	screen.hud._undo.pressed.emit()
+	assert_null(state.building(relay.id))
+	assert_eq(state.money, money)
+	assert_eq(screen.view.selected_id, -1)
+	assert_false(screen.panel.visible)
+	_frames(screen, 1)
+	assert_true(screen.hud._undo.disabled)
+	screen.undo_plan()
+	assert_eq(state.money, money)
+
+
+func test_reset_asks_first_and_restores_the_phase_start() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	state.money = 1000
+	screen.battle.history.begin(state)
+	screen.battle.place(GameConfig.RELAY, core.position + Vector2(0, -150))
+	screen.battle.upgrade(core.id, GameConfig.TRACK_RATE)
+	screen.view.select(core.id)
+	_frames(screen, 1)
+	screen.hud._reset.pressed.emit()
+	assert_true(screen.overlay is ConfirmOverlay)
+	(screen.overlay as ConfirmOverlay).cancel_button.pressed.emit()
+	assert_false(screen.is_overlay_open())
+	assert_eq(core.level(GameConfig.TRACK_RATE), 1)
+	screen.confirm_reset()
+	assert_true(screen.is_overlay_open())
+	(screen.overlay as ConfirmOverlay).confirm_button.pressed.emit()
+	assert_false(screen.is_overlay_open())
+	assert_eq(core.level(GameConfig.TRACK_RATE), 0)
+	assert_eq(state.money, 1000)
+	assert_eq(state.player_buildings().size(), 1)
+	assert_eq(screen.view.selected_id, core.id)
+	assert_true(screen.panel.visible)
+	screen.confirm_reset()
+	assert_false(screen.is_overlay_open())
+	screen.start_round()
+	_frames(screen, 1)
+	assert_false(screen.hud._undo.visible)
+	assert_false(screen.hud._reset.visible)
+
+
+func test_upgrade_rows_preview_energy_draw() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, state.core().position + Vector2(0, -150))
+	screen.view.select(zapper.id)
+	_frames(screen, 1)
+	var speed: Label = screen.panel._track_rows[GameConfig.TRACK_SPEED].detail
+	assert_true(speed.text.contains(StatText.draw_change(zapper, GameConfig.TRACK_SPEED)))
+	var power: Label = screen.panel._track_rows[GameConfig.TRACK_POWER].detail
+	assert_false(power.text.contains(Icons.BOLT))
+	state.money = 1000
+	screen.upgrade(zapper.id, GameConfig.TRACK_SPEED)
+	assert_eq(zapper.level(GameConfig.TRACK_SPEED), 1)
+	assert_false(screen.panel._pulse)

@@ -15,15 +15,25 @@ Tower-Defense-/Eroberungsspiel für Android (Godot 4.7, Hochformat). Ein Soldat 
 1. **Levelauswahl:** 8 Level, die nacheinander freigeschaltet werden. Pro Level gibt es 0–3 Sterne. Angezeigt werden Gesamtsterne, Kills und die beste Combo.
 2. **Erkundung:**
    - Ein Soldat schwebt am Fallschirm herab und landet. Während der Erkundung läuft keine Zeit und es kommen keine Gegner.
-   - Man tippt auf die Karte, damit der Soldat dorthin läuft (Pfadsuche um Gelände). Dabei deckt er den Nebel auf.
-   - Tippt man auf einen Baum oder Felsen, läuft der Soldat hin und beseitigt ihn (Baum ca. 1,6 s, Fels ca. 3,2 s).
-   - Mit „Basis“ in der Bauleiste setzt man den Kern: nur in der Nähe des Soldaten, auf erkundetem, freiem Boden und mit großem Abstand zu feindlichen Strukturen. Danach beginnt die Vorbereitung.
-   - Der Soldat bleibt auch danach steuerbar (Button links unten oder Antippen) und kann weiter erkunden und roden.
-3. **Vorbereitung:** Countdown, in dem man in Ruhe bauen kann. Mit „Angriff!“ lässt sich die Vorbereitung vorzeitig beenden; jede gesparte Sekunde bringt 1 Geld Bonus.
-4. **Kampf:**
-   - Es gibt keine festen Wellen. Feindliche Spawner (Nest, Lager) schicken Gegner fortlaufend in Rudeln, die aus einer gemeinsamen Richtung kommen. Ein Rudel hat anfangs 3 Gegner und wächst alle 2 Angriffszyklen um 1 (max. 10).
-   - Jeder Angriffszyklus (ca. 2 Minuten) beginnt ruhig und verdichtet sich gegen Ende. Ab 75 % kündigt ein Hinweis mit Grollen „Die Angriffe werden heftiger“ an; danach ebbt es wieder ab.
-   - Mit jedem Zyklus kommen mehr und stärkere Gegner, nachts zusätzlich mehr.
+   - Der Soldat wird mit einem virtuellen Joystick (links unten; am Desktop auch Pfeiltasten/WASD) direkt gesteuert. Er gleitet an Klippen, Schluchten, Wald, Felsen und feindlichen Strukturen entlang und deckt dabei den Nebel auf. Die Kamera folgt ihm.
+   - Tippt man auf einen Baum oder Felsen in seiner Nähe (goldener Ring), beseitigt er ihn (Baum ca. 1,6 s, Fels ca. 3,2 s). Läuft er weg, bricht das Roden ab.
+   - Mit „Basis“ in der Bauleiste setzt man den Kern: nur in der Nähe des Soldaten, auf erkundetem, freiem Boden und mit großem Abstand zu feindlichen Strukturen. Danach beginnt die erste Planungsphase.
+   - Sobald der Kern steht, setzt sich der Soldat hinein und ist nicht mehr steuerbar. Von dort schießt er mit seinem Gewehr (ohne Energie, Reichweite 250) auf den nächsten Gegner.
+3. **Planungsphase** (ohne Zeitlimit):
+   - Man kann bauen, upgraden, verbinden, versetzen und verkaufen.
+   - Es gibt keine Gegner, die Zeit steht still und alle Energie ist eingefroren: Generatoren und Exporteure produzieren nichts, Türme schießen nicht, Heiltürme heilen nicht, mobile Türme fahren nicht.
+   - Versetzen ist kostenlos. Was in dieser Planungsphase investiert wurde (Bau und Upgrades), bekommt man beim Verkaufen voll zurück.
+   - In einem großen Umkreis (650 px) um feindliche Strukturen darf nicht gebaut werden. Feindbasen besiegt man nur mit mobilen Türmen oder mit Gebäuden, die man während des Kampfes näher heranbaut (dann gilt nur der kleine Mindestabstand von 150 px).
+   - Eine Karte oben zeigt „Planung · Tag N“, die Buttons „Rückgängig“ und „Zurücksetzen“ sowie „▶ Tag N starten“.
+   - **Rückgängig** nimmt den letzten Planungsschritt zurück: Bauen, Upgraden, Verkaufen, Versetzen, Verbinden, Kappen, Zielpriorität und Fokus. Eine gezogene Mauerlinie und ein Wischer, der mehrere Strahlen kappt, zählen jeweils als ein Schritt. Gebäude, Energie, Strahlen und Geld kehren zum Stand vor dem Schritt zurück.
+   - **Zurücksetzen** stellt nach einer Rückfrage den Zustand zu Beginn dieser Planungsphase wieder her. Einnahmen, die währenddessen eingingen, bleiben erhalten.
+   - Beide Buttons sind ausgegraut, solange es nichts zurückzunehmen gibt. Mit dem Start des Tages endet die Historie.
+4. **Kampf (Tag und Nacht):**
+   - „Tag N starten“ beginnt den Tag. Die erste Welle kommt nach 3 s, danach alle 9 s eine weitere (Zähler „Tag N · Welle x/y“).
+   - Jeder Spawner (Nest, Lager) schickt pro Welle mindestens einen Gegner; die Wellen werden im Laufe des Tages größer (bis zum 2,5-Fachen). Die Gegner einer Welle laufen kurz nacheinander (alle 0,3 s) aus einer gemeinsamen Richtung los.
+   - Die Nacht bringt größere Wellen (×1,6) mit stärkeren Gegnern (HP ×1,35, Schaden und Kopfgeld ×1,2, eine Gegnerstufe höher). Jede Nachtwelle wird mit Hinweis und Grollen angekündigt.
+   - Ist die Nacht vorbei, kommen keine neuen Gegner mehr („Morgengrauen – noch N Gegner“). Ist der letzte Gegner besiegt, gibt es ein Banner „Tag N überstanden“, alle Münzen werden eingesammelt, und die nächste Planungsphase beginnt.
+   - Mit jedem Tag werden die Gegner stärker: HP ×1,16 pro Tag (ohne Deckel), Schaden +8 %, Kopfgeld +12 %, Wellen +35 %, und neue Gegnertypen kommen hinzu. Irgendwann ist die Verteidigung nicht mehr zu halten.
    - Feindliche Geschütztürme verteidigen sich selbst.
 5. **Sieg:** Alle feindlichen Strukturen sind zerstört. Verbleibende Gegner werden vernichtet und alle Münzen eingesammelt.
 6. **Niederlage:** Der Kern wird zerstört.
@@ -44,10 +54,10 @@ Tower-Defense-/Eroberungsspiel für Android (Godot 4.7, Hochformat). Ein Soldat 
 
 ## Tag und Nacht
 
-- Tag und Nacht wechseln sich ab und sind lang (Tag ca. 3–3,5 min, Nacht ca. 2–2,5 min, je nach Level). Energiesparen für die Nacht ist deshalb wichtig.
-- Solarpanels liefern Energie proportional zum Licht. Die Dämmerung ist ein weicher Übergang, nachts liefern sie nichts.
-- Nachts wird die Karte abgedunkelt, Gegneraugen leuchten und es kommen mehr Gegner. Man muss tagsüber genug Überschuss in die Speicher laden.
-- Die HUD-Uhr zeigt Sonne oder Mond, die Zeit bis zum nächsten Wechsel und den aktuellen Tag.
+- Ein Kampftag besteht aus Tag (75–90 s) und Nacht (60–75 s), je nach Level. In der Planungsphase ist es hell, die Uhr steht.
+- Solarpanels liefern Energie proportional zum Licht. Die Abenddämmerung (12 s) ist ein weicher Übergang, nachts liefern sie nichts. Nach der Nacht wird es in 8 s wieder hell.
+- Nachts wird die Karte abgedunkelt und Gegneraugen leuchten. Man muss tagsüber genug Überschuss in die Speicher laden.
+- Die HUD-Uhr zeigt eine Flagge mit „Planung“, Sonne oder Mond mit der Zeit bis zum nächsten Wechsel, dazu den aktuellen Tag und die Welle.
 
 ## Gebäude
 
@@ -55,28 +65,32 @@ Jedes Gebäude hat Kosten, Lebenspunkte und eigene Upgrade-Pfade; die meisten ha
 
 | Gebäude | Funktion | Upgrades |
 |---|---|---|
-| Kern (Basis) | Wird nach der Erkundung gesetzt, erzeugt etwas Energie, hat 3 Strahlen und verteidigt sich selbst mit Blitzen | Rate, Reichweite, Strahlen, Kraft |
-| Solarpanel | Erzeugt tagsüber Energie, kann nur senden | Leistung, Rate, Reichweite, Strahlen |
-| Verteiler | Leitet Energie weiter (3 Strahlen, große Reichweite) | Rate, Reichweite, Strahlen |
-| Speicher | Großer Energiespeicher | Kapazität, Rate, Reichweite, Strahlen |
-| Energieexporteur | Verkauft empfangene Energie für Geld (4 Energie = 1 Geld, Auszahlung in 5er-Paketen) | Exportrate, Kapazität |
-| Blitzturm | Schneller Einzelziel-Blitz (Boden + Luft) | Kraft, Tempo, Reichweite |
-| Laserturm | Dauerstrahl, verbraucht Energie kontinuierlich | Kraft, Reichweite |
-| Teslaturm | Kettenblitz über bis zu 5 Ziele mit Abschwächung | Kraft, Tempo, Reichweite |
-| Plasmawerfer | Artillerie mit Flächenschaden, große Reichweite und Mindestreichweite, nur Bodenziele (auch Strukturen) | Kraft, Tempo, Reichweite |
-| Schildgenerator | Absorbiert Schaden an Gebäuden im Radius mit eigener Energie | Stärke, Radius |
-| Heilturm | Repariert beschädigte Gebäude in Reichweite und verbraucht dafür Energie. Wählt das Ziel automatisch: am stärksten beschädigt, gerade unter Beschuss, Kern bevorzugt, plus etwas Zufall. Kein Überheilen, ohne Ziel kein Verbrauch. | Heilkraft, Heiltempo, Heilreichweite |
-| Bollwerk | Mauerblock mit sehr viel HP (2000, Türme nur 90–120). Blockiert Bodengegner, braucht keine Energie und erweitert den Bauradius nicht. Anfangs sehr günstig (4 Geld), alle 6 Bollwerke wird es 1 teurer. Im Baumodus kann man eine Mauerlinie ziehen; der Baumodus bleibt aktiv. | Hülle (+50 % HP je Stufe) |
+| Kern (Basis) | Wird nach der Erkundung gesetzt, erzeugt etwas Energie, hat 3 Strahlen und verteidigt sich selbst mit Blitzen. Der Soldat sitzt darin und schießt zusätzlich. | Rate, Reichweite, Strahlen, Kraft, Tempo, Leistung, Kapazität, Hülle |
+| Solarpanel | Erzeugt tagsüber Energie, kann nur senden. Die Transferrate entspricht immer der Leistung und verteilt sich auf die verbundenen Strahlen – so fließt stets die gesamte Leistung ab. | Leistung, Reichweite, Strahlen, Kapazität, Hülle |
+| Verteiler | Leitet Energie weiter (3 Strahlen, große Reichweite) | Rate, Reichweite, Strahlen, Kapazität, Hülle |
+| Speicher | Großer Energiespeicher | Kapazität, Rate, Reichweite, Strahlen, Hülle |
+| Energieexporteur | Verkauft empfangene Energie für Geld (4 Energie = 1 Geld, Auszahlung in 5er-Paketen) | Exportrate, Kapazität, Hülle |
+| Blitzturm | Schneller Einzelziel-Blitz (Boden + Luft) | Kraft, Tempo, Reichweite, Kritische Treffer, Effizienz, Kapazität, Hülle |
+| Laserturm | Dauerstrahl, verbraucht Energie kontinuierlich | Kraft, Reichweite, Effizienz, Kapazität, Hülle |
+| Teslaturm | Kettenblitz über bis zu 5 Ziele mit Abschwächung | Kraft, Tempo, Reichweite, Kettenziele, Kritische Treffer, Effizienz, Kapazität, Hülle |
+| Plasmawerfer | Artillerie mit Flächenschaden, große Reichweite und Mindestreichweite, nur Bodenziele (auch Strukturen) | Kraft, Tempo, Reichweite, Explosionsradius, Kritische Treffer, Effizienz, Kapazität, Hülle |
+| Schildgenerator | Absorbiert Schaden an Gebäuden im Radius mit eigener Energie | Stärke, Radius, Kapazität, Hülle |
+| Heilturm | Repariert beschädigte Gebäude in Reichweite und verbraucht dafür Energie. Wählt das Ziel automatisch: am stärksten beschädigt, gerade unter Beschuss, Kern bevorzugt, plus etwas Zufall. Kein Überheilen, ohne Ziel kein Verbrauch. | Heilkraft, Heiltempo, Heilreichweite, Effizienz, Kapazität, Hülle |
+| Mobiler Turm | Fahrbarer Blitzturm (Boden + Luft). Wird ausgewählt und per Joystick gesteuert (nur im Kampf); Fahren kostet viel Energie (ca. 6,7 pro Feld). Ohne Energie bleibt er stehen. Erweitert den Bauradius nicht und kann nicht versetzt werden. | Kraft, Tempo, Reichweite, Kritische Treffer, Fahreffizienz, Kapazität, Hülle |
+| Bollwerk | Mauerblock mit sehr viel HP (2000, Türme nur 90–120). Blockiert Bodengegner, braucht keine Energie und erweitert den Bauradius nicht. Anfangs sehr günstig (4 Geld), alle 6 Bollwerke wird es 1 teurer. Im Baumodus kann man eine Mauerlinie ziehen; der Baumodus bleibt aktiv. | Hülle |
 
-- **Upgrade-Kosten** wachsen exponentiell; jeder Pfad hat eine Maximalstufe.
-- **Verkaufen** erstattet 50 % aller Investitionen.
+- **Energiewerte pro Gebäude:** Türme, Kern, mobiler Turm und Heilturm zeigen im Panel zusätzlich den Verbrauch pro Sekunde bei Dauerfeuer (beim Laser „Energie/s“), wie lange der eigene Speicher dabei reicht und wie viele Schüsse bzw. Heilungen eine volle Ladung ergibt. Ändert ein Upgrade den Verbrauch (Tempo, Effizienz), zeigt die Upgrade-Zeile zusätzlich „⚡ alt → neu/s“. Nach einem Upgrade hüpfen alle geänderten Werte kurz auf.
+- **Upgrades:** viele kleine Stufen je Pfad, z. B. Kraft 40 Stufen à +10 %, Tempo 25 à +6 %, Rate 25 à +12 %, Reichweite 15 à +4 %, Leistung 30 à +10 %, Kapazität 25 à +20 %, Hülle 30 à +15 %, Effizienz 20 à +5 % (weniger Energie pro Schuss, Heilung oder Fahrt), Kritische Treffer 20 à +1 % Chance, Explosionsradius 15 à +5 %, Strahlen und Kettenziele je 5 Stufen à +1. Die Kosten wachsen pro Stufe um 12 % (Strahlen und Kette steiler). Das Panel zeigt „St. x/max“, aktuellen und nächsten Wert sowie die Kosten; die Liste ist scrollbar.
+- **Verkaufen:** Investitionen aus der aktuellen Planungsphase werden voll erstattet, ältere Investitionen zu 50 %. Dieser Anteil sinkt mit dem Gesundheitszustand (z. B. bei 40 % HP nur 40 % davon).
+- **Versetzen** (Button im Panel): in der Planungsphase kostenlos, im Kampf 20 % von Kaufpreis plus allen Upgrades (mindestens 1). Es gelten die normalen Bauregeln, das Gebäude selbst zählt dabei nicht für den Bauradius. Strahlen, die danach zu lang sind, werden gekappt. Kern und mobiler Turm lassen sich nicht versetzen.
 - **Bauregeln:**
   - Nur innerhalb des Bauradius eigener Gebäude (Bollwerke zählen nicht).
-  - Nur auf erkundetem, freiem Boden: nicht auf Klippen, Schluchten, Bäumen, Felsen, anderen Gebäuden oder Bodengegnern und nicht zu nah an feindlichen Strukturen.
+  - Nur auf erkundetem, freiem Boden: nicht auf Klippen, Schluchten, Bäumen, Felsen, anderen Gebäuden oder Bodengegnern.
+  - Abstand zu feindlichen Strukturen: in der Planungsphase 650 px (Hinweis „Zu nah an der Feindbasis – das geht nur während des Angriffs.“), im Kampf 150 px. Die Sperrzone wird im Baumodus um erkundete Feindstrukturen angezeigt.
   - Geld muss reichen und das Gebäude freigeschaltet sein.
 - **Freischaltung je Level:**
   - Level 1: Solar, Verteiler, Speicher, Exporteur, Blitz, Bollwerk
-  - Level 2: Laser, Heilturm
+  - Level 2: Laser, Heilturm, mobiler Turm
   - Level 3: Schild
   - Level 4: Tesla
   - Level 5: Plasma
@@ -84,15 +98,27 @@ Jedes Gebäude hat Kosten, Lebenspunkte und eigene Upgrade-Pfade; die meisten ha
 ## Energienetz
 
 - Im Verbinden-Modus zieht man per Drag & Drop von einem sendenden Gebäude zu einem Ziel. Dabei entsteht ein elektrischer Energiestrahl in der Luft.
+- Alternativ ohne Drag & Drop: Gebäude auswählen, im Panel „Verbinden“ tippen – Reichweite und alle gültigen Ziele (grüne Ringe) werden angezeigt – und dann das Ziel antippen. Tippen ins Leere bricht ab.
+- Ist ein Gebäude ausgewählt, werden alle seine ein- und ausgehenden Verbindungen mit Richtungspfeil und die verbundenen Gebäude hervorgehoben (rot: Ziel gerade außer Reichweite).
   - Die Vorschau zeigt, ob die Verbindung gültig ist.
   - Fehlergründe erscheinen als Hinweis: zu weit, voll, existiert bereits, Ziel kann nicht empfangen usw.
 - Wischt man im Verbinden-Modus über Strahlen (Start im leeren Raum oder auf einem nicht sendenden Gebäude), werden sie durchgeschnitten.
 - **Sichtbarkeit:** Strahlen sind nur sichtbar, solange gerade Energie fließt, und blenden weich ein und aus. Im Verbinden-Modus werden zusätzlich alle Verbindungen gestrichelt angezeigt, damit man sie findet und kappen kann.
 - **Energiefluss:**
-  - Jede Quelle verteilt ihre Transferrate gleichmäßig auf ihre Strahlen.
+  - Jeder Strahl überträgt bis zur Transferrate der Quelle; der Vorrat der Quelle wird gleichmäßig auf ihre Strahlen verteilt. Beim Solarpanel ist die Transferrate die Leistung, aufgeteilt auf die verbundenen Strahlen.
+  - Strahlen, deren Ziel außer Reichweite ist (mobiler Turm ist weggefahren), bleiben bestehen, übertragen aber nichts, bis das Ziel wieder in Reichweite ist.
   - Begrenzt wird durch den freien Speicher des Ziels.
   - Die Dicke und das Leuchten eines Strahls zeigen den aktuellen Fluss; Energiepakete wandern sichtbar entlang.
 - Türme ohne Energie feuern nicht und zeigen ein blinkendes Blitzsymbol.
+- **Energiebilanz** (Diagramm-Button in der oberen Leiste, ab dem Setzen des Kerns): Ein Panel unter der Planungskarte zeigt live
+  - Produktion pro Sekunde bei Tag und bei Nacht (Solar zählt nur am Tag),
+  - Gesamtspeicher aller Gebäude, davon gespeichert (mit Prozent),
+  - wie lange eine volle Ladung aller Speicher dauert (Tagproduktion minus Exporteure; „voll“ bzw. „nie“),
+  - den Verbrauch aller Türme, des Kerns, mobiler Türme und Heiltürme bei Dauerfeuer sowie den Verbrauch der Exporteure,
+  - die Bilanz bei Dauerfeuer am Tag und in der Nacht,
+  - wie lange die aktuelle Reserve bei Dauerfeuer am Tag und in der Nacht reicht und wie lange volle Speicher nachts reichen („unbegrenzt“, wenn die Produktion reicht).
+  - Eine farbige Spalte zeigt die Änderung seit Beginn der aktuellen Planungsphase (grün besser, rot schlechter, grau neutral; bei „unbegrenzt“/„voll“ steht „vorher …“). Nach Bauen, Upgraden, Verkaufen, Versetzen, Verbinden, Kappen oder Rückgängig hüpfen die geänderten Werte kurz auf.
+  - Schilde fließen nicht ein (Verbrauch nur bei Treffern), Strahl-Transferlimits werden nicht berücksichtigt. Schließen über ✕, erneutes Tippen auf den Button oder die Zurück-Taste.
 
 ## Gegner
 
@@ -115,7 +141,7 @@ Es gibt drei Klassen: Nahkampf, Fernkampf und Luft.
 - **Zielpriorität:** Exporteur > Heiler > Türme (inkl. Schild) > Bollwerke > Verteiler und Speicher > Kern. Gebäude, die mangels Energie gerade nichts tun, rutschen auf die niedrigste Stufe direkt über dem Kern. Bei gleicher Stufe gewinnt das nächste Ziel.
 - **Erreichbarkeit:** Bodengegner (Nah- und Fernkampf) greifen nur Gebäude an, zu denen ein Weg führt. Ist die Basis eingemauert, greifen sie zuerst die Bollwerke an. Fernkämpfer schießen auch dann nicht über Mauern, wenn das Ziel in Reichweite ist. Luftgegner ignorieren das.
 - Gegner zerstören Türme sehr schnell; nur Bollwerke halten lange stand. Man muss sich also einmauern. Mauern wirken am besten dicht an den Türmen: Fernkämpfer (Reichweite 110–120) bleiben dann in Turmreichweite, nur der Panzer schießt von weiter weg.
-- HP und Kopfgeld steigen mit jedem Angriffszyklus; die HP sind ab Zyklus 8 gedeckelt.
+- HP, Schaden und Kopfgeld steigen mit jedem Tag und sind nachts zusätzlich erhöht (siehe Kampf).
 
 ## Belohnungen und „Juice“
 
@@ -123,29 +149,33 @@ Es gibt drei Klassen: Nahkampf, Fernkampf und Luft.
 - **Combo-System:** Kills in schneller Folge erhöhen die Combo.
   - Meilensteine (5, 10, 20, 35, 50, 75, 100) zahlen Bonusgeld und lösen Banner, Konfetti und Sound aus.
   - Die Tonhöhe der Kill-Sounds steigt mit der Combo.
-- **Kritische Treffer:** 12 % Chance auf doppelten Schaden, mit großer Schadenszahl und Effekt.
+- **Kritische Treffer:** 12 % Grundchance auf doppelten Schaden (per Upgrade steigerbar), mit großer Schadenszahl und Effekt.
 - Wird eine feindliche Struktur zerstört, gibt es Zeitlupe, Bildschirmwackeln, eine Explosion, einen Münzregen und ein Banner.
 - Partikel, Ringe, Schadenszahlen, Vibration (abschaltbar) und synthetisierte Soundeffekte.
-- Nacht- und Morgen-Banner, Ansturm-Hinweis, Exporteur-Einnahmen-Effekt, grüne Heilstrahlen mit „+N“, Landungs- und Basis-Banner, Rodungs-Effekte.
+- Banner für Tagesstart, Nacht, Ende der Nacht und „Tag N überstanden“ (mit Fanfare und Konfetti), Nachtwellen-Hinweis, Exporteur-Einnahmen-Effekt, grüne Heilstrahlen mit „+N“, Landungs- und Basis-Banner, Rodungs-Effekte.
 
 ## Bedienung
 
-- **Bauen:** Gebäude in der Bauleiste antippen. Ein Geist (Rasterfeld) zeigt Gültigkeit und Reichweite; Platzieren per Tippen oder Loslassen. Danach endet der Baumodus, außer bei Bollwerken: Hier zieht man Mauerlinien und baut weiter, bis das Geld fehlt. Die Kosten in der Bauleiste sind aktuell (Bollwerke werden teurer).
-- **Soldat:** Antippen wählt ihn aus (Hinweis-Chip oben). Tippen auf die Karte schickt ihn los, Tippen auf Baum oder Fels rodet. Der Button links unten springt zum Soldaten.
+- **Bauen:** Gebäude in der Bauleiste antippen. Ein Geist (Rasterfeld) zeigt Gültigkeit und Reichweite; Platzieren per Tippen oder Loslassen.
+  - Energie-Abdeckung im Platzierungsmodus (nicht bei Bollwerk und Kern): Bebaubare Felder werden eingefärbt, je nachdem wie viele sendende Gebäude mit freiem Strahl sie erreichen – rot = 1, gelb = 2, grün = 3 oder mehr. Blau = nur von Gebäuden erreichbar, deren Strahlen alle belegt sind. Danach endet der Baumodus, außer bei Bollwerken: Hier zieht man Mauerlinien und baut weiter, bis das Geld fehlt. Die Kosten in der Bauleiste sind aktuell (Bollwerke werden teurer).
+- **Soldat (nur während der Erkundung):** Joystick links unten, Hinweis-Chip darüber. Tippen auf nahe Bäume oder Felsen rodet. Der Button rechts unten springt zum Soldaten.
+- **Mobiler Turm:** Auswählen zeigt den Joystick. Solange er ausgewählt ist, zeigt der Boden die Reichweite aller mit ihm verbundenen Sender (rot/gelb/grün = 1/2/3+), damit man sieht, wie weit er fahren kann. Abwählen hält ihn an.
 - **Modus-Umschalter** (Button unten rechts):
   - „Verschieben“ (Standard): Ein Finger bewegt die Karte, Tippen wählt aus.
   - „Verbinden“: Ziehen verbindet, Wischen kappt. Doppeltippen und gedrückt halten verschiebt die Karte; bis zum Loslassen wird nicht verbunden. Die Zurück-Taste wechselt zurück zu Verschieben.
-- **Auswahl:** Gebäude antippen öffnet ein Panel mit Werten, Upgrades (aktueller und nächster Wert, Kosten) und Verkaufen. Reichweitenkreise werden angezeigt.
+- **Auswahl:** Gebäude antippen öffnet ein Panel mit Werten, Upgrades (aktueller und nächster Wert, Kosten), Aktionen und Verkaufen. Reichweitenkreise und Verbindungen werden angezeigt.
+  - Aktionen: „Verbinden x/y“ (Sender), „Angreifen“ (Türme, Kern, mobiler Turm) und „Versetzen −Kosten“.
+- **Angriffsziel (Fokus):** „Angreifen“ tippen, dann einen sichtbaren Gegner, eine feindliche Struktur oder einen Baum/Felsen antippen. Der Turm schießt bevorzugt darauf, sobald es in Reichweite ist, sonst wie gewohnt nach Priorität. Strukturen und Hindernisse müssen in Reichweite sein. Fokus wird mit Fadenkreuz angezeigt und per „Ziel lösen“ aufgehoben. So lassen sich nach der Erkundung Bäume (140 HP) und Felsen (320 HP) mit Türmen zerstören; Plasma trifft sie mit dem Geschoss.
 - **Zielpriorität pro Turm:** Im Panel jedes Turms (und des Kerns) zeigt eine Zeile die Reihenfolge Luft → Fernkampf → Nahkampf (Standard). Tippen auf eine Klasse deaktiviert oder aktiviert sie (z. B. Turm nur gegen Luft); die Pfeil-Buttons tauschen benachbarte Klassen. Klassen, die ein Turm nicht treffen kann (Plasma gegen Luft), sind ausgegraut. Strukturen greift ein Turm nur an, wenn Nah- oder Fernkampf aktiv ist.
 - **Kamera:**
   - Ein Finger verschiebt im Verschieben-Modus.
   - Zwei Finger zoomen und verschieben in beiden Modi. Solange zwei Finger aufliegen, wird nicht verbunden oder geschnitten.
   - Im Verbinden-Modus: Doppeltippen und halten verschiebt.
   - Am Desktop: Mausrad sowie rechte oder mittlere Maustaste.
-- **HUD:** Geld, Energiebalken mit Erzeugung pro Sekunde, Tag/Nacht-Uhr mit Tageszähler, Spielgeschwindigkeit 1×/2×/3× und Pause.
+- **HUD:** Geld, Energiebalken mit Erzeugung pro Sekunde, Button für die Energiebilanz, Uhr (Planung/Tag/Nacht) mit Tages- und Wellenzähler, Planungskarte mit Rückgängig, Zurücksetzen und „Tag N starten“, Spielgeschwindigkeit 1×/2×/3× und Pause.
 - **Pause-Menü:** Weiter, Neustart, Menü, Sound und Vibration.
-- **Zurück-Taste:** schließt nacheinander Baumodus, Soldatenauswahl, Gebäudeauswahl und Verbinden-Modus, dann öffnet sie die Pause; nach Spielende geht sie zum Menü.
-- **Tutorial** im ersten Level: Soldat laufen lassen → Basis setzen → Solar bauen → verbinden → Turm bauen → Turm versorgen → Bollwerke bauen → Kamera → Speicher → Strahl schneiden.
+- **Zurück-Taste:** schließt nacheinander Zielauswahl (Verbinden/Angreifen), Bau- oder Versetzen-Modus, Gebäudeauswahl, Energiebilanz und Verbinden-Modus, dann öffnet sie die Pause; nach Spielende geht sie zum Menü.
+- **Tutorial** im ersten Level: Soldat mit Joystick laufen lassen → Basis setzen → Solar bauen → verbinden → Turm bauen → Turm versorgen → Bollwerke bauen → Kamera → Tag starten → Speicher → Strahl schneiden.
 
 ## Einstellungen und Fortschritt
 

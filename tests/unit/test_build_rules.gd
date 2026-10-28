@@ -85,6 +85,28 @@ func test_enemy_near() -> void:
 	assert_eq(BuildRules.reason(battle.state, GameConfig.SOLAR, nest.position + Vector2(0, 150)), BuildRules.ENEMY_NEAR)
 
 
+func test_planning_forbids_building_near_enemy_bases() -> void:
+	var nest: Building = battle.state.enemy_buildings()[0]
+	BattleFixtures.add(battle, GameConfig.RELAY, nest.position + Vector2(0, 500))
+	var spot := nest.position + Vector2(0, 400)
+	assert_eq(BuildRules.enemy_clearance(battle.state), GameConfig.ENEMY_PLAN_CLEAR)
+	assert_eq(BuildRules.reason(battle.state, GameConfig.ZAPPER, spot), BuildRules.ENEMY_ZONE)
+	battle.start_round()
+	assert_eq(BuildRules.enemy_clearance(battle.state), GameConfig.ENEMY_NO_BUILD)
+	assert_eq(BuildRules.reason(battle.state, GameConfig.ZAPPER, spot), BuildRules.OK)
+	assert_eq(battle.place(GameConfig.ZAPPER, spot), BuildRules.OK)
+
+
+func test_planning_forbids_relocating_into_the_enemy_zone() -> void:
+	var nest: Building = battle.state.enemy_buildings()[0]
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, nest.position + Vector2(0, 500))
+	BattleFixtures.add(battle, GameConfig.RELAY, nest.position + Vector2(GameConfig.CELL * 2.0, 500))
+	battle.state.money = 1000
+	assert_eq(battle.relocate(relay.id, nest.position + Vector2(0, 400)), BuildRules.ENEMY_ZONE)
+	battle.start_round()
+	assert_eq(battle.relocate(relay.id, nest.position + Vector2(0, 400)), BuildRules.OK)
+
+
 func test_nothing_but_the_core_while_scouting() -> void:
 	var fresh := Battle.start(0)
 	BattleFixtures.open_terrain(fresh.state)

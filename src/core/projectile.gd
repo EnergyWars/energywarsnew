@@ -6,6 +6,7 @@ var destination: Vector2
 var damage: float
 var splash: float
 var crit: bool
+var obstacle: Obstacle
 var elapsed := 0.0
 var duration: float
 

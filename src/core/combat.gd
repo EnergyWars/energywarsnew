@@ -1,6 +1,12 @@
 class_name Combat
 extends RefCounted
 
+const OK := ""
+const INVALID := "invalid"
+const MISSING := "missing"
+const CANNOT := "cannot"
+const RANGE := "range"
+
 var state: BattleState
 var events: BattleEvents
 var economy: Economy
@@ -16,16 +22,17 @@ func _init(p_state: BattleState, p_events: BattleEvents, p_economy: Economy, p_n
 
 func update(delta: float) -> void:
 	var groups := group_enemies()
-	for building: Building in state.buildings.values():
+	for building in state.combatants():
 		if not building.is_alive():
 			continue
 		if building.is_player():
-			if GameConfig.has_attack(building.kind):
+			if building.armed:
 				_tower(building, delta, groups)
-			elif building.definition().has("heal"):
+			else:
 				_healer(building, delta)
-		elif building.definition().has("attack"):
+		else:
 			_turret(building, delta)
+	_garrison(delta, groups)
 	_projectiles(delta)
 
 
@@ -55,7 +62,7 @@ func _tower(tower: Building, delta: float, groups: Dictionary) -> void:
 	tower.energy -= Formulas.shot_energy(tower)
 	tower.cooldown = Formulas.cooldown(tower)
 	tower.target_id = target.id
-	var crit := state.rng.randf() < GameConfig.CRIT_CHANCE
+	var crit := state.rng.randf() < Formulas.crit_chance(tower)
 	var amount := Formulas.damage(tower) * (GameConfig.CRIT_FACTOR if crit else 1.0)
 	match mode:
 		GameConfig.MODE_BOLT:
@@ -64,12 +71,18 @@ func _tower(tower: Building, delta: float, groups: Dictionary) -> void:
 		GameConfig.MODE_CHAIN:
 			_chain(tower, target, amount, crit)
 		GameConfig.MODE_PLASMA:
-			var splash := float(Formulas.attack(tower).splash)
-			state.projectiles.append(Projectile.new(tower.position, target.position, amount, splash, crit))
+			var splash := Formulas.splash(tower)
+			var projectile := Projectile.new(tower.position, target.position, amount, splash, crit)
+			projectile.obstacle = target as Obstacle
+			state.projectiles.append(projectile)
 			events.emit("plasma_launch", {"from": tower.position, "to": target.position})
 
 
 func _laser_target(tower: Building, groups: Dictionary) -> Object:
+	var focus := focus_in_range(tower)
+	if focus != null:
+		tower.laser_target = focus
+		return focus
 	var current: Object = tower.laser_target
 	var valid: bool = current != null and current.is_alive() and tower.position.distance_to(current.position) <= Formulas.attack_range(tower) + current.radius()
 	if tower.scan_timer > 0.0 and (valid or current == null):
@@ -103,7 +116,7 @@ func _chain(tower: Building, first: Object, amount: float, crit: bool) -> void:
 	var hit := {}
 	var current: Object = first
 	var strength := amount
-	for jump in int(Formulas.attack(tower).get("chain", 1)):
+	for jump in Formulas.chain_count(tower):
 		if current == null:
 			break
 		hit[current.id] = true
@@ -116,6 +129,8 @@ func _chain(tower: Building, first: Object, amount: float, crit: bool) -> void:
 
 
 func _projectiles(delta: float) -> void:
+	if state.projectiles.is_empty():
+		return
 	for projectile: Projectile in state.projectiles.duplicate():
 		projectile.elapsed += delta
 		if not projectile.is_done():
@@ -129,6 +144,8 @@ func _projectiles(delta: float) -> void:
 		for building in state.enemy_buildings():
 			if center.distance_to(building.position) <= projectile.splash + building.radius():
 				damage(building, projectile.damage, projectile.crit)
+		if projectile.obstacle != null and projectile.obstacle.is_alive():
+			damage(projectile.obstacle, projectile.damage, projectile.crit)
 
 
 func _turret(turret: Building, delta: float) -> void:
@@ -191,7 +208,93 @@ func turret_target(turret: Building) -> Building:
 	return Targeting.best(turret.position, candidates)
 
 
+func _garrison(delta: float, groups: Dictionary) -> void:
+	var scout := state.scout
+	var core := state.core()
+	if scout == null or not scout.boarded or core == null:
+		return
+	scout.position = core.position
+	scout.cooldown = maxf(scout.cooldown - delta, 0.0)
+	if scout.cooldown > 0.0:
+		return
+	var reach := float(GameConfig.SCOUT_GUN.range)
+	var target: Enemy = null
+	var best := INF
+	for unit_class in GameConfig.CLASSES:
+		for enemy: Enemy in groups[unit_class]:
+			var distance := core.position.distance_to(enemy.position)
+			if enemy.is_alive() and distance <= reach + enemy.radius() and distance < best:
+				target = enemy
+				best = distance
+	if target == null:
+		scout.target_id = -1
+		scout.cooldown = GameConfig.TARGET_SCAN
+		return
+	scout.cooldown = float(GameConfig.SCOUT_GUN.cooldown)
+	scout.target_id = target.id
+	scout.heading = (target.position - core.position).normalized()
+	events.emit("rifle", {"from": core.position, "to": target.position})
+	damage(target, float(GameConfig.SCOUT_GUN.damage), false)
+
+
+func focus_reason(tower: Building, target: Object) -> String:
+	if tower == null or not tower.is_player() or not GameConfig.has_attack(tower.kind):
+		return INVALID
+	if target == null or not target.is_alive():
+		return MISSING
+	if target is Building and (target as Building).is_player():
+		return INVALID
+	if target is Building and (target as Building).immune:
+		return CANNOT
+	var attack := Formulas.attack(tower)
+	var air := target is Enemy and (target as Enemy).is_air()
+	if not bool(attack.get("air" if air else "ground", true)):
+		return CANNOT
+	if not target is Enemy and not in_attack_range(tower, target):
+		return RANGE
+	return OK
+
+
+func set_focus(tower: Building, target: Object) -> String:
+	if target == null and tower != null and tower.is_player():
+		tower.focus = null
+		return OK
+	var reason := focus_reason(tower, target)
+	if reason == OK:
+		tower.focus = target
+		tower.scan_timer = 0.0
+		events.emit("focus", {"id": tower.id, "from": tower.position, "to": target.position})
+	return reason
+
+
+func focused(tower: Building) -> Object:
+	var focus: Object = tower.focus
+	if focus == null:
+		return null
+	var valid: bool = focus.is_alive()
+	if focus is Obstacle:
+		valid = valid and state.map.is_clearable((focus as Obstacle).cell)
+	if not valid:
+		tower.focus = null
+		return null
+	return focus
+
+
+func focus_in_range(tower: Building) -> Object:
+	var focus := focused(tower)
+	return focus if focus != null and in_attack_range(tower, focus) else null
+
+
+func in_attack_range(tower: Building, target: Object) -> bool:
+	var distance := tower.position.distance_to(target.position)
+	var minimum := float(Formulas.attack(tower).get("min_range", 0.0))
+	return distance >= minimum and distance <= Formulas.attack_range(tower) + float(target.radius())
+
+
 func find_target(tower: Building, groups: Dictionary = {}) -> Object:
+	var focus := focus_in_range(tower)
+	if focus != null:
+		return focus
 	if groups.is_empty():
 		groups = group_enemies()
 	var attack := Formulas.attack(tower)
@@ -216,7 +319,7 @@ func find_target(tower: Building, groups: Dictionary = {}) -> Object:
 	var structure: Building = null
 	var structure_distance := INF
 	for building: Building in groups.structures:
-		if not building.is_alive():
+		if not building.is_alive() or building.immune:
 			continue
 		var distance := tower.position.distance_to(building.position)
 		if distance >= minimum and distance <= reach + building.radius() and distance < structure_distance:
@@ -252,6 +355,8 @@ func nearest_player_building(origin: Vector2, reach: float = INF) -> Building:
 func damage(target: Object, amount: float, crit: bool, report: bool = true) -> void:
 	if target is Enemy:
 		damage_enemy(target as Enemy, amount, crit, report)
+	elif target is Obstacle:
+		damage_obstacle(target as Obstacle, amount, crit, report)
 	elif target is Building:
 		var building := target as Building
 		if report:
@@ -269,8 +374,19 @@ func damage_enemy(enemy: Enemy, amount: float, crit: bool, report: bool = true) 
 		economy.enemy_killed(enemy)
 
 
+func damage_obstacle(obstacle: Obstacle, amount: float, crit: bool, report: bool = true) -> void:
+	if not obstacle.is_alive():
+		return
+	obstacle.hp -= amount
+	if report:
+		events.emit("hit", {"position": obstacle.position, "amount": amount, "crit": crit})
+	if not obstacle.is_alive():
+		state.clear_obstacle(obstacle.cell)
+		events.emit("cleared", {"position": obstacle.position, "obstacle": obstacle.type, "cell": obstacle.cell})
+
+
 func damage_building(building: Building, amount: float) -> void:
-	if not building.is_alive():
+	if not building.is_alive() or building.immune:
 		return
 	var remaining := amount
 	if building.is_player():
@@ -286,10 +402,10 @@ func damage_building(building: Building, amount: float) -> void:
 
 func _absorb(building: Building, amount: float) -> float:
 	var remaining := amount
-	for shield in state.player_buildings():
+	for shield in state.of_kind(GameConfig.SHIELD):
 		if remaining <= 0.0:
 			break
-		if shield.kind != GameConfig.SHIELD or shield.energy <= 0.0:
+		if shield.energy <= 0.0:
 			continue
 		if shield.position.distance_to(building.position) > Formulas.shield_radius(shield):
 			continue
