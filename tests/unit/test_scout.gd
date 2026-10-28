@@ -41,7 +41,7 @@ func test_parachute_drop_then_landing() -> void:
 	assert_eq(BattleFixtures.of_type(battle.events.drain(), "landed").size(), 1)
 
 
-func test_joystick_moves_scout_and_reveals_fog() -> void:
+func test_steering_moves_scout_and_reveals_fog() -> void:
 	_land()
 	state.fog.cells.fill(FogOfWar.HIDDEN)
 	var start := state.scout.position
@@ -96,6 +96,8 @@ func test_steering_helper_edges() -> void:
 
 func test_scout_respects_enemy_structures_not_player_buildings() -> void:
 	_land()
+	assert_true(state.enemy_buildings().is_empty())
+	state.spawn_structures(map.structures)
 	var nest: Building = state.enemy_buildings()[0]
 	assert_true(state.nav.walker.is_point_solid(nest.origin))
 	state.place_core(map.drop + Vector2(0, -300))
@@ -103,27 +105,60 @@ func test_scout_respects_enemy_structures_not_player_buildings() -> void:
 	assert_false(state.nav.walker.is_point_solid(state.core().origin))
 
 
-func test_scout_clears_trees_and_rocks_in_reach() -> void:
+func test_scout_fells_trees_with_one_hit() -> void:
 	_land()
 	var origin := map.cell_of(state.scout.position)
 	state.scout.position = map.center_of(origin)
-	for entry in [[Vector2i(1, 0), LevelMap.Tile.TREE, LevelMap.TREE], [Vector2i(0, 1), LevelMap.Tile.ROCK, LevelMap.ROCK]]:
-		var cell: Vector2i = origin + entry[0]
-		_block(cell, entry[1])
-		assert_eq(battle.clear_with_scout(map.center_of(cell)), ScoutControl.OK)
-		assert_true(state.scout.is_clearing())
-		_walk(0.5)
-		assert_gt(battle.scouting.clear_ratio(), 0.0)
-		assert_false(map.is_walkable(cell))
-		_walk(float(GameConfig.CLEAR_TIME[entry[2]]))
-		assert_true(map.is_walkable(cell), str(entry[2]))
-		assert_false(state.scout.is_clearing())
-		assert_false(state.nav.ground.is_point_solid(cell))
-		var events := battle.events.drain()
-		assert_eq(BattleFixtures.of_type(events, "clear_order").size(), 1)
-		var cleared := BattleFixtures.of_type(events, "cleared")
-		assert_eq(cleared.size(), 1)
-		assert_eq(cleared[0].obstacle, entry[2])
+	var cell := origin + Vector2i(1, 0)
+	_block(cell, LevelMap.Tile.TREE)
+	assert_eq(battle.scouting.clear_time(cell), 0.0)
+	assert_eq(battle.clear_with_scout(map.center_of(cell)), ScoutControl.OK)
+	assert_true(map.is_walkable(cell))
+	assert_false(state.scout.is_clearing())
+	assert_eq(battle.scouting.clear_ratio(), 0.0)
+	assert_false(state.nav.ground.is_point_solid(cell))
+	assert_eq(state.scout.heading, Vector2.RIGHT)
+	var events := battle.events.drain()
+	assert_eq(BattleFixtures.of_type(events, "clear_order").size(), 1)
+	var cleared := BattleFixtures.of_type(events, "cleared")
+	assert_eq(cleared.size(), 1)
+	assert_eq(cleared[0].obstacle, LevelMap.TREE)
+	assert_eq(cleared[0].cell, cell)
+
+
+func test_scout_clears_rocks_quickly() -> void:
+	_land()
+	var origin := map.cell_of(state.scout.position)
+	state.scout.position = map.center_of(origin)
+	var cell := origin + Vector2i(0, 1)
+	_block(cell, LevelMap.Tile.ROCK)
+	assert_lt(GameConfig.CLEAR_TIME[LevelMap.ROCK], 1.5)
+	assert_eq(battle.clear_with_scout(map.center_of(cell)), ScoutControl.OK)
+	assert_true(state.scout.is_clearing())
+	_walk(0.5)
+	assert_gt(battle.scouting.clear_ratio(), 0.0)
+	assert_lt(battle.scouting.clear_ratio(), 1.0)
+	assert_false(map.is_walkable(cell))
+	_walk(float(GameConfig.CLEAR_TIME[LevelMap.ROCK]))
+	assert_true(map.is_walkable(cell))
+	assert_false(state.scout.is_clearing())
+	assert_eq(state.scout.heading, Vector2.DOWN)
+	var events := battle.events.drain()
+	assert_eq(BattleFixtures.of_type(events, "clear_order").size(), 1)
+	var cleared := BattleFixtures.of_type(events, "cleared")
+	assert_eq(cleared.size(), 1)
+	assert_eq(cleared[0].obstacle, LevelMap.ROCK)
+
+
+func test_clear_time_of_open_ground_is_zero() -> void:
+	assert_eq(battle.scouting.clear_time(map.cell_of(map.drop)), 0.0)
+	assert_eq(battle.scouting.clear_ratio(), 0.0)
+
+
+func test_soldier_is_fast_and_sees_far() -> void:
+	assert_gte(GameConfig.SCOUT_SPEED, 190.0)
+	assert_gte(GameConfig.SCOUT_VISION, 450.0)
+	assert_eq(float(GameConfig.CLEAR_TIME[LevelMap.TREE]), 0.0)
 
 
 func test_clear_orders_need_an_obstacle_in_reach() -> void:
@@ -140,12 +175,12 @@ func test_clearing_aborts_when_walking_away_or_obstacle_vanishes() -> void:
 	var origin := map.cell_of(state.scout.position)
 	state.scout.position = map.center_of(origin)
 	var cell := origin + Vector2i(1, 0)
-	_block(cell, LevelMap.Tile.TREE)
+	_block(cell, LevelMap.Tile.ROCK)
 	battle.clear_with_scout(map.center_of(cell))
 	map.clear(cell)
 	_walk(0.2)
 	assert_false(state.scout.is_clearing())
-	_block(cell, LevelMap.Tile.TREE)
+	_block(cell, LevelMap.Tile.ROCK)
 	battle.clear_with_scout(map.center_of(cell))
 	battle.steer_scout(Vector2.LEFT)
 	_walk(1.5)

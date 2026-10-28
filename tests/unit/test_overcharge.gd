@@ -80,11 +80,11 @@ func test_overcharge_upgrades_are_allowed_and_reported() -> void:
 func test_panel_texts_warn_before_and_after_overload() -> void:
 	var zapper := Building.new(1, GameConfig.ZAPPER, Vector2.ZERO)
 	zapper.set_level(GameConfig.TRACK_OVERCLOCK, 10)
-	assert_eq(StatText.overload_change(zapper, GameConfig.TRACK_OVERCLOCK), Texts.t("PANEL_OVERLOAD_NEXT"))
+	assert_eq(StatText.overload_change(zapper, GameConfig.TRACK_OVERCLOCK), Texts.format("PANEL_OVERLOAD_NEXT", [Icons.WARNING]))
 	assert_eq(StatText.overload_change(zapper, GameConfig.TRACK_POWER), "")
 	zapper.set_level(GameConfig.TRACK_OVERCLOCK, 11)
 	assert_eq(StatText.overload_change(zapper, GameConfig.TRACK_EFFICIENCY), "")
-	assert_eq(StatText.overload_change(zapper, GameConfig.TRACK_CAPACITY), Texts.t("PANEL_OVERLOAD_FIXED"))
+	assert_eq(StatText.overload_change(zapper, GameConfig.TRACK_CAPACITY), Texts.format("PANEL_OVERLOAD_FIXED", [Icons.CHECK]))
 	assert_eq(StatText.overload_change(zapper, GameConfig.TRACK_OVERCLOCK), "")
 	assert_ne(StatText.draw_change(Building.new(2, GameConfig.ZAPPER, Vector2.ZERO), GameConfig.TRACK_OVERCLOCK), "")
 

@@ -1,24 +1,29 @@
 class_name EnergyAudit
 extends RefCounted
 
-enum Verdict { NONE, OK, NIGHT, LOW, STARVED, OFFLINE, OVERLOADED }
-enum Cause { NONE, OVERLOAD, NO_SOURCE, OUT_OF_RANGE, BEAM_RATE, BEAM_LOSS, GENERATION, NIGHT }
+enum Verdict { NONE, OK, LOW, OVERLOADED }
+enum Cause { NONE, OVERLOAD, NO_SOURCE, OUT_OF_RANGE, BEAM_RATE, BEAM_LOSS, GENERATION, NIGHT, STORAGE }
 
 const DAY := 0
 const NIGHT := 1
+const WORST := 2
 const SCENARIOS := 2
 const SATISFIED := 0.98
-const STARVED_BELOW := 0.02
 const SATURATED := 0.98
-const HEAVY_LOSS := 0.2
+const HEAVY_LOSS := 0.15
+const LOSSLESS := 0.005
+const RESERVE_SHARE := 0.1
 const EPSILON := 0.001
 const MAX_PASSES := 12
 const MIN_YIELD := 0.01
 
 var order: Array[int] = []
 var demand := {}
+var needs := {}
 var generation: Array[Dictionary] = [{}, {}]
-var supplied: Array[Dictionary] = [{}, {}]
+var storage: Array[Dictionary] = [{}, {}]
+var gathered: Array[Dictionary] = [{}, {}]
+var served: Array[Dictionary] = [{}, {}]
 var received: Array[Dictionary] = [{}, {}]
 var forwarded: Array[Dictionary] = [{}, {}]
 var sent: Array[Dictionary] = [{}, {}]
@@ -28,14 +33,16 @@ var moved := PackedFloat64Array([0.0, 0.0])
 var yields := {}
 var caps := {}
 var active := {}
-var verdicts := {}
-var causes := {}
-var culprits := {}
-var culprit_links := {}
+var verdicts: Array[Dictionary] = [{}, {}]
+var causes: Array[Dictionary] = [{}, {}]
+var culprits: Array[Dictionary] = [{}, {}]
+var culprit_links: Array[Dictionary] = [{}, {}]
 var _buildings := {}
 var _incoming := {}
 var _outgoing := {}
 var _sourced := {}
+var _producers := {}
+var _targets := {}
 var _links: Array[EnergyLink] = []
 var _cyclic := false
 
@@ -43,10 +50,11 @@ var _cyclic := false
 static func measure(state: BattleState) -> EnergyAudit:
 	var audit := EnergyAudit.new()
 	audit._collect(state)
-	var need := audit._needs()
+	audit._needs()
 	for scenario in SCENARIOS:
-		audit._solve(scenario, need)
-	audit._judge()
+		audit._solve(scenario)
+	for scenario in SCENARIOS:
+		audit._judge(scenario)
 	return audit
 
 
@@ -54,6 +62,12 @@ static func draw(building: Building) -> float:
 	if building.exporting:
 		return Formulas.export_rate(building)
 	return EnergyStats.fire_draw(building)
+
+
+static func view_scenario(state: BattleState) -> int:
+	if state.is_fighting():
+		return NIGHT if state.is_night() else DAY
+	return WORST
 
 
 static func water_fill(budget: float, limits: PackedFloat64Array) -> PackedFloat64Array:
@@ -86,62 +100,118 @@ func has(id: int) -> bool:
 	return _buildings.has(id)
 
 
-func verdict(id: int) -> Verdict:
-	return verdicts.get(id, Verdict.NONE)
+func shows(id: int) -> bool:
+	return has(id) and not _producers.has(id)
 
 
-func cause(id: int) -> Cause:
-	return causes.get(id, Cause.NONE)
+func resolve(id: int, scenario: int = WORST) -> int:
+	if scenario != WORST:
+		return scenario
+	return NIGHT if _ratio(id, NIGHT) < _ratio(id, DAY) - EPSILON else DAY
 
 
-func culprit(id: int) -> int:
-	return int(culprits.get(id, -1))
+func link_scenario(key: String, scenario: int = WORST) -> int:
+	return resolve(int(_targets.get(key, -1)), scenario)
 
 
-func culprit_link(id: int) -> String:
-	return str(culprit_links.get(id, ""))
+func verdict(id: int, scenario: int = WORST) -> Verdict:
+	if not shows(id):
+		return Verdict.NONE
+	return verdicts[resolve(id, scenario)].get(id, Verdict.NONE)
+
+
+func cause(id: int, scenario: int = WORST) -> Cause:
+	if not shows(id):
+		return Cause.NONE
+	return causes[resolve(id, scenario)].get(id, Cause.NONE)
+
+
+func culprit(id: int, scenario: int = WORST) -> int:
+	return int(culprits[resolve(id, scenario)].get(id, -1))
+
+
+func culprit_link(id: int, scenario: int = WORST) -> String:
+	return str(culprit_links[resolve(id, scenario)].get(id, ""))
 
 
 func need_of(id: int) -> float:
+	return float(needs.get(id, 0.0))
+
+
+func demand_of(id: int) -> float:
 	return float(demand.get(id, 0.0))
 
 
-func supply(id: int, scenario: int = DAY) -> float:
-	return float(supplied[scenario].get(id, 0.0))
+func available(id: int, scenario: int = WORST) -> float:
+	return float(gathered[resolve(id, scenario)].get(id, 0.0))
 
 
-func ratio(id: int, scenario: int = DAY) -> float:
-	var wish := need_of(id)
-	return 1.0 if wish <= 0.0 else clampf(supply(id, scenario) / wish, 0.0, 1.0)
+func supply(id: int, scenario: int = WORST) -> float:
+	return minf(available(id, scenario), need_of(id))
 
 
-func shortfall(id: int, scenario: int = DAY) -> float:
-	return maxf(need_of(id) - supply(id, scenario), 0.0)
+func ratio(id: int, scenario: int = WORST) -> float:
+	return _ratio(id, resolve(id, scenario))
 
 
-func inflow(id: int, scenario: int = DAY) -> float:
-	return float(received[scenario].get(id, 0.0))
+func missing(id: int, scenario: int = WORST) -> float:
+	return 1.0 - ratio(id, scenario) if verdict(id, scenario) == Verdict.LOW else 0.0
 
 
-func throughput(id: int, scenario: int = DAY) -> float:
-	return float(forwarded[scenario].get(id, 0.0))
+func shortfall(id: int, scenario: int = WORST) -> float:
+	return maxf(need_of(id) - available(id, scenario), 0.0)
 
 
-func flow(key: String, scenario: int = DAY) -> float:
-	return float(sent[scenario].get(key, 0.0))
+func served_of(id: int, scenario: int = DAY) -> float:
+	return float(served[scenario].get(id, 0.0))
+
+
+func inflow(id: int, scenario: int = WORST) -> float:
+	return float(received[resolve(id, scenario)].get(id, 0.0))
+
+
+func throughput(id: int, scenario: int = WORST) -> float:
+	return float(forwarded[resolve(id, scenario)].get(id, 0.0))
+
+
+func reserve_rate(id: int) -> float:
+	return float(storage[NIGHT].get(id, 0.0))
+
+
+func night_reserve(id: int) -> float:
+	var building: Building = _buildings.get(id)
+	if building == null or reserve_rate(id) <= 0.0:
+		return INF
+	var drain := need_of(id) - float(generation[NIGHT][id]) - float(received[NIGHT][id])
+	return Formulas.capacity(building) / drain if drain > EPSILON else INF
+
+
+func flow(key: String, scenario: int = WORST) -> float:
+	return float(sent[link_scenario(key, scenario)].get(key, 0.0))
+
+
+func delivered(key: String, scenario: int = WORST) -> float:
+	return flow(key, scenario) * link_yield(key)
+
+
+func link_cap(key: String) -> float:
+	return float(caps.get(key, 0.0))
 
 
 func link_yield(key: String) -> float:
 	return float(yields.get(key, 1.0))
 
 
+func link_loss(key: String) -> float:
+	return 1.0 - link_yield(key)
+
+
 func is_active(key: String) -> bool:
 	return bool(active.get(key, false))
 
 
-func is_saturated(key: String, scenario: int = DAY) -> bool:
-	var cap := float(caps.get(key, 0.0))
-	return cap > 0.0 and float(wanted[scenario].get(key, 0.0)) > cap + EPSILON and flow(key, scenario) >= cap * SATURATED
+func is_saturated(key: String, scenario: int = WORST) -> bool:
+	return _saturated(key, link_scenario(key, scenario))
 
 
 func loss_rate(scenario: int = DAY) -> float:
@@ -157,7 +227,7 @@ func supply_ratio(scenario: int = DAY) -> float:
 	var got := 0.0
 	for id: int in demand:
 		wish += float(demand[id])
-		got += supply(id, scenario)
+		got += served_of(id, scenario)
 	return got / wish if wish > EPSILON else 1.0
 
 
@@ -165,7 +235,7 @@ func export_income(scenario: int = DAY) -> float:
 	var energy := 0.0
 	for id: int in _buildings:
 		if (_buildings[id] as Building).exporting:
-			energy += supply(id, scenario)
+			energy += served_of(id, scenario)
 	return Formulas.export_income(energy)
 
 
@@ -189,7 +259,22 @@ func chain(id: int) -> Dictionary:
 	return {"buildings": buildings, "links": links}
 
 
+func _ratio(id: int, scenario: int) -> float:
+	if not has(id):
+		return 1.0
+	var wish := need_of(id)
+	if wish <= EPSILON:
+		return 1.0 if _sourced.has(id) else 0.0
+	return clampf(float(gathered[scenario][id]) / wish, 0.0, 1.0)
+
+
+func _saturated(key: String, scenario: int) -> bool:
+	var cap := float(caps.get(key, 0.0))
+	return cap > 0.0 and float(wanted[scenario].get(key, 0.0)) > cap + EPSILON and float(sent[scenario].get(key, 0.0)) >= cap * SATURATED
+
+
 func _collect(state: BattleState) -> void:
+	var night := maxf(float(state.level.get("night", 1.0)), 1.0)
 	for building in state.player_buildings():
 		if Formulas.capacity(building) <= 0.0 and Formulas.output(building) <= 0.0:
 			continue
@@ -199,20 +284,25 @@ func _collect(state: BattleState) -> void:
 		_outgoing[id] = []
 		demand[id] = 0.0 if Formulas.is_overloaded(building) else draw(building)
 		var output := Formulas.output(building)
+		var solar := bool(building.definition().get("solar", false))
+		if output > 0.0:
+			_producers[id] = true
 		generation[DAY][id] = output
-		generation[NIGHT][id] = 0.0 if bool(building.definition().get("solar", false)) else output
+		generation[NIGHT][id] = 0.0 if solar else output
+		storage[DAY][id] = 0.0
+		storage[NIGHT][id] = Formulas.capacity(building) / night if Formulas.max_links(building) > 0 and not solar else 0.0
 	for link in state.links:
 		if not _buildings.has(link.source) or not _buildings.has(link.target):
 			continue
 		var source: Building = _buildings[link.source]
 		var target: Building = _buildings[link.target]
 		var key := link.key()
-		var distance := source.position.distance_to(target.position)
-		var live := distance <= Formulas.link_range(source)
+		var live := source.position.distance_to(target.position) <= Formulas.link_range(source)
 		_links.append(link)
 		_incoming[link.target].append(link)
+		_targets[key] = link.target
 		active[key] = live
-		yields[key] = Formulas.beam_efficiency(source, distance)
+		yields[key] = Formulas.link_efficiency(source, target)
 		if live:
 			_outgoing[link.source].append(link)
 	for id: int in _outgoing:
@@ -221,6 +311,9 @@ func _collect(state: BattleState) -> void:
 			caps[link.key()] = Formulas.beam_rate(_buildings[id], beams)
 	order = _topological()
 	_mark_sources()
+	for id: int in _buildings:
+		if not _sourced.has(id):
+			storage[NIGHT][id] = 0.0
 
 
 func _topological() -> Array[int]:
@@ -255,10 +348,9 @@ func _topological() -> Array[int]:
 
 func _mark_sources() -> void:
 	var queue: Array[int] = []
-	for id: int in _buildings:
-		if float(generation[DAY][id]) > 0.0:
-			_sourced[id] = true
-			queue.append(id)
+	for id: int in _producers:
+		_sourced[id] = true
+		queue.append(id)
 	var head := 0
 	while head < queue.size():
 		var id := queue[head]
@@ -269,10 +361,9 @@ func _mark_sources() -> void:
 				queue.append(link.target)
 
 
-func _needs() -> Dictionary:
-	var need := {}
+func _needs() -> void:
 	for id: int in _buildings:
-		need[id] = float(demand[id])
+		needs[id] = float(demand[id])
 	var reverse := order.duplicate()
 	reverse.reverse()
 	for pass_index in MAX_PASSES:
@@ -281,37 +372,42 @@ func _needs() -> Dictionary:
 			var total := float(demand[id])
 			for link: EnergyLink in _outgoing[id]:
 				var key := link.key()
-				total += minf(float(caps[key]), float(need[link.target]) / maxf(float(yields[key]), MIN_YIELD))
-			change = maxf(change, absf(total - float(need[id])))
-			need[id] = total
+				total += minf(float(caps[key]), float(needs[link.target]) / maxf(float(yields[key]), MIN_YIELD))
+			change = maxf(change, absf(total - float(needs[id])))
+			needs[id] = total
 		if change < EPSILON or not _cyclic:
 			break
-	return need
 
 
-func _solve(scenario: int, need: Dictionary) -> void:
-	var delivered := {}
+func _own(scenario: int, id: int) -> float:
+	return float(generation[scenario][id]) + float(storage[scenario][id])
+
+
+func _solve(scenario: int) -> void:
+	var delivered_by := {}
 	var flows := {}
 	for link in _links:
-		delivered[link.key()] = 0.0
+		delivered_by[link.key()] = 0.0
 		flows[link.key()] = 0.0
 	var passes := MAX_PASSES if _cyclic else 1
 	for pass_index in passes:
 		var change := 0.0
 		for id in order:
-			change = maxf(change, _distribute(scenario, id, need, delivered, flows))
+			change = maxf(change, _distribute(scenario, id, delivered_by, flows))
 		if change < EPSILON:
 			break
 	for id: int in _buildings:
-		var gathered := 0.0
+		var incoming := 0.0
 		for link: EnergyLink in _incoming[id]:
-			gathered += float(delivered[link.key()])
+			incoming += float(delivered_by[link.key()])
 		var out := 0.0
 		for link: EnergyLink in _outgoing[id]:
 			out += float(flows[link.key()])
-		received[scenario][id] = gathered
+		var total := _own(scenario, id) + incoming
+		received[scenario][id] = incoming
 		forwarded[scenario][id] = out
-		supplied[scenario][id] = clampf(float(generation[scenario][id]) + gathered - out, 0.0, float(demand[id]))
+		gathered[scenario][id] = total
+		served[scenario][id] = clampf(total - out, 0.0, float(demand[id]))
 	for link in _links:
 		var key := link.key()
 		var amount := float(flows[key])
@@ -320,21 +416,21 @@ func _solve(scenario: int, need: Dictionary) -> void:
 		lost[scenario] += amount * (1.0 - float(yields[key]))
 
 
-func _distribute(scenario: int, id: int, need: Dictionary, delivered: Dictionary, flows: Dictionary) -> float:
+func _distribute(scenario: int, id: int, delivered_by: Dictionary, flows: Dictionary) -> float:
 	var links: Array = _outgoing[id]
 	if links.is_empty():
 		return 0.0
-	var budget := float(generation[scenario][id])
+	var budget := _own(scenario, id)
 	for link: EnergyLink in _incoming[id]:
-		budget += float(delivered[link.key()])
+		budget += float(delivered_by[link.key()])
 	var limits := PackedFloat64Array()
 	for link: EnergyLink in links:
 		var key := link.key()
-		var other := float(generation[scenario][link.target])
+		var other := _own(scenario, link.target)
 		for incoming: EnergyLink in _incoming[link.target]:
 			if incoming != link:
-				other += float(delivered[incoming.key()])
-		var want := maxf(float(need[link.target]) - other, 0.0) / maxf(float(yields[key]), MIN_YIELD)
+				other += float(delivered_by[incoming.key()])
+		var want := maxf(float(needs[link.target]) - other, 0.0) / maxf(float(yields[key]), MIN_YIELD)
 		wanted[scenario][key] = want
 		limits.append(minf(float(caps[key]), want))
 	var shares := water_fill(budget, limits)
@@ -343,37 +439,34 @@ func _distribute(scenario: int, id: int, need: Dictionary, delivered: Dictionary
 		var key: String = (links[i] as EnergyLink).key()
 		change = maxf(change, absf(shares[i] - float(flows[key])))
 		flows[key] = shares[i]
-		delivered[key] = shares[i] * float(yields[key])
+		delivered_by[key] = shares[i] * float(yields[key])
 	return change
 
 
-func _judge() -> void:
+func _judge(scenario: int) -> void:
 	for id: int in _buildings:
+		if _producers.has(id):
+			continue
 		var building: Building = _buildings[id]
 		if Formulas.is_overloaded(building):
-			_rule(id, Verdict.OVERLOADED, Cause.OVERLOAD)
+			_rule(scenario, id, Verdict.OVERLOADED, Cause.OVERLOAD)
 		elif not _sourced.has(id):
-			_offline(id)
-		elif float(demand[id]) <= 0.0:
-			_rule(id, Verdict.OK, Cause.NONE)
-		elif ratio(id, DAY) >= SATISFIED:
-			if ratio(id, NIGHT) >= SATISFIED:
-				_rule(id, Verdict.OK, Cause.NONE)
-			else:
-				_rule(id, Verdict.NIGHT, Cause.NIGHT)
+			_offline(scenario, id)
+		elif _ratio(id, scenario) >= SATISFIED:
+			_rule(scenario, id, Verdict.OK, Cause.NONE)
 		else:
-			_rule(id, Verdict.LOW if ratio(id, DAY) > STARVED_BELOW else Verdict.STARVED, Cause.GENERATION)
-			_bottleneck(id)
+			_rule(scenario, id, Verdict.LOW, Cause.GENERATION)
+			_bottleneck(scenario, id)
 
 
-func _rule(id: int, value: Verdict, reason: Cause, link: EnergyLink = null) -> void:
-	verdicts[id] = value
-	causes[id] = reason
-	culprits[id] = link.source if link != null else -1
-	culprit_links[id] = link.key() if link != null else ""
+func _rule(scenario: int, id: int, value: Verdict, reason: Cause, link: EnergyLink = null, blamed: int = -1) -> void:
+	verdicts[scenario][id] = value
+	causes[scenario][id] = reason
+	culprits[scenario][id] = link.source if link != null else blamed
+	culprit_links[scenario][id] = link.key() if link != null else ""
 
 
-func _offline(id: int) -> void:
+func _offline(scenario: int, id: int) -> void:
 	var seen := {id: true}
 	var queue: Array[int] = [id]
 	var head := 0
@@ -382,38 +475,61 @@ func _offline(id: int) -> void:
 		head += 1
 		for link: EnergyLink in _incoming[current]:
 			if not is_active(link.key()):
-				_rule(id, Verdict.OFFLINE, Cause.OUT_OF_RANGE, link)
+				_rule(scenario, id, Verdict.LOW, Cause.OUT_OF_RANGE, link)
 				return
 			if not seen.has(link.source):
 				seen[link.source] = true
 				queue.append(link.source)
-	_rule(id, Verdict.OFFLINE, Cause.NO_SOURCE)
+	_rule(scenario, id, Verdict.LOW, Cause.NO_SOURCE)
 
 
-func _bottleneck(id: int) -> void:
+func _drains(id: int) -> bool:
+	var reserve := float(storage[NIGHT][id])
+	return reserve > 0.0 and reserve >= RESERVE_SHARE * need_of(id) and _ratio(id, NIGHT) < SATISFIED
+
+
+func _bottleneck(scenario: int, id: int) -> void:
+	var night_only := scenario == NIGHT and _ratio(id, DAY) >= SATISFIED
 	var seen := {id: true}
 	var queue: Array[int] = [id]
 	var head := 0
 	var broken: EnergyLink = null
 	var lossy: EnergyLink = null
+	var saturated: EnergyLink = null
+	var drained := -1
 	while head < queue.size():
 		var current := queue[head]
 		head += 1
+		if drained < 0 and _drains(current):
+			drained = current
 		for link: EnergyLink in _incoming[current]:
 			var key := link.key()
 			if not is_active(key):
 				if broken == null:
 					broken = link
 				continue
-			if is_saturated(key, DAY):
-				_rule(id, verdicts[id], Cause.BEAM_RATE, link)
-				return
-			if lossy == null and 1.0 - link_yield(key) >= HEAVY_LOSS:
+			if saturated == null and _saturated(key, scenario):
+				saturated = link
+			if lossy == null and link_loss(key) >= HEAVY_LOSS:
 				lossy = link
 			if not seen.has(link.source):
 				seen[link.source] = true
 				queue.append(link.source)
-	if broken != null:
-		_rule(id, verdicts[id], Cause.OUT_OF_RANGE, broken)
+	var darker := scenario == NIGHT and _ratio(id, NIGHT) < _ratio(id, DAY) - EPSILON
+	if night_only:
+		_blame_night(scenario, id, drained)
+	elif saturated != null:
+		_rule(scenario, id, Verdict.LOW, Cause.BEAM_RATE, saturated)
+	elif broken != null:
+		_rule(scenario, id, Verdict.LOW, Cause.OUT_OF_RANGE, broken)
 	elif lossy != null:
-		_rule(id, verdicts[id], Cause.BEAM_LOSS, lossy)
+		_rule(scenario, id, Verdict.LOW, Cause.BEAM_LOSS, lossy)
+	elif darker:
+		_blame_night(scenario, id, drained)
+
+
+func _blame_night(scenario: int, id: int, drained: int) -> void:
+	if drained >= 0:
+		_rule(scenario, id, Verdict.LOW, Cause.STORAGE, null, drained)
+	else:
+		_rule(scenario, id, Verdict.LOW, Cause.NIGHT)

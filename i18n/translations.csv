@@ -144,7 +144,7 @@ COMBO_TIER_6,SUPERNOVA!,SUPERNOVA!
 COMBO_TIER_7,GOD MODE!,GOTTMODUS!
 TUTORIAL_BUILD_SOLAR,"Tap the solar panel below, then tap next to your core to build it.","Tippe unten auf das Solarpanel und dann neben deinen Kern, um es zu bauen."
 TUTORIAL_CONNECT,Tap “Connect” at the bottom right and drag from the solar panel to the core – or select the panel and tap “Connect” there. An energy beam appears!,Tippe unten rechts auf „Verbinden“ und ziehe vom Solarpanel zum Kern – oder wähle das Panel aus und tippe dort auf „Verbinden“. Ein Energiestrahl entsteht!
-TUTORIAL_BUILD_TOWER,Now build a zapper towards the nest at the top.,Baue jetzt einen Blitzturm Richtung Nest oben.
+TUTORIAL_BUILD_TOWER,"Now build a zapper on the side facing the nest – the map shows where it is.","Baue jetzt einen Blitzturm auf der Seite Richtung Nest – die Karte zeigt, wo es liegt."
 TUTORIAL_POWER_TOWER,Drag a beam from your core to the zapper to power it.,"Ziehe einen Strahl vom Kern zum Blitzturm, damit er Energie bekommt."
 TUTORIAL_CAMERA,Switch to “Move” to drag the map with one finger. Two fingers zoom.,"Wechsle auf „Verschieben“, um die Karte mit einem Finger zu bewegen. Mit zwei Fingern zoomst du."
 TUTORIAL_STORAGE,At night the sun is gone. Build storage and charge it during the day!,Nachts gibt es keine Sonne. Baue Speicher und lade sie tagsüber!
@@ -195,11 +195,19 @@ REASON_SCOUT_MISSING,No soldier available.,Kein Soldat verfügbar.
 REASON_SCOUT_LANDING,Still landing…,Landet noch …
 HUD_SCOUT,Find a base site,Suche einen Bauplatz
 SCOUT_HINT,"Soldier: drag anywhere on the map to steer, tap nearby trees or rocks to clear them.","Soldat: Irgendwo auf der Karte ziehen zum Lenken, Bäume oder Felsen in der Nähe antippen zum Abbauen."
+MAP_TITLE,Map,Karte
+MAP_PENDING,Enemy bases appear once your core stands.,"Feindliche Basen erscheinen, sobald dein Kern steht."
+MAP_STRUCTURES,"%d enemy structures marked · tap to jump there","%d feindliche Bauten markiert · antippen, um hinzuspringen"
+MAP_SPAWNED,%d enemy structures appeared – check the map,%d feindliche Bauten sind aufgetaucht – sieh auf der Karte nach
+MAP_LEGEND_SPAWNER,Enemy base,Feindliche Basis
+MAP_LEGEND_TURRET,Gun tower,Geschützturm
+MAP_LEGEND_CORE,Your core,Dein Kern
+MAP_LEGEND_SCOUT,Soldier,Soldat
 TOAST_LANDED,Landed! Explore the map.,Gelandet! Erkunde die Karte.
 BANNER_BASE,BASE ESTABLISHED,BASIS ERRICHTET
 BANNER_BASE_SUB,Plan in peace – nothing happens until you start the day,"Plane in Ruhe – bis du den Tag startest, passiert nichts"
-TUTORIAL_MOVE_SCOUT,Your soldier has landed. Drag anywhere on the map (or use the joystick) to walk around and explore – look for a plateau or a spot sheltered by forest and rocks.,"Dein Soldat ist gelandet. Zieh irgendwo auf der Karte (oder nutze den Joystick), um herumzulaufen und zu erkunden – suche ein Plateau oder einen Platz, den Wald und Felsen schützen."
-TUTORIAL_DEPLOY_CORE,Tap “Base” below and place your core near the soldier. The soldier then mans the core.,Tippe unten auf „Basis“ und platziere deinen Kern in der Nähe des Soldaten. Der Soldat besetzt dann den Kern.
+TUTORIAL_MOVE_SCOUT,"Your soldier has landed. Drag anywhere on the map to walk around and explore – look for a plateau or a spot sheltered by forest, rocks and water. One tap fells a tree.","Dein Soldat ist gelandet. Zieh irgendwo auf der Karte, um herumzulaufen und zu erkunden – suche ein Plateau oder einen Platz, den Wald, Felsen und Wasser schützen. Ein Tipp fällt einen Baum."
+TUTORIAL_DEPLOY_CORE,Tap “Base” below and place your core near the soldier. The soldier then mans the core and the enemy bases appear far away.,Tippe unten auf „Basis“ und platziere deinen Kern in der Nähe des Soldaten. Der Soldat besetzt dann den Kern und weit entfernt tauchen die feindlichen Basen auf.
 TUTORIAL_BUILD_WALL,Enemies wreck towers fast. Pick the bulwark and drag a wall that closes off your base – ramps and gaps first!,"Gegner zerlegen Türme schnell. Wähle das Bollwerk und ziehe eine Mauer, die deine Basis abschließt – zuerst Rampen und Lücken!"
 STAT_BLOCKS,Blocks,Blockiert
 STAT_BLOCKS_VALUE,ground enemies,Bodengegner
@@ -384,28 +392,30 @@ STAT_TRANSFER_VALUE,−%.1f%% per tile,−%.1f %% pro Feld
 STAT_BEAM_LOSS,Loss at full range,Verlust bei voller Weite
 STAT_EXPORT_RATIO,Rate,Kurs
 STAT_EXPORT_RATIO_VALUE,%.0f energy = 1 coin,%.0f Energie = 1 Geld
+STAT_EXPORT_CYCLE,Payout,Auszahlung
+STAT_EXPORT_CYCLE_VALUE,+%s every %d s,+%s alle %d s
 STAT_EXPORT_ROUND,Per day (full supply),Pro Tag (voll versorgt)
 STAT_NEED,Demand,Bedarf
-STAT_SUPPLY,Covered,Gedeckt
-STAT_SUPPLY_VALUE,day %s · night %s,Tag %s · Nacht %s
+STAT_SUPPLY_DAY,Receives by day,Erhält tagsüber
+STAT_SUPPLY_NIGHT,Receives at night,Erhält nachts
+STAT_NIGHT_RESERVE,Storage lasts at night,Speicher hält nachts
 STAT_EXPORT_REAL,Real income,Realer Ertrag
 STAT_EXPORT_REAL_VALUE,%s/s day · %s/s night,%s/s Tag · %s/s Nacht
 STAT_FLOW,Beams in/out,Strahlen rein/raus
 STAT_FLOW_VALUE,+%.1f / −%.1f/s,+%.1f / −%.1f/s
-PANEL_OVERLOAD_NEXT,⚠ shot > storage: stops firing,⚠ Schuss > Speicher: feuert nicht mehr
-PANEL_OVERLOAD_FIXED,✓ fires again,✓ feuert wieder
+PANEL_OVERLOAD_NEXT,%s shot > storage: stops firing,%s Schuss > Speicher: feuert nicht mehr
+PANEL_OVERLOAD_FIXED,%s fires again,%s feuert wieder
 PANEL_SELL_FULL,Sell  +%d (full refund),Verkaufen  +%d (volle Erstattung)
 PANEL_SELL_LOSS,Sell  +%d (−%d loss),Verkaufen  +%d (−%d Verlust)
 STATUS_OK,Supplied,Versorgt
-STATUS_NIGHT,Short at night,Nachts knapp
 STATUS_LOW,Undersupplied,Unterversorgt
-STATUS_STARVED,Starved,Ausgehungert
-STATUS_OFFLINE,No source,Ohne Quelle
 STATUS_OVERLOADED,Overloaded,Überladen
 STATUS_FRESH,Built this planning: full refund,In dieser Planung gebaut: volle Erstattung
-STATUS_HINT,"Tap a building to light up its supply chain. Need assumes non-stop fire, beam labels show loss · arriving energy.","Tippe ein Gebäude an, um seine Versorgungskette zu sehen. Bedarf gilt für Dauerfeuer, Strahlen zeigen Verlust · ankommende Energie."
+STATUS_HINT,"Tap a building to light up its supply chain. The red share of the ring is the missing supply. Demand assumes non-stop fire, batteries bridge the night with their storage. Beams show loss · arriving energy, neighbouring tiles are lossless.","Tippe ein Gebäude an, um seine Versorgungskette zu sehen. Der rote Anteil im Ring ist die fehlende Versorgung. Bedarf gilt für Dauerfeuer, Batterien überbrücken die Nacht mit ihrem Speicher. Strahlen zeigen Verlust · ankommende Energie, Nachbarfelder sind verlustfrei."
 STATUS_UNKNOWN,a building,einem Gebäude
-STATUS_SUMMARY,%s – day %s · night %s,%s – Tag %s · Nacht %s
+STATUS_SUMMARY,%s %s · %s missing,%s %s · %s fehlen
+STATUS_WHEN_DAY,by day,tagsüber
+STATUS_WHEN_NIGHT,at night,nachts
 STATUS_LABEL_OVERLOAD,shot %s > storage %s,Schuss %s > Speicher %s
 STATUS_LABEL_EXPORT,%s → %s coins/s,%s → %s Geld/s
 STATUS_LABEL_HEAL,%s/heal · %s,%s/Heilung · %s
@@ -413,16 +423,17 @@ STATUS_LABEL_BEAM,beam %s,Strahl %s
 STATUS_LABEL_SHOT,%s/shot · %s,%s/Schuss · %s
 STATUS_LABEL_OUTPUT,+%s,+%s
 STATUS_LABEL_RELAY,passes %s,leitet %s
-STATUS_LABEL_SUPPLY,%s covered,%s gedeckt
 STATUS_LINK_RANGE,out of range,außer Reichweite
-STATUS_LINK_LABEL,−%s · %s,−%s · %s
+STATUS_LINK_LABEL,−%s · %s of %s,−%s · %s von %s
+STATUS_LINK_LOSSLESS,lossless · %s of %s,verlustfrei · %s von %s
 STATUS_CAUSE_OVERLOAD,"Needs %s per shot but stores only %s, so it never fires. Upgrade capacity or efficiency.","Braucht %s pro Schuss, speichert aber nur %s – feuert nie. Kapazität oder Effizienz ausbauen."
 STATUS_CAUSE_NO_SOURCE,No beam chain leads to a producer. Connect it to your network.,Keine Strahlkette führt zu einem Erzeuger. Verbinde es mit deinem Netz.
 STATUS_CAUSE_OUT_OF_RANGE,The beam from %s is out of range.,Der Strahl von %s ist außer Reichweite.
 STATUS_CAUSE_BEAM_RATE,The beam from %s is at its limit. Raise its transfer rate or add another beam.,Der Strahl von %s ist am Limit. Transferrate erhöhen oder weiteren Strahl ziehen.
 STATUS_CAUSE_BEAM_LOSS,The beam from %s loses %s on the way. Shorten it or upgrade beam transfer.,Der Strahl von %s verliert unterwegs %s. Kürzer bauen oder Strahlübertragung ausbauen.
 STATUS_CAUSE_GENERATION,Your network produces too little for everything connected. Build producers or disconnect consumers.,Dein Netz erzeugt zu wenig für alles Angeschlossene. Erzeuger bauen oder Verbraucher abkoppeln.
-STATUS_CAUSE_NIGHT,At night only %s is covered – solar is dark. Add storage or core output.,Nachts nur %s gedeckt – Solar liefert nichts. Speicher oder Kernleistung ausbauen.
+STATUS_CAUSE_NIGHT,Solar is dark at night and nothing on the way stores energy. Put a battery in between or raise core output.,Solar liefert nachts nichts und unterwegs speichert nichts Energie. Schalte eine Batterie dazwischen oder baue Kernleistung aus.
+STATUS_CAUSE_STORAGE,The storage of %s lasts only %s of non-stop fire at night. Upgrade its capacity or add another battery.,Der Speicher von %s hält nachts bei Dauerfeuer nur %s. Kapazität ausbauen oder weitere Batterie anschließen.
 TOAST_STATUS_ON,Status view on,Statusansicht an
 TOAST_STATUS_OFF,Status view off,Statusansicht aus
 TOAST_GUARDS,"Guards patrol the enemy bases – tough, but they never attack","Wächter patrouillieren um die Feindbasen – zäh, greifen aber nie an"

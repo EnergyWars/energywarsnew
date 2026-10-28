@@ -259,6 +259,10 @@ func _on_scout_boarded(event: Dictionary) -> void:
 	hud.toast(Texts.t("TOAST_BOARDED"), AppTheme.ENERGY)
 
 
+func _on_structures_spawned(event: Dictionary) -> void:
+	hud.announce_structures(int(event.count))
+
+
 func _on_rifle(event: Dictionary) -> void:
 	view.fx.tracer(event.from, event.to, AppTheme.GOLD, 2.0, 0.08)
 	view.fx.burst(event.to, AppTheme.GOLD, 2, 90.0, 2.0, 0.15)

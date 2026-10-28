@@ -97,7 +97,8 @@ func length(link: EnergyLink) -> float:
 
 func loss(link: EnergyLink) -> float:
 	var source := state.building(link.source)
-	return Formulas.beam_loss(source, length(link)) if source != null else GameConfig.BEAM_LOSS_MAX
+	var target := state.building(link.target)
+	return Formulas.link_loss(source, target) if source != null and target != null else GameConfig.BEAM_LOSS_MAX
 
 
 func efficiency(link: EnergyLink) -> float:
@@ -156,21 +157,23 @@ func groups() -> Array:
 
 func _push(source: Building, outgoing: Array, delta: float) -> void:
 	var active: Array[EnergyLink] = []
+	var targets: Array[Building] = []
 	var yields := PackedFloat64Array()
 	var reach := Formulas.link_range(source)
 	for link: EnergyLink in outgoing:
-		var distance := length(link)
-		link.active = distance <= reach
+		var target := state.building(link.target)
+		link.active = target != null and source.position.distance_to(target.position) <= reach
 		if link.active:
 			active.append(link)
-			yields.append(Formulas.beam_efficiency(source, distance))
+			targets.append(target)
+			yields.append(Formulas.link_efficiency(source, target))
 		else:
 			link.flow = lerpf(link.flow, 0.0, FLOW_SMOOTHING)
 	var limit := Formulas.beam_rate(source, active.size()) * delta
 	var remaining := active.size()
 	for i in active.size():
 		var link := active[i]
-		var target := state.building(link.target)
+		var target := targets[i]
 		var share := source.energy / remaining
 		remaining -= 1
 		var space := maxf(Formulas.capacity(target) - target.energy, 0.0)

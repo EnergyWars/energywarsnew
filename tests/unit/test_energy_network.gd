@@ -134,23 +134,74 @@ func test_beam_loss_grows_with_distance() -> void:
 	var close_link := battle.state.find_link(relay.id, near.id)
 	var long_link := battle.state.find_link(relay.id, far.id)
 	assert_gt(battle.network.loss(long_link), battle.network.loss(close_link))
-	assert_almost_eq(battle.network.loss(close_link), GameConfig.BEAM_LOSS_PER_CELL * battle.network.length(close_link) / GameConfig.CELL, 0.0001)
+	assert_almost_eq(battle.network.loss(close_link), GameConfig.BEAM_LOSS_PER_CELL * Formulas.beam_span(relay, near) / GameConfig.CELL, 0.0001)
 	relay.energy = 20.0
 	battle.network.flow(1.0)
 	assert_gt(near.energy, far.energy)
 	assert_almost_eq(near.energy + far.energy, 10.0 * battle.network.efficiency(close_link) + 10.0 * battle.network.efficiency(long_link), 0.001)
 
 
+func test_neighbouring_tiles_are_lossless() -> void:
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -224))
+	var side := BattleFixtures.add(battle, GameConfig.BATTERY, relay.position + Vector2(GameConfig.CELL, 0))
+	var diagonal := BattleFixtures.add(battle, GameConfig.BATTERY, relay.position + Vector2(-GameConfig.CELL, -GameConfig.CELL))
+	var gap := BattleFixtures.add(battle, GameConfig.BATTERY, relay.position + Vector2(0, -2.0 * GameConfig.CELL))
+	assert_eq(Formulas.beam_span(relay, side), 0.0)
+	assert_eq(Formulas.beam_span(relay, diagonal), 0.0)
+	assert_eq(Formulas.link_loss(relay, side), 0.0)
+	assert_eq(Formulas.link_loss(relay, diagonal), 0.0)
+	assert_eq(Formulas.link_efficiency(relay, diagonal), 1.0)
+	var expected := 2.0 * GameConfig.CELL - 2.0 * relay.half_extent() * sqrt(2.0) - GameConfig.BEAM_FREE_MARGIN
+	assert_almost_eq(Formulas.beam_span(relay, gap), expected, 0.0001)
+	assert_gt(Formulas.link_loss(relay, gap), 0.0)
+
+
+func test_core_touching_a_building_is_lossless() -> void:
+	var touching := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(1.5 * GameConfig.CELL, 1.5 * GameConfig.CELL))
+	var straight := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(1.5 * GameConfig.CELL, 0.5 * GameConfig.CELL))
+	assert_eq(Formulas.link_loss(core, touching), 0.0)
+	assert_eq(Formulas.link_loss(core, straight), 0.0)
+
+
 func test_transfer_upgrades_and_superconductor_reduce_loss() -> void:
 	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -200))
+	relay.boosts = {}
 	var plain := Formulas.beam_loss(relay, 280.0)
+	assert_almost_eq(plain, GameConfig.BEAM_LOSS_PER_CELL * 5.0, 0.0001)
 	relay.set_level(GameConfig.TRACK_TRANSFER, 4)
 	var upgraded := Formulas.beam_loss(relay, 280.0)
-	assert_lt(upgraded, plain)
-	assert_almost_eq(upgraded, plain / Formulas.multiplier(relay, GameConfig.TRACK_TRANSFER), 0.0001)
+	assert_almost_eq(Formulas.transfer_factor(relay), 0.6, 0.0001)
+	assert_almost_eq(upgraded, plain * 0.6, 0.0001)
 	relay.boosts = {GameConfig.BOOST_TRANSFER: 1.25}
 	assert_almost_eq(Formulas.beam_loss(relay, 280.0), upgraded / 1.25, 0.0001)
-	assert_almost_eq(Formulas.beam_efficiency(relay, 280.0), 1.0 - Formulas.beam_loss(relay, 280.0), 0.0001)
+	assert_almost_eq(Formulas.beam_loss(relay, 280.0, 0.5), upgraded / 1.25 * 0.5, 0.0001)
+
+
+func test_transfer_can_be_skilled_to_lossless() -> void:
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -224))
+	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, relay.position + Vector2(280, 0))
+	var plain := Formulas.link_loss(relay, zapper)
+	assert_gt(plain, 0.0)
+	zapper.set_level(GameConfig.TRACK_TRANSFER, 5)
+	assert_almost_eq(Formulas.link_loss(relay, zapper), plain * 0.5, 0.0001)
+	zapper.set_level(GameConfig.TRACK_TRANSFER, int(GameConfig.TRACKS[GameConfig.TRACK_TRANSFER].max))
+	assert_eq(Formulas.transfer_factor(zapper), 0.0)
+	assert_eq(Formulas.link_loss(relay, zapper), 0.0)
+	zapper.set_level(GameConfig.TRACK_TRANSFER, 0)
+	relay.set_level(GameConfig.TRACK_TRANSFER, int(GameConfig.TRACKS[GameConfig.TRACK_TRANSFER].max))
+	assert_eq(Formulas.link_loss(relay, zapper), 0.0)
+	battle.network.connect_buildings(relay.id, zapper.id)
+	assert_eq(battle.network.efficiency(battle.state.find_link(relay.id, zapper.id)), 1.0)
+
+
+func test_every_receiver_can_upgrade_transfer() -> void:
+	for kind: String in GameConfig.BUILDINGS:
+		var definition: Dictionary = GameConfig.BUILDINGS[kind]
+		if definition.team != GameConfig.TEAM_PLAYER or not definition.has("tracks") or float(definition.get("capacity", 0.0)) <= 0.0:
+			continue
+		if not bool(definition.get("receives", true)):
+			continue
+		assert_true((definition.tracks as Array).has(GameConfig.TRACK_TRANSFER), kind)
 
 
 func test_beam_loss_is_capped_and_never_negative() -> void:

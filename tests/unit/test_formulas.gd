@@ -100,7 +100,7 @@ func test_towers_can_grow_much_stronger() -> void:
 	var zapper := _building(GameConfig.ZAPPER)
 	for track: String in zapper.definition().tracks:
 		zapper.set_level(track, Formulas.max_level(track))
-	assert_almost_eq(Formulas.damage(zapper), 26.0 * 5.0, 0.001)
+	assert_almost_eq(Formulas.damage(zapper), 26.0 * 5.0 * Formulas.multiplier(zapper, GameConfig.TRACK_OVERCLOCK), 0.001)
 	assert_gt(1.0 / Formulas.cooldown(zapper), 2.4 / 0.45)
 	assert_gt(zapper.max_hp(), 90.0 * 5.0)
 	assert_gte(Formulas.max_level(GameConfig.TRACK_POWER), 30)

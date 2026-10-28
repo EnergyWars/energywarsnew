@@ -54,7 +54,13 @@ func clear(world: Vector2) -> String:
 	scout.clear_cell = cell
 	scout.clear_progress = 0.0
 	events.emit("clear_order", {"position": map.center_of(cell)})
+	if clear_time(cell) <= 0.0:
+		_finish(scout, cell)
 	return OK
+
+
+func clear_time(cell: Vector2i) -> float:
+	return float(GameConfig.CLEAR_TIME.get(state.map.obstacle_type(cell), 0.0))
 
 
 func in_reach(cell: Vector2i) -> bool:
@@ -105,9 +111,16 @@ func _clear(scout: Scout, delta: float) -> void:
 	if not scout.is_moving():
 		scout.heading = (target - scout.position).normalized() if target != scout.position else scout.heading
 	scout.clear_progress += delta
+	if scout.clear_progress >= clear_time(cell):
+		_finish(scout, cell)
+
+
+func _finish(scout: Scout, cell: Vector2i) -> void:
+	var map := state.map
+	var target := map.center_of(cell)
 	var type := map.obstacle_type(cell)
-	if scout.clear_progress < float(GameConfig.CLEAR_TIME[type]):
-		return
+	if target != scout.position:
+		scout.heading = (target - scout.position).normalized()
 	state.clear_obstacle(cell)
 	scout.clear_cell = Scout.NO_CELL
 	scout.clear_progress = 0.0
@@ -118,5 +131,5 @@ func clear_ratio() -> float:
 	var scout := state.scout
 	if scout == null or not scout.is_clearing():
 		return 0.0
-	var type := state.map.obstacle_type(scout.clear_cell)
-	return clampf(scout.clear_progress / float(GameConfig.CLEAR_TIME.get(type, 1.0)), 0.0, 1.0)
+	var time := clear_time(scout.clear_cell)
+	return 1.0 if time <= 0.0 else clampf(scout.clear_progress / time, 0.0, 1.0)

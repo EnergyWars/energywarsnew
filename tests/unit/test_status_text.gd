@@ -44,12 +44,20 @@ func test_every_verdict_has_icon_colour_and_translated_title() -> void:
 		for key: String in StatusText.CAUSE_KEYS.values():
 			assert_ne(Texts.t(key), key, "%s %s" % [locale, key])
 		for key in ["STATUS_FRESH", "STATUS_HINT", "STATUS_UNKNOWN", "STATUS_SUMMARY", "STATUS_LINK_RANGE", "STATUS_LINK_LABEL",
-				"TOAST_STATUS_ON", "TOAST_STATUS_OFF", "TOAST_GUARDS", "TOAST_GUARDS_BURN", "TOAST_OVERLOADED", "PANEL_SELL_FULL",
-				"PANEL_SELL_LOSS", "PANEL_OVERLOAD_NEXT", "PANEL_OVERLOAD_FIXED", "STAT_BEAM_LOSS", "STAT_EXPORT_RATIO",
-				"STAT_EXPORT_ROUND", "STAT_NEED", "STAT_SUPPLY", "STAT_EXPORT_REAL", "STAT_FLOW", "STATS_INCOME_VALUE"]:
+				"STATUS_LINK_LOSSLESS", "STATUS_WHEN_DAY", "STATUS_WHEN_NIGHT", "TOAST_STATUS_ON", "TOAST_STATUS_OFF", "TOAST_GUARDS",
+				"TOAST_GUARDS_BURN", "TOAST_OVERLOADED", "PANEL_SELL_FULL", "PANEL_SELL_LOSS", "PANEL_OVERLOAD_NEXT", "PANEL_OVERLOAD_FIXED",
+				"STAT_BEAM_LOSS", "STAT_EXPORT_RATIO", "STAT_EXPORT_CYCLE", "STAT_EXPORT_CYCLE_VALUE", "STAT_EXPORT_ROUND", "STAT_NEED",
+				"STAT_SUPPLY_DAY", "STAT_SUPPLY_NIGHT", "STAT_NIGHT_RESERVE", "STAT_EXPORT_REAL", "STAT_FLOW", "STATS_INCOME_VALUE"]:
 			assert_ne(Texts.t(key), key, "%s %s" % [locale, key])
 	TranslationServer.set_locale("de")
 	assert_eq(StatusText.title(EnergyAudit.Verdict.OVERLOADED), "Überladen")
+	assert_eq(StatusText.when(EnergyAudit.NIGHT), "nachts")
+	assert_eq(StatusText.when(EnergyAudit.WORST), "")
+	assert_eq(StatusText.LEGEND, [EnergyAudit.Verdict.OK, EnergyAudit.Verdict.LOW, EnergyAudit.Verdict.OVERLOADED] as Array[int])
+	assert_eq(StatusText.icon(EnergyAudit.Verdict.OK), Icons.CHECK)
+	assert_eq(StatusText.icon(EnergyAudit.Verdict.LOW), Icons.WARNING)
+	assert_eq(StatusText.color(EnergyAudit.Verdict.OK), AppTheme.SUCCESS)
+	assert_eq(StatusText.color(EnergyAudit.Verdict.LOW), AppTheme.WARNING)
 	assert_eq(Texts.track_name(GameConfig.TRACK_TRANSFER, GameConfig.RELAY), "Strahlübertragung")
 	assert_eq(StatusText.icon(EnergyAudit.Verdict.NONE), "")
 	assert_eq(StatusText.title(EnergyAudit.Verdict.NONE), "")
@@ -74,9 +82,10 @@ func test_building_labels_show_energy_per_shot_and_per_second() -> void:
 	assert_eq(StatusText.label(zapper, audit), Texts.format("STATUS_LABEL_OVERLOAD", ["%.1f" % Formulas.action_energy(zapper), "40.0"]))
 
 
-func test_labels_add_the_covered_share_and_relay_throughput() -> void:
+func test_labels_never_show_percentages_but_relay_throughput() -> void:
 	var label := StatusText.label(core, battle.audit())
-	assert_true(label.contains(Texts.format("STATUS_LABEL_SUPPLY", ["70%"])))
+	assert_eq(label, Texts.format("STATUS_LABEL_SHOT", ["3.0", "%.1f/s" % (3.0 / 0.7)]))
+	assert_false(label.contains("%"))
 	core.set_level(GameConfig.TRACK_OUTPUT, 30)
 	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -224))
 	var zapper := _add(GameConfig.ZAPPER, relay.position + Vector2(0, -112))
@@ -84,19 +93,29 @@ func test_labels_add_the_covered_share_and_relay_throughput() -> void:
 	battle.network.connect_buildings(relay.id, zapper.id)
 	var audit := battle.audit()
 	assert_eq(StatusText.label(relay, audit), Texts.format("STATUS_LABEL_RELAY", ["%.1f/s" % audit.throughput(relay.id)]))
+	assert_eq(StatusText.label(relay, audit, EnergyAudit.NIGHT), Texts.format("STATUS_LABEL_RELAY", ["%.1f/s" % audit.throughput(relay.id, EnergyAudit.NIGHT)]))
 	assert_false(StatusText.label(zapper, audit).contains("%"))
 
 
-func test_link_labels_and_colours() -> void:
+func test_link_labels_show_loss_and_transfer_rate() -> void:
 	core.set_level(GameConfig.TRACK_OUTPUT, 30)
 	var zapper := _add(GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	var near := _add(GameConfig.ZAPPER, core.position + Vector2(84, 28))
 	battle.network.connect_buildings(core.id, zapper.id)
+	battle.network.connect_buildings(core.id, near.id)
 	var link := state.find_link(core.id, zapper.id)
+	var touching := state.find_link(core.id, near.id).key()
 	var audit := battle.audit()
 	var yield_rate := audit.link_yield(link.key())
-	var expected := Texts.format("STATUS_LINK_LABEL", [EnergyStatsText.percent(1.0 - yield_rate), "%.1f/s" % (audit.flow(link.key()) * yield_rate)])
+	var limit := "%.1f/s" % audit.link_cap(link.key())
+	var expected := Texts.format("STATUS_LINK_LABEL", [EnergyStatsText.percent(1.0 - yield_rate), "%.1f/s" % (audit.flow(link.key()) * yield_rate), limit])
 	assert_eq(StatusText.link_label(audit, link.key()), expected)
+	assert_eq(StatusText.link_label(audit, touching), Texts.format("STATUS_LINK_LOSSLESS", ["%.1f/s" % audit.delivered(touching), "%.1f/s" % audit.link_cap(touching)]))
 	assert_eq(StatusText.link_color(audit, link.key()), AppTheme.ENERGY)
+	assert_eq(StatusText.link_color(audit, touching), AppTheme.ENERGY)
+	TranslationServer.set_locale("de")
+	assert_true(StatusText.link_label(audit, touching).begins_with("verlustfrei"))
+	TranslationServer.set_locale("en")
 	state.move_building(zapper, core.position + Vector2(0, -600))
 	var broken := battle.audit()
 	assert_eq(StatusText.link_label(broken, link.key()), Texts.t("STATUS_LINK_RANGE"))
@@ -105,12 +124,13 @@ func test_link_labels_and_colours() -> void:
 
 func test_saturated_and_lossy_links_are_coloured() -> void:
 	var solar := _add(GameConfig.SOLAR, core.position + Vector2(-336, -336))
-	var exporter := _add(GameConfig.EXPORTER, solar.position + Vector2(112, 0))
+	var exporter := _add(GameConfig.EXPORTER, solar.position + Vector2(168, 0))
 	battle.network.connect_buildings(solar.id, exporter.id)
 	var audit := battle.audit()
 	var key := state.find_link(solar.id, exporter.id).key()
-	assert_eq(StatusText.link_color(audit, key), AppTheme.WARNING)
-	assert_eq(StatusText.cause_text(audit, exporter, state), Texts.format("STATUS_CAUSE_BEAM_RATE", [Texts.building_name(GameConfig.SOLAR)]))
+	assert_eq(StatusText.link_color(audit, key, EnergyAudit.DAY), AppTheme.WARNING)
+	assert_eq(StatusText.cause_text(audit, exporter, state, EnergyAudit.DAY), Texts.format("STATUS_CAUSE_BEAM_RATE", [Texts.building_name(GameConfig.SOLAR)]))
+	assert_eq(StatusText.cause_text(audit, exporter, state), Texts.t("STATUS_CAUSE_NIGHT"))
 	core.set_level(GameConfig.TRACK_OUTPUT, 20)
 	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -168))
 	relay.set_level(GameConfig.TRACK_RANGE, 15)
@@ -128,7 +148,7 @@ func test_cause_texts() -> void:
 	var lonely := _add(GameConfig.ZAPPER, core.position + Vector2(400, 0))
 	var audit := battle.audit()
 	assert_eq(StatusText.cause_text(audit, lonely, state), Texts.t("STATUS_CAUSE_NO_SOURCE"))
-	assert_eq(StatusText.cause_text(audit, core, state), Texts.t("STATUS_CAUSE_GENERATION"))
+	assert_eq(StatusText.cause_text(audit, core, state), "")
 	var tower := _add(GameConfig.ZAPPER, core.position + Vector2(0, -168))
 	battle.network.connect_buildings(core.id, tower.id)
 	tower.set_level(GameConfig.TRACK_OVERCLOCK, 11)
@@ -145,7 +165,7 @@ func test_cause_texts() -> void:
 	assert_eq(StatusText.cause_text(audit, _add(GameConfig.BULWARK, core.position + Vector2(-400, 0)), state), "")
 
 
-func test_night_cause_and_summary() -> void:
+func test_storage_cause_summary_and_rows() -> void:
 	var battery := _add(GameConfig.BATTERY, core.position + Vector2(0, -476))
 	var solar := _add(GameConfig.SOLAR, battery.position + Vector2(-112, 0))
 	var other := _add(GameConfig.SOLAR, battery.position + Vector2(112, 0))
@@ -154,9 +174,37 @@ func test_night_cause_and_summary() -> void:
 	battle.network.connect_buildings(other.id, battery.id)
 	battle.network.connect_buildings(battery.id, zapper.id)
 	var audit := battle.audit()
-	assert_eq(StatusText.cause_text(audit, zapper, state), Texts.format("STATUS_CAUSE_NIGHT", ["0%"]))
-	assert_eq(StatusText.summary(audit, zapper), Texts.format("STATUS_SUMMARY", [Texts.t("STATUS_NIGHT"), "100%", "0%"]))
-	assert_eq(StatusText.summary(audit, battery), Texts.t("STATUS_OK"))
+	var lasts := EnergyStatsText.duration(audit.night_reserve(battery.id))
+	assert_eq(StatusText.cause_text(audit, zapper, state), Texts.format("STATUS_CAUSE_STORAGE", [Texts.building_name(GameConfig.BATTERY), lasts]))
+	var shortfall := "%.1f/s" % audit.shortfall(zapper.id)
+	assert_eq(StatusText.summary(audit, zapper), Texts.format("STATUS_SUMMARY", [Texts.t("STATUS_LOW"), Texts.t("STATUS_WHEN_NIGHT"), shortfall]))
+	assert_false(StatusText.summary(audit, zapper).contains("%"))
+	assert_eq(StatusText.summary(audit, zapper, EnergyAudit.DAY), Texts.t("STATUS_OK"))
+	assert_eq(StatusText.summary(audit, solar), "")
+	assert_eq(StatusText.supply_value(audit, zapper.id, EnergyAudit.DAY), "%s %.1f/s" % [Icons.CHECK, 4.0 / 0.45])
+	assert_eq(StatusText.supply_value(audit, zapper.id, EnergyAudit.NIGHT), "%s %.1f/s" % [Icons.WARNING, audit.supply(zapper.id, EnergyAudit.NIGHT)])
+	var rows := StatText.status_rows(battery, audit)
+	var keys: Array = rows.map(func(row: Array) -> String: return row[0])
+	assert_eq(keys, ["STAT_NEED", "STAT_SUPPLY_DAY", "STAT_SUPPLY_NIGHT", "STAT_NIGHT_RESERVE", "STAT_FLOW"])
+	assert_eq(rows[0][1], "%.1f/s" % audit.need_of(battery.id))
+	assert_eq(rows[3][1], lasts)
+
+
+func test_solar_only_supply_names_the_night() -> void:
+	var zapper := _add(GameConfig.ZAPPER, core.position + Vector2(0, -476))
+	var left := _add(GameConfig.SOLAR, zapper.position + Vector2(-112, 0))
+	var right := _add(GameConfig.SOLAR, zapper.position + Vector2(112, 0))
+	battle.network.connect_buildings(left.id, zapper.id)
+	battle.network.connect_buildings(right.id, zapper.id)
+	var audit := battle.audit()
+	assert_eq(StatusText.cause_text(audit, zapper, state), Texts.t("STATUS_CAUSE_NIGHT"))
+	assert_eq(StatusText.cause_text(audit, zapper, state, EnergyAudit.DAY), "")
+
+
+func test_unsupplied_building_without_need_has_a_plain_summary() -> void:
+	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -224))
+	var audit := battle.audit()
+	assert_eq(StatusText.summary(audit, relay), Texts.t("STATUS_LOW"))
 
 
 func test_culprit_name_falls_back() -> void:
@@ -212,17 +260,22 @@ func test_energy_stats_include_beam_losses() -> void:
 func test_transfer_track_and_beam_rows() -> void:
 	var relay := Building.new(1, GameConfig.RELAY, Vector2.ZERO)
 	assert_eq(StatText.track_value(relay, GameConfig.TRACK_TRANSFER), Texts.format("STAT_TRANSFER_VALUE", [2.5]))
-	assert_eq(StatText.next_value(relay, GameConfig.TRACK_TRANSFER), Texts.format("STAT_TRANSFER_VALUE", [2.5 / 1.15]))
+	var better := StatText.upgraded(relay, GameConfig.TRACK_TRANSFER)
+	assert_almost_eq(StatText.loss_per_cell(better), GameConfig.BEAM_LOSS_PER_CELL * 0.9, 0.0001)
+	assert_eq(StatText.next_value(relay, GameConfig.TRACK_TRANSFER), Texts.format("STAT_TRANSFER_VALUE", [StatText.loss_per_cell(better) * 100.0]))
 	assert_almost_eq(StatText.loss_per_cell(relay), GameConfig.BEAM_LOSS_PER_CELL, 0.0001)
 	var rows := StatText.stats(relay, state)
-	var expected := "−%d%%" % int(round(Formulas.beam_loss(relay, Formulas.link_range(relay)) * 100.0))
+	var expected := "−%d%%" % int(round(StatText.range_loss(relay) * 100.0))
 	assert_true(rows.any(func(row: Array) -> bool: return row[0] == "STAT_BEAM_LOSS" and row[1] == expected))
+	assert_lt(StatText.range_loss(relay), Formulas.beam_loss(relay, Formulas.link_range(relay)))
 	var exporter := StatText.stats(Building.new(2, GameConfig.EXPORTER, Vector2.ZERO), state)
 	assert_true(exporter.any(func(row: Array) -> bool: return row[0] == "STAT_EXPORT_RATIO" and row[1] == Texts.format("STAT_EXPORT_RATIO_VALUE", [GameConfig.ENERGY_PER_COIN])))
 	var per_day := "+%d" % int(round(8.0 / GameConfig.ENERGY_PER_COIN * DayCycle.length(state.level)))
 	assert_true(exporter.any(func(row: Array) -> bool: return row[0] == "STAT_EXPORT_ROUND" and row[1] == per_day))
-	for kind in [GameConfig.CORE, GameConfig.SOLAR, GameConfig.RELAY, GameConfig.BATTERY]:
+	for kind in [GameConfig.CORE, GameConfig.SOLAR, GameConfig.RELAY, GameConfig.BATTERY, GameConfig.ZAPPER, GameConfig.EXPORTER]:
 		assert_true(GameConfig.building(kind).tracks.has(GameConfig.TRACK_TRANSFER), kind)
+	assert_eq(StatText.coins(5.0), "5")
+	assert_eq(StatText.coins(6.2), "6.20")
 
 
 func test_status_rows_follow_the_audit() -> void:
@@ -232,10 +285,14 @@ func test_status_rows_follow_the_audit() -> void:
 	var audit := battle.audit()
 	var rows := StatText.status_rows(exporter, audit)
 	var keys: Array = rows.map(func(row: Array) -> String: return row[0])
-	assert_eq(keys, ["STAT_NEED", "STAT_SUPPLY", "STAT_EXPORT_REAL", "STAT_FLOW"])
+	assert_eq(keys, ["STAT_NEED", "STAT_SUPPLY_DAY", "STAT_SUPPLY_NIGHT", "STAT_EXPORT_REAL", "STAT_FLOW"])
 	assert_eq(rows[0][1], "8.0/s")
-	assert_eq(rows[1][1], Texts.format("STAT_SUPPLY_VALUE", [EnergyStatsText.percent(audit.ratio(exporter.id)), "0%"]))
-	assert_eq(rows[2][1], Texts.format("STAT_EXPORT_REAL_VALUE", ["%.2f" % audit.export_income(), "0.00"]))
+	assert_eq(rows[1][1], StatusText.supply_value(audit, exporter.id, EnergyAudit.DAY))
+	assert_eq(rows[2][1], "%s 0.0/s" % Icons.WARNING)
+	assert_eq(rows[3][1], Texts.format("STAT_EXPORT_REAL_VALUE", ["%.2f" % audit.export_income(), "0.00"]))
+	assert_eq(rows[4][1], Texts.format("STAT_FLOW_VALUE", [audit.inflow(exporter.id), audit.throughput(exporter.id)]))
+	var day_rows := StatText.status_rows(exporter, audit, EnergyAudit.DAY)
+	assert_eq(day_rows[4][1], Texts.format("STAT_FLOW_VALUE", [audit.inflow(exporter.id, EnergyAudit.DAY), 0.0]))
 	var solar_rows := StatText.status_rows(solar, audit)
 	assert_eq(solar_rows.size(), 1)
 	assert_eq(solar_rows[0][0], "STAT_FLOW")

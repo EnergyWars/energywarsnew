@@ -107,19 +107,65 @@ func test_structure_bounty() -> void:
 	assert_eq(battle.state.structures_destroyed, 1)
 
 
-func test_exporter_sells_energy_in_batches() -> void:
+func test_exporter_pays_out_after_a_full_cycle() -> void:
 	var exporter := BattleFixtures.add(battle, GameConfig.EXPORTER, Vector2(400, 400))
 	exporter.energy = Formulas.capacity(exporter)
 	var money := battle.state.money
-	var batch_time := GameConfig.EXPORT_BATCH * GameConfig.ENERGY_PER_COIN / Formulas.export_rate(exporter)
-	battle.economy.update(batch_time * 0.5)
+	var payout := int(round(Formulas.export_payout(exporter)))
+	assert_almost_eq(Formulas.export_batch(exporter), Formulas.export_rate(exporter) * GameConfig.EXPORT_CYCLE, 0.001)
+	assert_eq(payout, int(round(Formulas.export_rate(exporter) / GameConfig.ENERGY_PER_COIN * GameConfig.EXPORT_CYCLE)))
+	battle.economy.update(GameConfig.EXPORT_CYCLE * 0.5)
 	assert_eq(battle.state.money, money)
-	battle.economy.update(batch_time * 0.6)
-	assert_eq(battle.state.money, money + GameConfig.EXPORT_BATCH)
-	assert_almost_eq(exporter.energy, Formulas.capacity(exporter) - Formulas.export_rate(exporter) * batch_time * 1.1, 0.01)
+	assert_almost_eq(Formulas.export_progress(exporter), 0.5, 0.001)
+	battle.economy.update(GameConfig.EXPORT_CYCLE * 0.6)
+	assert_eq(battle.state.money, money + payout)
+	assert_almost_eq(Formulas.export_progress(exporter), 0.1, 0.001)
+	assert_almost_eq(exporter.energy, Formulas.capacity(exporter) - Formulas.export_rate(exporter) * GameConfig.EXPORT_CYCLE * 1.1, 0.01)
 	var exported := BattleFixtures.of_type(battle.events.drain(), "export")
 	assert_eq(exported.size(), 1)
-	assert_eq(exported[0].value, GameConfig.EXPORT_BATCH)
+	assert_eq(exported[0].value, payout)
+	assert_eq(exported[0].id, exporter.id)
+
+
+func test_starved_exporter_takes_longer_for_its_payout() -> void:
+	var exporter := BattleFixtures.add(battle, GameConfig.EXPORTER, Vector2(400, 400))
+	var money := battle.state.money
+	var rate := Formulas.export_rate(exporter)
+	for i in 10:
+		exporter.energy += rate * 0.5
+		battle.economy.update(1.0)
+	assert_eq(battle.state.money, money + int(round(Formulas.export_payout(exporter))))
+	assert_almost_eq(Formulas.export_progress(exporter), 0.0, 0.001)
+	assert_eq(exporter.energy, 0.0)
+
+
+func test_exporters_pay_out_independently() -> void:
+	var early := BattleFixtures.add(battle, GameConfig.EXPORTER, Vector2(400, 400))
+	var late := BattleFixtures.add(battle, GameConfig.EXPORTER, Vector2(520, 400))
+	early.energy = Formulas.capacity(early)
+	late.energy = Formulas.capacity(late)
+	late.export_buffer = 0.0
+	early.export_buffer = Formulas.export_batch(early) * 0.8
+	battle.economy.update(GameConfig.EXPORT_CYCLE * 0.3)
+	var exported := BattleFixtures.of_type(battle.events.drain(), "export")
+	assert_eq(exported.size(), 1)
+	assert_eq(exported[0].id, early.id)
+	assert_almost_eq(Formulas.export_progress(late), 0.3, 0.001)
+
+
+func test_fractional_payouts_carry_over() -> void:
+	var exporter := BattleFixtures.add(battle, GameConfig.EXPORTER, Vector2(400, 400))
+	exporter.set_level(GameConfig.TRACK_RATE, 2)
+	var payout := Formulas.export_payout(exporter)
+	assert_ne(payout, floorf(payout))
+	var money := battle.state.money
+	var cycles := 4
+	for i in cycles:
+		exporter.energy = Formulas.capacity(exporter)
+		battle.economy.update(GameConfig.EXPORT_CYCLE)
+	assert_eq(battle.state.money, money + int(floor(payout * cycles + 0.0001)))
+	assert_almost_eq(exporter.export_carry, payout * cycles - floorf(payout * cycles + 0.0001), 0.001)
+	assert_eq(Formulas.export_progress(Building.new(9, GameConfig.RELAY, Vector2.ZERO)), 0.0)
 
 
 func test_exporter_without_energy_earns_nothing() -> void:

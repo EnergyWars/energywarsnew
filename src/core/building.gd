@@ -26,6 +26,7 @@ var firing := false
 var laser_target: Object = null
 var scan_timer := 0.0
 var export_buffer := 0.0
+var export_carry := 0.0
 var origin := Vector2i.ZERO
 var elevation := 0:
 	set(value):

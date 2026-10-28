@@ -52,6 +52,7 @@ func test_stats_for_each_kind() -> void:
 	assert_true(zapper.any(func(row: Array) -> bool: return row[0] == "STAT_CRIT" and row[1] == "12%"))
 	var exporter := StatText.stats(_building(GameConfig.EXPORTER), battle.state)
 	assert_true(exporter.any(func(row: Array) -> bool: return row[0] == "STAT_EXPORT_INCOME" and row[1] == "%.1f/s" % (8.0 / GameConfig.ENERGY_PER_COIN)))
+	assert_true(exporter.any(func(row: Array) -> bool: return row[0] == "STAT_EXPORT_CYCLE" and row[1] == Texts.format("STAT_EXPORT_CYCLE_VALUE", [StatText.coins(8.0 * GameConfig.EXPORT_CYCLE / GameConfig.ENERGY_PER_COIN), int(GameConfig.EXPORT_CYCLE)])))
 	var wall := StatText.stats(_building(GameConfig.BULWARK), battle.state)
 	assert_true(wall.any(func(row: Array) -> bool: return row[0] == "STAT_BLOCKS"))
 	assert_false(wall.any(func(row: Array) -> bool: return row[0] == "STAT_ENERGY"))

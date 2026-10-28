@@ -8,7 +8,6 @@ const VICTORY_DELAY := 1.8
 const DEFEAT_DELAY := 2.0
 const PANEL_REFRESH := 0.1
 const MODE_MARGIN := 16.0
-const JOYSTICK_SIZE := 190.0
 const PULSE_EVENTS: Array[String] = ["placed", "upgraded", "sold", "relocated", "link", "unlink", "plan_restored", "round_cleared"]
 
 var level_index := 0
@@ -28,7 +27,6 @@ var celebrations: CelebrationLayer
 var mode_button: Button
 var scout_button: Button
 var scout_chip: PanelContainer
-var joystick: VirtualJoystick
 var rewards: RewardDirector
 var root: Control
 var speed_index := 0
@@ -63,7 +61,7 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.theme = AppTheme.build()
 	layer.add_child(root)
-	hud = BattleHud.new().setup(safe_top)
+	hud = BattleHud.new().setup(safe_top, MapPanel.new().setup(battle.state))
 	root.add_child(hud)
 	build_bar = BuildBar.new().setup(bar_kinds())
 	root.add_child(build_bar)
@@ -88,18 +86,6 @@ func _ready() -> void:
 	scout_chip.add_child(chip_label)
 	scout_chip.visible = false
 	root.add_child(scout_chip)
-	joystick = VirtualJoystick.new()
-	joystick.joystick_mode = VirtualJoystick.JOYSTICK_FIXED
-	joystick.joystick_size = JOYSTICK_SIZE
-	joystick.tip_size = JOYSTICK_SIZE * 0.42
-	joystick.deadzone_ratio = 0.12
-	joystick.action_left = &"steer_left"
-	joystick.action_right = &"steer_right"
-	joystick.action_up = &"steer_up"
-	joystick.action_down = &"steer_down"
-	joystick.custom_minimum_size = Vector2(JOYSTICK_SIZE, JOYSTICK_SIZE) * 1.15
-	joystick.visible = false
-	root.add_child(joystick)
 	celebrations = CelebrationLayer.new()
 	root.add_child(celebrations)
 	rewards = RewardDirector.new(view, hud, celebrations, sfx)
@@ -110,6 +96,7 @@ func _ready() -> void:
 	hud.undo_pressed.connect(undo_plan)
 	hud.reset_pressed.connect(confirm_reset)
 	hud.status_pressed.connect(toggle_status)
+	hud.map_focus_requested.connect(func(world: Vector2) -> void: view.focus(world))
 	build_bar.kind_pressed.connect(choose_kind)
 	panel.closed.connect(func() -> void: view.select(-1))
 	panel.upgrade_pressed.connect(upgrade)
@@ -157,8 +144,13 @@ func _process(delta: float) -> void:
 	_refresh_ui(delta)
 
 
+func steering_enabled() -> bool:
+	var state := battle.state
+	return not state.is_over() and (view.scout_active or (view.selected_mobile() != null and state.is_fighting()))
+
+
 func steering_input() -> Vector2:
-	var keys := Input.get_vector(&"steer_left", &"steer_right", &"steer_up", &"steer_down") if joystick.visible else Vector2.ZERO
+	var keys := Input.get_vector(&"steer_left", &"steer_right", &"steer_up", &"steer_down") if steering_enabled() else Vector2.ZERO
 	return keys if keys != Vector2.ZERO else view.stick_vector
 
 
@@ -193,11 +185,13 @@ func _refresh_ui(delta: float) -> void:
 	mode_button.position = Vector2(root.size.x - mode_button.size.x - MODE_MARGIN, bottom - mode_button.size.y)
 	scout_button.visible = not state.is_over() and state.scout != null and state.scout.is_controllable()
 	scout_button.position = Vector2(root.size.x - scout_button.size.x - MODE_MARGIN, bottom - scout_button.size.y)
-	joystick.visible = not state.is_over() and (view.scout_active or (view.selected_mobile() != null and state.is_fighting()))
-	joystick.reset_size()
-	joystick.position = Vector2(MODE_MARGIN, bottom - joystick.size.y)
+	var stack := bottom - maxf(mode_button.size.y, scout_button.size.y) - AppTheme.SPACING_SM
+	hud.map_button.visible = not state.is_over()
+	hud.map_button.position = Vector2(root.size.x - hud.map_button.size.x - MODE_MARGIN, stack - hud.map_button.size.y)
 	scout_chip.reset_size()
-	scout_chip.position = Vector2((root.size.x - scout_chip.size.x) * 0.5, bottom - joystick.size.y - scout_chip.size.y - AppTheme.SPACING_SM)
+	scout_chip.position = Vector2((root.size.x - scout_chip.size.x) * 0.5, bottom - scout_chip.size.y)
+	if hud.map_visible():
+		hud.map_panel.refresh(view.world_rect())
 	_panel_timer -= delta
 	if panel.visible and _panel_timer <= 0.0:
 		_panel_timer = PANEL_REFRESH
@@ -473,6 +467,8 @@ func handle_back() -> void:
 		view.select(-1)
 	elif hud.stats_panel.visible:
 		hud.hide_stats()
+	elif hud.map_visible():
+		hud.hide_map()
 	elif view.status_mode:
 		view.set_status_mode(false)
 	elif view.mode == BattleView.Mode.CONNECT and not battle.state.is_over():

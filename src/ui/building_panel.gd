@@ -20,6 +20,8 @@ var building_id := -1
 var _icon: BuildingIcon
 var _title: Label
 var _info: Label
+var _minimize: Button
+var _body: VBoxContainer
 var _stats: GridContainer
 var _status: HBoxContainer
 var _status_icon: Label
@@ -41,6 +43,7 @@ var active_pick := ""
 var _track_rows := {}
 var _stat_values: Array[Label] = []
 var _pulse := false
+var minimized := false
 
 
 func setup(p_battle: Battle) -> BuildingPanel:
@@ -66,10 +69,10 @@ func _ready() -> void:
 	_info.custom_minimum_size = Vector2(300, 0)
 	titles.add_child(_info)
 	header.add_child(titles)
+	_minimize = UiKit.icon_button(Icons.EXPAND_MORE, toggle_minimized, 52.0)
+	header.add_child(_minimize)
 	header.add_child(UiKit.icon_button(Icons.CLOSE, func() -> void: closed.emit(), 52.0))
 	column.add_child(header)
-	_stats = _grid()
-	column.add_child(_stats)
 	_status = UiKit.hbox(AppTheme.SPACING_SM)
 	_status_icon = UiKit.icon(Icons.CHECK, AppTheme.SUCCESS, 30)
 	_status.add_child(_status_icon)
@@ -83,27 +86,48 @@ func _ready() -> void:
 	status_texts.add_child(_status_cause)
 	_status.add_child(status_texts)
 	column.add_child(_status)
+	_body = UiKit.vbox(AppTheme.SPACING_SM)
+	column.add_child(_body)
+	_stats = _grid()
+	_body.add_child(_stats)
 	_status_grid = _grid()
-	column.add_child(_status_grid)
+	_body.add_child(_status_grid)
 	_targets = UiKit.vbox(2)
 	_targets.add_child(UiKit.label(Texts.t("PANEL_TARGETS"), "Caption"))
 	_target_row = UiKit.hbox(AppTheme.SPACING_XS)
 	_targets.add_child(_target_row)
-	column.add_child(_targets)
+	_body.add_child(_targets)
 	_track_scroll = ScrollContainer.new()
 	_track_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_track_scroll.scroll_deadzone = TRACK_SCROLL_DEADZONE
 	_tracks = UiKit.vbox(AppTheme.SPACING_XS)
 	_tracks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_track_scroll.add_child(_tracks)
-	column.add_child(_track_scroll)
+	_body.add_child(_track_scroll)
 	_actions = UiKit.hbox(AppTheme.SPACING_XS)
 	_link = _action_button(func() -> void: link_pressed.emit(building_id))
 	_focus = _action_button(func() -> void: focus_pressed.emit(building_id))
 	_relocate = _action_button(func() -> void: relocate_pressed.emit(building_id))
-	column.add_child(_actions)
+	_body.add_child(_actions)
 	_sell = UiKit.button("", "DangerButton", func() -> void: sell_pressed.emit(building_id))
-	column.add_child(_sell)
+	_body.add_child(_sell)
+	_apply_minimized()
+
+
+func toggle_minimized() -> void:
+	set_minimized(not minimized)
+
+
+func set_minimized(value: bool) -> void:
+	minimized = value
+	_apply_minimized()
+	refresh()
+
+
+func _apply_minimized() -> void:
+	_body.visible = not minimized
+	_info.visible = not minimized
+	_minimize.text = Icons.EXPAND_LESS if minimized else Icons.EXPAND_MORE
 
 
 func _grid() -> GridContainer:
@@ -152,12 +176,12 @@ func _rebuild(building: Building) -> void:
 		_stats.add_child(value)
 		_stat_values.append(value)
 	var audit := battle.audit() if building.is_player() else null
-	for row in StatText.status_rows(building, audit):
+	for row in StatText.status_rows(building, audit, scenario()):
 		_status_grid.add_child(UiKit.label(Texts.t(row[0]), "Caption"))
 		var value := UiKit.label(str(row[1]), "Body")
 		_status_grid.add_child(value)
 		_status_values.append(value)
-	_status.visible = audit != null and audit.has(building.id)
+	_status.visible = audit != null and audit.shows(building.id)
 	_status_grid.visible = not _status_values.is_empty()
 	var tracks: Array = building.definition().get("tracks", []) if building.is_player() else []
 	for track: String in tracks:
@@ -210,7 +234,7 @@ func target_label(building: Building, index: int) -> String:
 	var unit_class := building.target_order[index]
 	var name := Texts.t("CLASS_%s" % unit_class.to_upper())
 	if not building.can_target(unit_class):
-		return "%d  %s  ✕" % [index + 1, name]
+		return "%d  %s  %s" % [index + 1, name, Icons.CLOSE]
 	return "%d  %s" % [index + 1, name]
 
 
@@ -294,18 +318,24 @@ static func sell_text(building: Building, planning: bool) -> String:
 	return Texts.format("PANEL_SELL", [value])
 
 
+func scenario() -> int:
+	return EnergyAudit.view_scenario(battle.state)
+
+
 func _refresh_status(building: Building) -> void:
-	if not _status.visible:
+	if not building.is_player():
 		return
 	var audit := battle.audit()
-	var verdict := audit.verdict(building.id)
-	_status_icon.text = StatusText.icon(verdict)
-	_status_icon.add_theme_color_override(&"font_color", StatusText.color(verdict))
-	_status_title.text = StatusText.summary(audit, building)
-	_status_title.add_theme_color_override(&"font_color", StatusText.color(verdict))
-	_status_cause.text = StatusText.cause_text(audit, building, battle.state)
-	_status_cause.visible = not _status_cause.text.is_empty()
-	var rows := StatText.status_rows(building, audit)
+	var current := scenario()
+	if _status.visible:
+		var verdict := audit.verdict(building.id, current)
+		_status_icon.text = StatusText.icon(verdict)
+		_status_icon.add_theme_color_override(&"font_color", StatusText.color(verdict))
+		_status_title.text = StatusText.summary(audit, building, current)
+		_status_title.add_theme_color_override(&"font_color", StatusText.color(verdict))
+		_status_cause.text = StatusText.cause_text(audit, building, battle.state, current)
+		_status_cause.visible = not minimized and not _status_cause.text.is_empty()
+	var rows := StatText.status_rows(building, audit, current)
 	for i in mini(rows.size(), _status_values.size()):
 		_status_values[i].text = str(rows[i][1])
 

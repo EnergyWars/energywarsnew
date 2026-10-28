@@ -204,6 +204,7 @@ func deploy_core(position: Vector2) -> String:
 	_was_night = state.is_night()
 	history.begin(state)
 	events.emit("core_deployed", {"id": core.id, "position": core.position})
+	events.emit("structures_spawned", {"count": state.enemy_buildings().size()})
 	return reason
 
 

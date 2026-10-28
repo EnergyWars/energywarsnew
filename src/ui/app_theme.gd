@@ -45,6 +45,10 @@ const CLIFF_LIGHT := Color("#9a8a6e")
 const CHASM := Color("#07090e")
 const CHASM_MID := Color("#151a24")
 const CHASM_EDGE := Color("#4a3c2c")
+const WATER := Color("#2f6f9a")
+const WATER_DEEP := Color("#1d4a72")
+const WATER_LIGHT := Color("#9fdcff")
+const WATER_SHORE := Color("#b5a27a")
 const TREE_DARK := Color("#173a1f")
 const TREE := Color("#25592c")
 const TREE_LIGHT := Color("#3f8a3f")
@@ -203,15 +207,7 @@ static func build() -> Theme:
 	_labels(theme)
 	_buttons(theme)
 	_panels(theme)
-	_joystick(theme)
 	return theme
-
-
-static func _joystick(theme: Theme) -> void:
-	theme.set_stylebox(&"normal_joystick", &"VirtualJoystick", box(Color(SURFACE, 0.45), RADIUS_PILL, Color(ENERGY, 0.5), 0, 3))
-	theme.set_stylebox(&"pressed_joystick", &"VirtualJoystick", box(Color(SURFACE, 0.6), RADIUS_PILL, ENERGY, 0, 3))
-	theme.set_stylebox(&"normal_tip", &"VirtualJoystick", box(Color(ENERGY, 0.45), RADIUS_PILL, ENERGY_CORE, 0, 2))
-	theme.set_stylebox(&"pressed_tip", &"VirtualJoystick", box(Color(ENERGY, 0.8), RADIUS_PILL, ENERGY_CORE, 0, 2))
 
 
 static func _label(theme: Theme, name: String, font: Font, size: int, color: Color) -> void:

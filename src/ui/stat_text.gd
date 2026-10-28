@@ -49,17 +49,26 @@ static func track_value(building: Building, track: String) -> String:
 	return ""
 
 
+static func coins(value: float) -> String:
+	return str(int(roundf(value))) if is_equal_approx(value, roundf(value)) else "%.2f" % value
+
+
 static func loss_per_cell(building: Building) -> float:
 	return Formulas.beam_loss(building, GameConfig.CELL)
+
+
+static func range_loss(building: Building) -> float:
+	var free := (building.half_extent() + GameConfig.CELL * 0.5) * sqrt(2.0) + GameConfig.BEAM_FREE_MARGIN
+	return Formulas.beam_loss(building, maxf(Formulas.link_range(building) - free, 0.0))
 
 
 static func overload_change(building: Building, track: String) -> String:
 	var now := Formulas.is_overloaded(building)
 	var next := Formulas.is_overloaded(upgraded(building, track))
 	if next and not now:
-		return Texts.t("PANEL_OVERLOAD_NEXT")
+		return Texts.format("PANEL_OVERLOAD_NEXT", [Icons.WARNING])
 	if now and not next:
-		return Texts.t("PANEL_OVERLOAD_FIXED")
+		return Texts.format("PANEL_OVERLOAD_FIXED", [Icons.CHECK])
 	return ""
 
 
@@ -112,7 +121,7 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 		rows.append(["STAT_LINKS", "%d / %d" % [state.outgoing(building.id).size(), Formulas.max_links(building)]])
 		rows.append(["STAT_RATE", "%d/s" % int(round(Formulas.rate(building)))])
 		rows.append(["STAT_LINK_RANGE", str(int(round(Formulas.link_range(building))))])
-		rows.append(["STAT_BEAM_LOSS", "−%d%%" % int(round(Formulas.beam_loss(building, Formulas.link_range(building)) * 100.0))])
+		rows.append(["STAT_BEAM_LOSS", "−%d%%" % int(round(range_loss(building) * 100.0))])
 	if GameConfig.has_attack(building.kind):
 		var laser := Formulas.is_laser(building)
 		rows.append(["STAT_DPS" if laser else "STAT_DAMAGE", str(int(round(Formulas.damage(building))))])
@@ -129,8 +138,9 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 		rows.append(["STAT_GARRISON", Texts.t("STAT_GARRISON_VALUE")])
 	if Formulas.export_rate(building) > 0.0:
 		rows.append(["STAT_EXPORT", "%d/s" % int(round(Formulas.export_rate(building)))])
-		rows.append(["STAT_EXPORT_INCOME", "%.1f/s" % (Formulas.export_rate(building) / GameConfig.ENERGY_PER_COIN)])
+		rows.append(["STAT_EXPORT_INCOME", "%.1f/s" % Formulas.export_income(Formulas.export_rate(building))])
 		rows.append(["STAT_EXPORT_RATIO", Texts.format("STAT_EXPORT_RATIO_VALUE", [GameConfig.ENERGY_PER_COIN])])
+		rows.append(["STAT_EXPORT_CYCLE", Texts.format("STAT_EXPORT_CYCLE_VALUE", [coins(Formulas.export_payout(building)), int(GameConfig.EXPORT_CYCLE)])])
 		rows.append(["STAT_EXPORT_ROUND", "+%d" % int(round(Formulas.export_income(Formulas.export_rate(building)) * DayCycle.length(state.level)))])
 	if building.kind == GameConfig.SHIELD:
 		rows.append(["STAT_SHIELD_RADIUS", str(int(round(Formulas.shield_radius(building))))])
@@ -144,18 +154,21 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 	return rows
 
 
-static func status_rows(building: Building, audit: EnergyAudit) -> Array[Array]:
+static func status_rows(building: Building, audit: EnergyAudit, scenario: int = EnergyAudit.WORST) -> Array[Array]:
 	var rows: Array[Array] = []
 	if audit == null or not audit.has(building.id):
 		return rows
 	var id := building.id
-	if EnergyAudit.draw(building) > 0.0:
-		rows.append(["STAT_NEED", "%.1f/s" % audit.need_of(id)])
-		rows.append(["STAT_SUPPLY", Texts.format("STAT_SUPPLY_VALUE", [EnergyStatsText.percent(audit.ratio(id, EnergyAudit.DAY)), EnergyStatsText.percent(audit.ratio(id, EnergyAudit.NIGHT))])])
+	if audit.shows(id) and audit.need_of(id) > EnergyAudit.EPSILON:
+		rows.append(["STAT_NEED", StatusText.rate(audit.need_of(id))])
+		rows.append(["STAT_SUPPLY_DAY", StatusText.supply_value(audit, id, EnergyAudit.DAY)])
+		rows.append(["STAT_SUPPLY_NIGHT", StatusText.supply_value(audit, id, EnergyAudit.NIGHT)])
+	if audit.reserve_rate(id) > 0.0 and audit.throughput(id, EnergyAudit.NIGHT) > 0.0:
+		rows.append(["STAT_NIGHT_RESERVE", EnergyStatsText.duration(audit.night_reserve(id))])
 	if building.exporting:
-		rows.append(["STAT_EXPORT_REAL", Texts.format("STAT_EXPORT_REAL_VALUE", ["%.2f" % Formulas.export_income(audit.supply(id, EnergyAudit.DAY)), "%.2f" % Formulas.export_income(audit.supply(id, EnergyAudit.NIGHT))])])
+		rows.append(["STAT_EXPORT_REAL", Texts.format("STAT_EXPORT_REAL_VALUE", ["%.2f" % Formulas.export_income(audit.served_of(id, EnergyAudit.DAY)), "%.2f" % Formulas.export_income(audit.served_of(id, EnergyAudit.NIGHT))])])
 	if EnergyNetwork.can_receive(building) or EnergyNetwork.can_send(building):
-		rows.append(["STAT_FLOW", Texts.format("STAT_FLOW_VALUE", [audit.inflow(id), audit.throughput(id)])])
+		rows.append(["STAT_FLOW", Texts.format("STAT_FLOW_VALUE", [audit.inflow(id, scenario), audit.throughput(id, scenario)])])
 	return rows
 
 

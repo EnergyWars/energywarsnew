@@ -8,6 +8,14 @@ const PLATEAU_MAX := 7
 const PLATEAU_GAP := 4
 const EDGE_MARGIN := 3
 const ATTEMPTS := 40
+const FOREST_RADIUS := Vector2(2.0, 5.0)
+const FOREST_WOBBLE := 0.25
+const FOREST_DENSITY := 0.85
+const GROVE_RADIUS := Vector2(7.0, 10.0)
+const GROVE_WOBBLE := 0.2
+const GROVE_CORE := 0.8
+const POND_RADIUS := Vector2(1.6, 3.2)
+const POND_WOBBLE := 0.3
 const RAMP_DIRECTIONS: Array[Vector2i] = [Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 0), Vector2i(-1, 0)]
 
 var map: LevelMap
@@ -24,8 +32,7 @@ static func generate(level: Dictionary) -> LevelMap:
 
 func build(level: Dictionary) -> void:
 	var cells: Vector2i = level.cells
-	map = LevelMap.blank(cells)
-	rng.seed = int(level.seed)
+	prepare(LevelMap.blank(cells), int(level.seed))
 	map.drop = map.center_of(Vector2i(Vector2(cells) * (level.drop as Vector2)))
 	for entry: Array in level.structures:
 		var kind: String = entry[0]
@@ -44,6 +51,10 @@ func build(level: Dictionary) -> void:
 		_random_plateau()
 	for i in int(terrain.get("chasms", 0)):
 		_chasm()
+	for i in int(terrain.get("ponds", 0)):
+		_pond()
+	for i in int(terrain.get("groves", 0)):
+		_grove()
 	for i in int(terrain.get("forests", 0)):
 		_forest()
 	for i in int(terrain.get("rocks", 0)):
@@ -51,15 +62,21 @@ func build(level: Dictionary) -> void:
 	connect_all(map, map.cell_of(map.drop))
 
 
-func _protect() -> void:
+func prepare(target: LevelMap, seed_value: int) -> MapGenerator:
+	map = target
+	rng.seed = seed_value
 	protected.resize(map.width * map.height)
 	protected.fill(0)
-	_protect_around(map.cell_of(map.drop), DROP_CLEAR)
+	return self
+
+
+func _protect() -> void:
+	protect_around(map.cell_of(map.drop), DROP_CLEAR)
 	for structure in map.structures:
-		_protect_around(map.cell_of(structure.position), STRUCTURE_CLEAR + GameConfig.cells(structure.kind))
+		protect_around(map.cell_of(structure.position), STRUCTURE_CLEAR + GameConfig.cells(structure.kind))
 
 
-func _protect_around(center: Vector2i, radius: int) -> void:
+func protect_around(center: Vector2i, radius: int) -> void:
 	for y in range(center.y - radius, center.y + radius + 1):
 		for x in range(center.x - radius, center.x + radius + 1):
 			var cell := Vector2i(x, y)
@@ -163,29 +180,74 @@ func _chasm() -> void:
 				map.set_tile(cell, LevelMap.Tile.CHASM)
 
 
-func _forest() -> void:
-	var center := Vector2i(rng.randi_range(0, map.width - 1), rng.randi_range(0, map.height - 1))
-	var radius := rng.randf_range(2.0, 5.0)
-	var phase := rng.randf() * TAU
-	for y in range(center.y - 6, center.y + 7):
-		for x in range(center.x - 6, center.x + 7):
+func _random_cell() -> Vector2i:
+	return Vector2i(rng.randi_range(0, map.width - 1), rng.randi_range(0, map.height - 1))
+
+
+func blob(center: Vector2i, radius: float, wobble: float, phase: float) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	var reach := ceili(radius * (1.0 + wobble))
+	for y in range(center.y - reach, center.y + reach + 1):
+		for x in range(center.x - reach, center.x + reach + 1):
 			var cell := Vector2i(x, y)
 			var offset := Vector2(cell - center)
-			var limit := radius * (1.0 + 0.25 * sin(offset.angle() * 3.0 + phase))
-			if offset.length() <= limit and rng.randf() < 0.85:
-				_place(cell, LevelMap.Tile.TREE)
+			if map.has_cell(cell) and offset.length() <= radius * (1.0 + wobble * sin(offset.angle() * 3.0 + phase)):
+				result.append(cell)
+	return result
+
+
+func _forest() -> void:
+	forest_at(_random_cell())
+
+
+func forest_at(center: Vector2i) -> void:
+	var radius := rng.randf_range(FOREST_RADIUS.x, FOREST_RADIUS.y)
+	var phase := rng.randf() * TAU
+	for cell in blob(center, radius, FOREST_WOBBLE, phase):
+		if rng.randf() < FOREST_DENSITY:
+			_place(cell, LevelMap.Tile.TREE)
+
+
+func _grove() -> void:
+	grove_at(_random_cell())
+
+
+func grove_at(center: Vector2i) -> void:
+	var radius := rng.randf_range(GROVE_RADIUS.x, GROVE_RADIUS.y)
+	var phase := rng.randf() * TAU
+	for cell in blob(center, radius, GROVE_WOBBLE, phase):
+		if Vector2(cell - center).length() <= radius * GROVE_CORE or rng.randf() < FOREST_DENSITY:
+			_place(cell, LevelMap.Tile.TREE)
+
+
+func _pond() -> void:
+	for attempt in ATTEMPTS:
+		if pond_at(_random_cell()) > 0:
+			return
+
+
+func pond_at(center: Vector2i) -> int:
+	var radius := rng.randf_range(POND_RADIUS.x, POND_RADIUS.y)
+	var phase := rng.randf() * TAU
+	var placed := 0
+	for cell in blob(center, radius, POND_WOBBLE, phase):
+		if map.raw_height(cell) == 0 and _place(cell, LevelMap.Tile.POND):
+			placed += 1
+	return placed
 
 
 func _rocks() -> void:
-	var cell := Vector2i(rng.randi_range(0, map.width - 1), rng.randi_range(0, map.height - 1))
+	var cell := _random_cell()
 	for i in rng.randi_range(1, 4):
 		_place(cell, LevelMap.Tile.ROCK)
 		cell += LevelMap.NEIGHBOURS[rng.randi_range(0, 3)]
 
 
-func _place(cell: Vector2i, value: int) -> void:
+func _place(cell: Vector2i, value: int) -> bool:
 	if map.has_cell(cell) and not is_protected(cell) and map.tile(cell) == LevelMap.Tile.OPEN:
 		map.set_tile(cell, value)
+		return true
+	return false
 
 
 static func connect_all(target: LevelMap, anchor: Vector2i) -> void:
@@ -228,6 +290,6 @@ static func _carve(target: LevelMap, parents: PackedInt32Array, from: int) -> vo
 		match target.tile(cell):
 			LevelMap.Tile.CLIFF:
 				target.set_tile(cell, LevelMap.Tile.RAMP)
-			LevelMap.Tile.CHASM, LevelMap.Tile.TREE, LevelMap.Tile.ROCK:
+			LevelMap.Tile.CHASM, LevelMap.Tile.TREE, LevelMap.Tile.ROCK, LevelMap.Tile.POND:
 				target.set_tile(cell, LevelMap.Tile.OPEN)
 		current = parents[current]

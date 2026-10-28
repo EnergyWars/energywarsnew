@@ -29,7 +29,7 @@ func test_every_level_has_all_terrain_features() -> void:
 		var seen := {}
 		for value in map.tiles:
 			seen[value] = true
-		for tile in [LevelMap.Tile.OPEN, LevelMap.Tile.RAMP, LevelMap.Tile.CLIFF, LevelMap.Tile.CHASM, LevelMap.Tile.TREE, LevelMap.Tile.ROCK]:
+		for tile in [LevelMap.Tile.OPEN, LevelMap.Tile.RAMP, LevelMap.Tile.CLIFF, LevelMap.Tile.CHASM, LevelMap.Tile.TREE, LevelMap.Tile.ROCK, LevelMap.Tile.POND]:
 			assert_true(seen.has(tile), "%d %d" % [index, tile])
 		assert_true(map.heights.has(1), str(index))
 
@@ -131,6 +131,80 @@ func test_connect_all_carves_through_blockers() -> void:
 	assert_eq(_component_count(map), 3)
 	MapGenerator.connect_all(map, Vector2i(0, 0))
 	assert_eq(_component_count(map), 1)
+
+
+func test_connect_all_fords_ponds() -> void:
+	var map := LevelMap.blank(Vector2i(5, 3))
+	for y in 3:
+		map.set_tile(Vector2i(2, y), LevelMap.Tile.POND)
+	assert_eq(_component_count(map), 2)
+	MapGenerator.connect_all(map, Vector2i(0, 0))
+	assert_eq(_component_count(map), 1)
+	assert_eq(map.tiles.count(LevelMap.Tile.POND), 2)
+
+
+func test_ponds_block_walking_building_and_clearing() -> void:
+	var map := LevelMap.blank(Vector2i(4, 4))
+	var cell := Vector2i(1, 2)
+	map.set_tile(cell, LevelMap.Tile.POND)
+	assert_false(map.is_walkable(cell))
+	assert_false(map.is_buildable(cell))
+	assert_false(map.is_clearable(cell))
+	assert_eq(map.obstacle_type(cell), "")
+	assert_false(map.clear(cell))
+	assert_eq(map.tile(cell), LevelMap.Tile.POND)
+	assert_true(NavGrid.new(map).ground.is_point_solid(cell))
+
+
+func test_blob_covers_a_round_area_inside_the_map() -> void:
+	var generator := MapGenerator.new().prepare(LevelMap.blank(Vector2i(30, 30)), 1)
+	var cells := generator.blob(Vector2i(15, 15), 4.0, 0.0, 0.0)
+	assert_true(cells.has(Vector2i(15, 15)))
+	assert_true(cells.has(Vector2i(19, 15)))
+	assert_false(cells.has(Vector2i(19, 19)))
+	for cell in cells:
+		assert_lte(Vector2(cell - Vector2i(15, 15)).length(), 4.0)
+	var corner := generator.blob(Vector2i(0, 0), 4.0, 0.0, 0.0)
+	assert_gt(corner.size(), 0)
+	assert_lt(corner.size(), cells.size())
+	for cell in corner:
+		assert_true(generator.map.has_cell(cell))
+
+
+func test_groves_are_large_and_solid() -> void:
+	var generator := MapGenerator.new().prepare(LevelMap.blank(Vector2i(40, 40)), 3)
+	var center := Vector2i(20, 20)
+	generator.grove_at(center)
+	var map := generator.map
+	var core := MapGenerator.GROVE_RADIUS.x * MapGenerator.GROVE_CORE
+	var trees := 0
+	for index in map.tiles.size():
+		var cell := map.cell_at(index)
+		if map.tile(cell) == LevelMap.Tile.TREE:
+			trees += 1
+			assert_lte(Vector2(cell - center).length(), MapGenerator.GROVE_RADIUS.y * (1.0 + MapGenerator.GROVE_WOBBLE))
+		elif Vector2(cell - center).length() <= core:
+			fail_test("grove core has a gap at %s" % cell)
+	assert_gt(trees, int(PI * core * core))
+	assert_gt(MapGenerator.GROVE_RADIUS.x, MapGenerator.FOREST_RADIUS.y)
+
+
+func test_forests_and_ponds_respect_protection_and_height() -> void:
+	var generator := MapGenerator.new().prepare(LevelMap.blank(Vector2i(30, 30)), 4)
+	var map := generator.map
+	generator.protect_around(Vector2i(8, 8), 2)
+	generator.forest_at(Vector2i(8, 8))
+	assert_eq(map.tile(Vector2i(8, 8)), LevelMap.Tile.OPEN)
+	for y in range(16, 29):
+		for x in range(16, 29):
+			map.heights[map.index(Vector2i(x, y))] = 1
+	assert_eq(generator.pond_at(Vector2i(22, 22)), 0)
+	assert_eq(map.tiles.count(LevelMap.Tile.POND), 0)
+	var placed := generator.pond_at(Vector2i(8, 22))
+	assert_eq(map.tiles.count(LevelMap.Tile.POND), placed)
+	assert_eq(map.tile(Vector2i(8, 22)), LevelMap.Tile.POND)
+	for offset in LevelMap.NEIGHBOURS:
+		assert_eq(map.tile(Vector2i(8, 22) + offset), LevelMap.Tile.POND)
 
 
 func _component_count(map: LevelMap) -> int:

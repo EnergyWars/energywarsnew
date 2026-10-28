@@ -5,9 +5,10 @@ extends RefCounted
 static func battle(level_index: int = 0, keep_structures: bool = true) -> Battle:
 	var state := BattleState.create(level_index, 1234)
 	open_terrain(state)
-	if not keep_structures:
-		for building in state.enemy_buildings():
-			state.remove_building(building.id)
+	var sites: Array[Dictionary] = []
+	if keep_structures:
+		sites = state.map.structures
+	state.spawn_structures(sites)
 	state.place_core(state.map.drop)
 	return Battle.new(state)
 

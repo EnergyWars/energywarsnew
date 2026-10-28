@@ -42,17 +42,26 @@ static func overclock_energy(building: Building) -> float:
 	return pow(float(GameConfig.TRACKS[GameConfig.TRACK_OVERCLOCK].energy), building.level(GameConfig.TRACK_OVERCLOCK))
 
 
-static func transfer_quality(building: Building) -> float:
-	return multiplier(building, GameConfig.TRACK_TRANSFER) * building.boost(GameConfig.BOOST_TRANSFER)
+static func transfer_factor(building: Building) -> float:
+	return maxf(1.0 - float(GameConfig.TRACKS[GameConfig.TRACK_TRANSFER].step) * building.level(GameConfig.TRACK_TRANSFER), 0.0)
 
 
-static func beam_loss(source: Building, distance: float) -> float:
-	var raw := GameConfig.BEAM_LOSS_PER_CELL * maxf(distance, 0.0) / GameConfig.CELL
-	return clampf(raw / transfer_quality(source), 0.0, GameConfig.BEAM_LOSS_MAX)
+static func beam_span(source: Building, target: Building) -> float:
+	var free := (source.half_extent() + target.half_extent()) * sqrt(2.0) + GameConfig.BEAM_FREE_MARGIN
+	return maxf(source.position.distance_to(target.position) - free, 0.0)
 
 
-static func beam_efficiency(source: Building, distance: float) -> float:
-	return 1.0 - beam_loss(source, distance)
+static func beam_loss(source: Building, span: float, receiver: float = 1.0) -> float:
+	var raw := GameConfig.BEAM_LOSS_PER_CELL * maxf(span, 0.0) / GameConfig.CELL
+	return clampf(raw * transfer_factor(source) * receiver / source.boost(GameConfig.BOOST_TRANSFER), 0.0, GameConfig.BEAM_LOSS_MAX)
+
+
+static func link_loss(source: Building, target: Building) -> float:
+	return beam_loss(source, beam_span(source, target), transfer_factor(target))
+
+
+static func link_efficiency(source: Building, target: Building) -> float:
+	return 1.0 - link_loss(source, target)
 
 
 static func capacity(building: Building) -> float:
@@ -232,6 +241,19 @@ static func move_energy(building: Building) -> float:
 
 static func export_income(energy_rate: float) -> float:
 	return maxf(energy_rate, 0.0) / GameConfig.ENERGY_PER_COIN
+
+
+static func export_batch(building: Building) -> float:
+	return export_rate(building) * GameConfig.EXPORT_CYCLE
+
+
+static func export_payout(building: Building) -> float:
+	return export_income(export_batch(building))
+
+
+static func export_progress(building: Building) -> float:
+	var batch := export_batch(building)
+	return clampf(building.export_buffer / batch, 0.0, 1.0) if batch > 0.0 else 0.0
 
 
 static func guard_count(round_number: int) -> int:

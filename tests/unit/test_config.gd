@@ -201,3 +201,21 @@ func test_every_faction_has_melee_ranged_and_air() -> void:
 func test_buildings_fit_their_cells() -> void:
 	for kind: String in GameConfig.BUILDINGS:
 		assert_lte(float(GameConfig.building(kind).radius), GameConfig.cells(kind) * GameConfig.CELL * 0.5, kind)
+
+
+func test_levels_mix_ponds_groves_forests_and_rocks() -> void:
+	for level: Dictionary in GameConfig.LEVELS:
+		var terrain: Dictionary = level.terrain
+		assert_gt(int(terrain.get("ponds", 0)), 0, level.id)
+		assert_gt(int(terrain.get("groves", 0)), 0, level.id)
+		assert_lt(int(terrain.groves), int(terrain.forests), level.id)
+		assert_gte(int(terrain.forests), 11, level.id)
+		assert_gte(int(terrain.rocks), 12, level.id)
+
+
+func test_structure_placement_settings_are_sane() -> void:
+	assert_gt(GameConfig.STRUCTURE_FAR_SHARE, 0.0)
+	assert_lt(GameConfig.STRUCTURE_FAR_SHARE, 1.0)
+	assert_gt(GameConfig.STRUCTURE_SPACING, 0.0)
+	assert_gte(GameConfig.STRUCTURE_MARGIN, 1)
+	assert_lt(GameConfig.TURRET_POST_RING.x, GameConfig.TURRET_POST_RING.y)

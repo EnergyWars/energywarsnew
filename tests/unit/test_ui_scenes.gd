@@ -57,6 +57,10 @@ func test_battle_screen_starts_with_scouting() -> void:
 	assert_gt(screen.view.chunk_count(), 1)
 
 
+func _joysticks(screen: BattleScreen) -> int:
+	return screen.find_children("*", "VirtualJoystick", true, false).size()
+
+
 func _release_steering() -> void:
 	for action in [&"steer_left", &"steer_right", &"steer_up", &"steer_down"]:
 		Input.action_release(action)
@@ -70,8 +74,8 @@ func test_scout_lands_steers_and_boards_the_core() -> void:
 	assert_true(screen.view.scout_active)
 	assert_true(screen.scout_chip.visible)
 	assert_true(screen.scout_button.visible)
-	assert_true(screen.joystick.visible)
-	assert_eq(screen.joystick.action_up, &"steer_up")
+	assert_true(screen.steering_enabled())
+	assert_eq(_joysticks(screen), 0)
 	var start := state.scout.position
 	Input.action_press(&"steer_up")
 	assert_eq(screen.steering_input(), Vector2.UP)
@@ -92,7 +96,7 @@ func test_scout_lands_steers_and_boards_the_core() -> void:
 	assert_true(state.scout.boarded)
 	assert_eq(screen.build_bar.kinds, GameConfig.STARTER_KINDS)
 	assert_false(screen.view.scout_active)
-	assert_false(screen.joystick.visible)
+	assert_false(screen.steering_enabled())
 	assert_false(screen.scout_button.visible)
 	assert_eq(screen.tutorial.step, Tutorial.BUILD_SOLAR)
 	assert_true(screen.mode_button.visible)
@@ -302,7 +306,7 @@ func test_coverage_texture_paints_levels() -> void:
 	assert_eq(CoverageTexture.palette().size(), 5)
 
 
-func test_mobile_tower_is_steered_with_the_joystick() -> void:
+func test_mobile_tower_is_steered_with_keys() -> void:
 	var screen := _deployed(1)
 	var state := screen.battle.state
 	var core := state.core()
@@ -311,10 +315,10 @@ func test_mobile_tower_is_steered_with_the_joystick() -> void:
 	screen.battle.connect_buildings(core.id, rover.id)
 	screen.start_round()
 	_frames(screen, 1)
-	assert_false(screen.joystick.visible)
+	assert_false(screen.steering_enabled())
 	screen.view.select(rover.id)
 	_frames(screen, 1)
-	assert_true(screen.joystick.visible)
+	assert_true(screen.steering_enabled())
 	assert_eq(screen.view.selected_mobile(), rover)
 	assert_eq(screen.view.coverage_mode(), "mobile")
 	assert_gt(screen.view.coverage_levels[state.map.index(rover.origin)], 0)
@@ -329,7 +333,7 @@ func test_mobile_tower_is_steered_with_the_joystick() -> void:
 	_frames(screen, 1)
 	_release_steering()
 	assert_eq(rover.steer, Vector2.ZERO)
-	assert_false(screen.joystick.visible)
+	assert_false(screen.steering_enabled())
 
 
 func test_build_flow_through_view() -> void:
@@ -503,8 +507,8 @@ func test_target_priority_panel() -> void:
 	assert_eq(screen.panel.target_label(zapper, 2), "3  %s" % Texts.t("CLASS_MELEE"))
 	screen.panel._toggle(0)
 	assert_false(zapper.can_target(GameConfig.CLASS_AIR))
-	assert_eq(screen.panel.target_label(zapper, 0), "1  %s  ✕" % Texts.t("CLASS_AIR"))
-	assert_true(screen.panel._target_buttons[0].text.contains("✕"))
+	assert_eq(screen.panel.target_label(zapper, 0), "1  %s  %s" % [Texts.t("CLASS_AIR"), Icons.CLOSE])
+	assert_true(screen.panel._target_buttons[0].text.contains(Icons.CLOSE))
 	screen.panel._raise(2)
 	assert_eq(zapper.target_order[1], GameConfig.CLASS_MELEE)
 	var relay := BattleFixtures.add(screen.battle, GameConfig.RELAY, state.core().position + Vector2(150, 0))
@@ -578,7 +582,7 @@ func test_tap_selects_and_panel_upgrades_and_sells() -> void:
 
 
 func test_enemy_structure_panel() -> void:
-	var screen := _screen()
+	var screen := _deployed()
 	var nest: Building = screen.battle.state.enemy_buildings()[0]
 	screen.view.select(nest.id)
 	assert_true(screen.panel.visible)
@@ -611,16 +615,104 @@ func test_planning_card_and_start_button() -> void:
 	assert_eq(state.phase, BattleState.Phase.FIGHT)
 
 
-func test_rover_joystick_only_while_fighting() -> void:
+func test_rover_steering_only_while_fighting() -> void:
 	var screen := _deployed(1)
 	var state := screen.battle.state
 	var rover := BattleFixtures.add(screen.battle, GameConfig.ROVER, state.core().position + Vector2(0, -150))
 	screen.view.select(rover.id)
 	_frames(screen, 1)
-	assert_false(screen.joystick.visible)
+	assert_false(screen.steering_enabled())
+	Input.action_press(&"steer_right")
+	assert_eq(screen.steering_input(), Vector2.ZERO)
+	_release_steering()
 	screen.start_round()
 	_frames(screen, 1)
-	assert_true(screen.joystick.visible)
+	assert_true(screen.steering_enabled())
+	assert_eq(_joysticks(screen), 0)
+
+
+func test_map_button_opens_the_map_and_marks_structures() -> void:
+	var screen := _screen()
+	var hud := screen.hud
+	_frames(screen, 1)
+	assert_true(hud.map_button.visible)
+	assert_lt(hud.map_button.position.y + hud.map_button.size.y, screen.scout_button.position.y)
+	assert_gt(hud.map_button.position.x, screen.root.size.x * 0.5)
+	assert_false(hud.map_visible())
+	hud.map_button.pressed.emit()
+	assert_true(hud.map_visible())
+	_frames(screen, 1)
+	assert_eq(hud.map_panel._summary.text, Texts.t("MAP_PENDING"))
+	assert_eq(hud.map_panel.minimap.view_rect, screen.view.world_rect())
+	var state := screen.battle.state
+	BattleFixtures.open_terrain(state)
+	screen.battle.deploy_core(state.map.drop)
+	_frames(screen, 1)
+	var count := state.enemy_buildings().size()
+	assert_eq(count, GameConfig.level(0).structures.size())
+	assert_eq(hud.map_panel._summary.text, Texts.format("MAP_STRUCTURES", [count]))
+	assert_eq(hud._toast_label.text, Texts.format("MAP_SPAWNED", [count]))
+	await wait_process_frames(2)
+
+
+func test_map_tap_jumps_there_and_closes() -> void:
+	var screen := _deployed()
+	var hud := screen.hud
+	hud.toggle_map()
+	_frames(screen, 1)
+	await wait_process_frames(2)
+	var minimap := hud.map_panel.minimap
+	assert_gt(minimap.size.x, 0.0)
+	var nest: Building = screen.battle.state.enemy_buildings()[0]
+	minimap.tap(minimap.to_map(nest.position))
+	assert_false(hud.map_visible())
+	var view := screen.view
+	var expected := CameraMath.clamp_center(minimap.to_world(minimap.to_map(nest.position)), view.zoom, view.view_size(), screen.battle.state.map.size)
+	assert_almost_eq(view.center.distance_to(expected), 0.0, 0.5)
+
+
+func test_map_and_stats_take_turns_and_back_closes_the_map() -> void:
+	var screen := _deployed()
+	var hud := screen.hud
+	hud.toggle_stats()
+	assert_true(hud.stats_panel.visible)
+	hud.toggle_map()
+	assert_true(hud.map_visible())
+	assert_false(hud.stats_panel.visible)
+	hud.toggle_stats()
+	assert_false(hud.map_visible())
+	hud.hide_stats()
+	hud.toggle_map()
+	screen.handle_back()
+	assert_false(hud.map_visible())
+	assert_false(screen.paused)
+	hud.toggle_map()
+	hud.map_panel.closed.emit()
+	assert_false(hud.map_visible())
+	hud.toggle_map()
+	hud.toggle_map()
+	assert_false(hud.map_visible())
+
+
+func test_hud_without_map_hides_the_button() -> void:
+	var hud := BattleHud.new().setup(0.0)
+	add_child_autofree(hud)
+	assert_false(hud.map_button.visible)
+	assert_false(hud.map_visible())
+	hud.toggle_map()
+	hud.hide_map()
+	hud.announce_structures(0)
+	assert_false(hud.map_visible())
+	hud.announce_structures(2)
+	assert_eq(hud._toast_label.text, Texts.format("MAP_SPAWNED", [2]))
+
+
+func test_world_rect_matches_the_camera() -> void:
+	var screen := _deployed()
+	var view := screen.view
+	var rect := view.world_rect()
+	assert_almost_eq(rect.get_center().distance_to(view.center), 0.0, 0.01)
+	assert_almost_eq(rect.size.distance_to(view.view_size() / view.zoom), 0.0, 0.01)
 
 
 func test_upgrade_list_scrolls_for_many_tracks() -> void:
@@ -746,7 +838,7 @@ func test_reward_director_handles_every_event() -> void:
 		{"type": "building_destroyed", "position": position, "kind": GameConfig.RELAY, "core": false},
 		{"type": "structure_destroyed", "position": position, "kind": GameConfig.NEST, "bounty": 160, "left": 0},
 		{"type": "collect", "position": position, "value": 5},
-		{"type": "export", "position": position, "value": GameConfig.EXPORT_BATCH},
+		{"type": "export", "position": position, "value": 5},
 		{"type": "wave", "index": 9, "total": 16, "night": true, "round": 1, "count": 3},
 		{"type": "wave", "index": 2, "total": 16, "night": false, "round": 1, "count": 1},
 		{"type": "heal", "from": position, "to": position + Vector2(40, 0), "amount": 12.0},
@@ -1305,16 +1397,96 @@ func test_status_mode_paints_the_supply_chain() -> void:
 	_frames(screen, 2)
 	await wait_process_frames(2)
 	var audit := screen.battle.audit()
+	var scenario := EnergyAudit.view_scenario(state)
+	assert_eq(scenario, EnergyAudit.WORST)
 	assert_true(audit.chain(zapper.id).buildings.has(core.id))
-	assert_eq(audit.verdict(lonely.id), EnergyAudit.Verdict.OFFLINE)
+	assert_eq(audit.verdict(lonely.id), EnergyAudit.Verdict.LOW)
+	assert_eq(audit.cause(lonely.id), EnergyAudit.Cause.NO_SOURCE)
+	assert_eq(audit.missing(lonely.id), 1.0)
 	assert_true(screen.panel._status.visible)
-	assert_eq(screen.panel._status_title.text, StatusText.summary(audit, zapper))
-	assert_eq(screen.panel._status_values.size(), StatText.status_rows(zapper, audit).size())
+	assert_eq(screen.panel._status_title.text, StatusText.summary(audit, zapper, scenario))
+	assert_eq(screen.panel._status_values.size(), StatText.status_rows(zapper, audit, scenario).size())
+	screen.view.select(core.id)
+	_frames(screen, 1)
+	assert_false(screen.panel._status.visible)
 	screen.view.select(relay.id)
 	_frames(screen, 1)
 	assert_true(screen.panel._sell.text.contains(Texts.format("PANEL_SELL_FULL", [relay.spent])))
 	screen.view.select(-1)
 	await wait_process_frames(1)
+
+
+func test_panel_can_be_minimized_while_the_selection_stays() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	screen.battle.connect_buildings(core.id, zapper.id)
+	screen.view.select(zapper.id)
+	_frames(screen, 2)
+	var panel := screen.panel
+	assert_false(panel.minimized)
+	assert_true(panel._body.visible)
+	assert_true(panel._info.visible)
+	assert_eq(panel._minimize.text, Icons.EXPAND_MORE)
+	var full_height := panel.get_combined_minimum_size().y
+	panel._minimize.pressed.emit()
+	assert_true(panel.minimized)
+	assert_false(panel._body.visible)
+	assert_false(panel._info.visible)
+	assert_true(panel._status.visible)
+	assert_false(panel._status_cause.visible)
+	assert_eq(panel._minimize.text, Icons.EXPAND_LESS)
+	assert_lt(panel.get_combined_minimum_size().y, full_height)
+	assert_true(panel.visible)
+	assert_eq(screen.view.selected_id, zapper.id)
+	assert_true(screen.view.shows_beam_labels())
+	_frames(screen, 2)
+	await wait_process_frames(1)
+	screen.view.select(core.id)
+	_frames(screen, 1)
+	assert_true(panel.minimized)
+	assert_false(panel._body.visible)
+	panel.toggle_minimized()
+	assert_false(panel.minimized)
+	assert_true(panel._body.visible)
+	assert_true(panel._info.visible)
+
+
+func test_selected_building_labels_every_beam() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	screen.battle.connect_buildings(core.id, zapper.id)
+	assert_false(screen.view.status_mode)
+	assert_false(screen.view.shows_beam_labels())
+	screen.view.select(zapper.id)
+	assert_true(screen.view.shows_beam_labels())
+	_frames(screen, 2)
+	await wait_process_frames(2)
+	var nest: Building = state.enemy_buildings()[0] if not state.enemy_buildings().is_empty() else null
+	if nest != null:
+		screen.view.select(nest.id)
+		assert_false(screen.view.shows_beam_labels())
+	screen.view.select(-1)
+	assert_false(screen.view.shows_beam_labels())
+	screen.toggle_status()
+	assert_true(screen.view.shows_beam_labels())
+	_frames(screen, 2)
+	await wait_process_frames(2)
+
+
+func test_exporter_ring_follows_its_cycle() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var exporter := BattleFixtures.add(screen.battle, GameConfig.EXPORTER, state.core().position + Vector2(0, -168))
+	exporter.energy = Formulas.capacity(exporter)
+	exporter.export_buffer = Formulas.export_batch(exporter) * 0.5
+	assert_almost_eq(Formulas.export_progress(exporter), 0.5, 0.001)
+	_frames(screen, 2)
+	await wait_process_frames(1)
+	assert_true(exporter.exporting)
 
 
 func test_guards_are_painted_and_burn_in_the_planning_phase() -> void:

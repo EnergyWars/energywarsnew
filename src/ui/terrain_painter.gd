@@ -3,6 +3,7 @@ extends RefCounted
 
 const CHUNK := 12
 const EDGE := 7.0
+const SHORE := 5.0
 const GRASS: Array[Color] = [Color("#4f7a3e"), Color("#5d8a4c"), Color("#6d9a52")]
 const FLOWERS: Array[Color] = [Color("#f2e36b"), Color("#f29bd1"), Color("#ffffff")]
 
@@ -83,6 +84,8 @@ func _feature(ci: CanvasItem, cell: Vector2i) -> void:
 			_tree(ci, cell)
 		LevelMap.Tile.ROCK:
 			_rock(ci, cell)
+		LevelMap.Tile.POND:
+			_pond(ci, cell)
 
 
 func _decor(ci: CanvasItem, cell: Vector2i) -> void:
@@ -143,19 +146,40 @@ func _cliff(ci: CanvasItem, cell: Vector2i) -> void:
 
 func _chasm(ci: CanvasItem, cell: Vector2i) -> void:
 	var rect := _rect(cell)
-	var size := GameConfig.CELL
 	ci.draw_rect(rect.grow(-EDGE), AppTheme.CHASM_MID.lerp(AppTheme.CHASM, 0.5 + noise(cell) * 0.5))
 	for offset: Vector2i in LevelMap.NEIGHBOURS:
-		if map.tile(cell + offset) == LevelMap.Tile.CHASM:
-			continue
-		var band := Rect2(rect.position, Vector2(size, EDGE * 2.2))
-		if offset.x > 0:
-			band = Rect2(rect.position + Vector2(size - EDGE, 0), Vector2(EDGE, size))
-		elif offset.x < 0:
-			band = Rect2(rect.position, Vector2(EDGE, size))
-		elif offset.y > 0:
-			band = Rect2(rect.position + Vector2(0, size - EDGE), Vector2(size, EDGE))
-		ci.draw_rect(band, AppTheme.CHASM_EDGE)
+		if map.tile(cell + offset) != LevelMap.Tile.CHASM:
+			ci.draw_rect(band(rect, offset, EDGE, EDGE * 2.2), AppTheme.CHASM_EDGE)
+
+
+static func band(rect: Rect2, offset: Vector2i, thickness: float, top: float) -> Rect2:
+	if offset.x > 0:
+		return Rect2(rect.position + Vector2(rect.size.x - thickness, 0), Vector2(thickness, rect.size.y))
+	if offset.x < 0:
+		return Rect2(rect.position, Vector2(thickness, rect.size.y))
+	if offset.y > 0:
+		return Rect2(rect.position + Vector2(0, rect.size.y - thickness), Vector2(rect.size.x, thickness))
+	return Rect2(rect.position, Vector2(rect.size.x, top))
+
+
+func water_depth(cell: Vector2i) -> float:
+	var wet := 0
+	for offset: Vector2i in LevelMap.NEIGHBOURS:
+		if map.tile(cell + offset) == LevelMap.Tile.POND:
+			wet += 1
+	return wet / float(LevelMap.NEIGHBOURS.size())
+
+
+func _pond(ci: CanvasItem, cell: Vector2i) -> void:
+	var rect := _rect(cell)
+	var size := GameConfig.CELL
+	ci.draw_rect(rect, AppTheme.WATER.lerp(AppTheme.WATER_DEEP, water_depth(cell) * (0.6 + noise(cell, 12) * 0.4)))
+	for offset: Vector2i in LevelMap.NEIGHBOURS:
+		if map.tile(cell + offset) != LevelMap.Tile.POND:
+			ci.draw_rect(band(rect, offset, SHORE, SHORE), AppTheme.WATER_SHORE)
+	if noise(cell, 13) < 0.5:
+		var start := rect.position + Vector2(0.15 + noise(cell, 14) * 0.4, 0.25 + noise(cell, 15) * 0.5) * size
+		ci.draw_line(start, start + Vector2(size * 0.3, 0), Color(AppTheme.WATER_LIGHT, 0.55), 2.0)
 
 
 func _tree(ci: CanvasItem, cell: Vector2i) -> void:

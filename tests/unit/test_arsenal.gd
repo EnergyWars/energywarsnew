@@ -53,6 +53,7 @@ func test_battle_applies_the_arsenal() -> void:
 	var zapper := state.add_building(GameConfig.ZAPPER, state.map.drop)
 	assert_almost_eq(zapper.max_hp(), float(GameConfig.building(GameConfig.ZAPPER).hp) * 1.15, 0.001)
 	assert_eq(zapper.hp, zapper.max_hp())
+	state.spawn_structures(state.map.structures)
 	var nest: Building = state.enemy_buildings()[0]
 	assert_eq(nest.max_hp(), float(GameConfig.building(GameConfig.NEST).hp))
 	assert_false(nest.immune)

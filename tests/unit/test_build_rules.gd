@@ -39,7 +39,7 @@ func test_bounds() -> void:
 
 func test_blocked_by_terrain() -> void:
 	var spot := core.position + Vector2(150, 0)
-	for tile in [LevelMap.Tile.TREE, LevelMap.Tile.ROCK, LevelMap.Tile.CLIFF, LevelMap.Tile.CHASM]:
+	for tile in [LevelMap.Tile.TREE, LevelMap.Tile.ROCK, LevelMap.Tile.CLIFF, LevelMap.Tile.CHASM, LevelMap.Tile.POND]:
 		battle.state.map.set_tile(battle.state.map.cell_of(spot), tile)
 		assert_eq(BuildRules.reason(battle.state, GameConfig.SOLAR, spot), BuildRules.BLOCKED, str(tile))
 	battle.state.map.set_tile(battle.state.map.cell_of(spot), LevelMap.Tile.RAMP)
@@ -121,6 +121,7 @@ func test_nothing_but_the_core_while_scouting() -> void:
 func test_core_needs_distance_to_enemies() -> void:
 	var fresh := Battle.start(0)
 	BattleFixtures.open_terrain(fresh.state)
+	fresh.state.spawn_structures(fresh.state.map.structures)
 	var nest: Building = fresh.state.enemy_buildings()[0]
 	fresh.state.scout.position = nest.position + Vector2(0, 300)
 	assert_eq(BuildRules.reason(fresh.state, GameConfig.CORE, nest.position + Vector2(0, 300)), BuildRules.ENEMY_NEAR)

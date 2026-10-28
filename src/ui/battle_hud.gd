@@ -7,6 +7,7 @@ signal start_pressed
 signal undo_pressed
 signal reset_pressed
 signal status_pressed
+signal map_focus_requested(world: Vector2)
 
 const BANNER_TIME := 1.8
 const TOAST_TIME := 1.6
@@ -33,6 +34,8 @@ var _stats_button: Button
 var _status_button: Button
 var _legend: PanelContainer
 var stats_panel: EnergyStatsPanel
+var map_panel: MapPanel
+var map_button: Button
 var _hint: PanelContainer
 var _hint_label: Label
 var _combo: VBoxContainer
@@ -50,8 +53,9 @@ var _combo_timer := 0.0
 var _night := false
 
 
-func setup(p_safe_top: float) -> BattleHud:
+func setup(p_safe_top: float, p_map: MapPanel = null) -> BattleHud:
 	safe_top = p_safe_top
+	map_panel = p_map
 	return self
 
 
@@ -61,6 +65,7 @@ func _ready() -> void:
 	_build_top()
 	_build_prep()
 	_build_stats()
+	_build_map()
 	_build_legend()
 	_build_hint()
 	_build_combo()
@@ -143,11 +148,51 @@ func _build_stats() -> void:
 func toggle_stats() -> void:
 	stats_panel.visible = not stats_panel.visible
 	if stats_panel.visible:
+		hide_map()
 		Juice.pop_in(stats_panel)
 
 
 func hide_stats() -> void:
 	stats_panel.visible = false
+
+
+func _build_map() -> void:
+	map_button = UiKit.icon_button(Icons.MAP, toggle_map, 64.0)
+	map_button.visible = map_panel != null
+	add_child(map_button)
+	if map_panel == null:
+		return
+	map_panel.visible = false
+	map_panel.closed.connect(hide_map)
+	map_panel.focus_requested.connect(func(world: Vector2) -> void:
+		hide_map()
+		map_focus_requested.emit(world))
+	add_child(map_panel)
+
+
+func map_visible() -> bool:
+	return map_panel != null and map_panel.visible
+
+
+func toggle_map() -> void:
+	if map_panel == null:
+		return
+	map_panel.visible = not map_panel.visible
+	if map_panel.visible:
+		hide_stats()
+		Juice.pop_in(map_panel)
+
+
+func hide_map() -> void:
+	if map_panel != null:
+		map_panel.visible = false
+
+
+func announce_structures(count: int) -> void:
+	if count <= 0:
+		return
+	toast(Texts.format("MAP_SPAWNED", [count]), AppTheme.DANGER)
+	Juice.pop(map_button, 1.4)
 
 
 func _build_legend() -> void:
@@ -344,6 +389,10 @@ func _layout() -> void:
 	stats_panel.position = Vector2((width - stats_panel.size.x) * 0.5, below)
 	if stats_panel.visible:
 		below += stats_panel.size.y + AppTheme.SPACING_SM
+	if map_panel != null:
+		map_panel.position = Vector2((width - map_panel.size.x) * 0.5, below)
+		if map_panel.visible:
+			below += map_panel.size.y + AppTheme.SPACING_SM
 	_hint.position = Vector2((width - _hint.size.x) * 0.5, below)
 	_combo.position = Vector2(width - _combo.size.x - AppTheme.SPACING_LG, top + 150.0)
 	_banner.size.x = width

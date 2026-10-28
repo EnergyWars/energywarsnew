@@ -30,6 +30,7 @@ const STICK_RADIUS := 90.0
 const STICK_DEADZONE := 0.12
 const STATUS_TEXT := 17
 const STATUS_BADGE := 22
+const STATUS_RING := 3.0
 
 var battle: Battle
 var fx := EffectPool.new(7)
@@ -137,6 +138,11 @@ func chunk_count() -> int:
 
 func view_size() -> Vector2:
 	return get_viewport_rect().size
+
+
+func world_rect() -> Rect2:
+	var extent := view_size() / zoom
+	return Rect2(center - extent * 0.5, extent)
 
 
 func focus(world: Vector2) -> void:
@@ -697,6 +703,8 @@ func _paint_world(ci: CanvasItem) -> void:
 			continue
 		var capacity := Formulas.capacity(building)
 		var fill := building.energy / capacity if capacity > 0.0 else 0.0
+		if building.exporting:
+			fill = Formulas.export_progress(building)
 		Painter.building(ci, building.kind, building.position, building.radius(), clock, fill, float(_aims.get(building.id, DEFAULT_AIM)), light)
 	for pickup in state.pickups:
 		if not is_on_screen(pickup.position):
@@ -848,6 +856,8 @@ func _paint_overlay(ci: CanvasItem) -> void:
 			Painter.bar(ci, enemy.position + Vector2(0, -enemy.radius() - 9.0), maxf(enemy.radius() * 2.0, 20.0), enemy.hp_ratio(), Painter.hp_color(enemy.hp_ratio()), 4.0)
 	if status_mode:
 		_paint_status(ci)
+	elif shows_beam_labels():
+		_paint_beam_labels(ci)
 	_paint_selection(ci)
 	_paint_pick(ci)
 	_paint_gesture(ci)
@@ -886,9 +896,41 @@ func _paint_selection(ci: CanvasItem) -> void:
 	_paint_support_ranges(ci, building, 1.0)
 
 
+func shows_beam_labels() -> bool:
+	var building := battle.state.building(selected_id)
+	return status_mode or (building != null and building.is_player())
+
+
+func _paint_beam_labels(ci: CanvasItem) -> void:
+	var state := battle.state
+	var audit := battle.audit()
+	var scenario := EnergyAudit.view_scenario(state)
+	for link in state.links:
+		var points := state.link_points(link)
+		if _segment_on_screen(points[0], points[1]):
+			var key := link.key()
+			_text(ci, StatusText.link_label(audit, key, scenario), points[0].lerp(points[1], 0.5) + Vector2(0, -8.0), STATUS_TEXT, StatusText.link_color(audit, key, scenario))
+
+
+func _paint_badge(ci: CanvasItem, building: Building, audit: EnergyAudit, scenario: int) -> void:
+	var verdict := audit.verdict(building.id, scenario)
+	if verdict == EnergyAudit.Verdict.NONE:
+		return
+	var color := StatusText.color(verdict)
+	var corner := building.position + Vector2(building.radius(), -building.radius()) * 0.8
+	var radius := STATUS_BADGE * 0.7
+	ci.draw_circle(corner, radius, Color(AppTheme.SURFACE, 0.92))
+	ci.draw_arc(corner, radius, 0.0, TAU, 24, color, STATUS_RING, true)
+	var gap := audit.missing(building.id, scenario)
+	if gap > 0.0:
+		ci.draw_arc(corner, radius, -PI / 2.0, -PI / 2.0 + TAU * gap, maxi(int(24 * gap), 4), AppTheme.DANGER, STATUS_RING, true)
+	_icon(ci, StatusText.icon(verdict), corner, STATUS_BADGE, color)
+
+
 func _paint_status(ci: CanvasItem) -> void:
 	var state := battle.state
 	var audit := battle.audit()
+	var scenario := EnergyAudit.view_scenario(state)
 	var chain := audit.chain(selected_id)
 	var chain_links := {}
 	for key: String in chain.links:
@@ -897,35 +939,31 @@ func _paint_status(ci: CanvasItem) -> void:
 	for id: int in chain.buildings:
 		chain_buildings[id] = true
 	var focused := not chain_links.is_empty()
-	var culprit_link := audit.culprit_link(selected_id)
-	var culprit := audit.culprit(selected_id)
+	var culprit_link := audit.culprit_link(selected_id, scenario)
+	var culprit := audit.culprit(selected_id, scenario)
 	var pulse := 0.5 + 0.5 * sin(clock * 8.0)
 	for link in state.links:
 		var points := state.link_points(link)
 		if not _segment_on_screen(points[0], points[1]):
 			continue
 		var key := link.key()
-		var color := StatusText.link_color(audit, key)
+		var color := StatusText.link_color(audit, key, scenario)
 		var lit := chain_links.has(key)
+		var strong := lit or not focused
 		if key == culprit_link:
 			ci.draw_line(points[0], points[1], Color(AppTheme.DANGER, 0.3 + 0.4 * pulse), 16.0, true)
-		ci.draw_line(points[0], points[1], Color(color, 0.9 if lit or not focused else 0.3), 6.0 if lit else 3.0, true)
-		if lit or not focused:
-			_text(ci, StatusText.link_label(audit, key), points[0].lerp(points[1], 0.5) + Vector2(0, -8.0), STATUS_TEXT, color)
+		ci.draw_line(points[0], points[1], Color(color, 0.9 if strong else 0.3), 6.0 if lit else 3.0, true)
+		_text(ci, StatusText.link_label(audit, key, scenario), points[0].lerp(points[1], 0.5) + Vector2(0, -8.0), STATUS_TEXT, Color(color, 1.0 if strong else 0.55))
 	for building in state.player_buildings():
 		if not audit.has(building.id) or not is_on_screen(building.position, building.half_extent()):
 			continue
-		var verdict := audit.verdict(building.id)
-		var color := StatusText.color(verdict)
-		var corner := building.position + Vector2(building.radius(), -building.radius()) * 0.8
-		ci.draw_circle(corner, STATUS_BADGE * 0.7, Color(AppTheme.SURFACE, 0.92))
-		ci.draw_arc(corner, STATUS_BADGE * 0.7, 0.0, TAU, 20, color, 2.0, true)
-		_icon(ci, StatusText.icon(verdict), corner, STATUS_BADGE, color)
+		var verdict := audit.verdict(building.id, scenario)
+		_paint_badge(ci, building, audit, scenario)
 		if state.is_planning() and Formulas.is_fresh(building):
 			_icon(ci, Icons.SELL, building.position + Vector2(-building.radius(), -building.radius()) * 0.8, STATUS_BADGE - 4, AppTheme.GOLD)
-		var text := StatusText.label(building, audit)
+		var text := StatusText.label(building, audit, scenario)
 		if not text.is_empty():
-			var tone := AppTheme.ON_SURFACE if verdict == EnergyAudit.Verdict.OK else color
+			var tone := StatusText.color(verdict) if verdict == EnergyAudit.Verdict.LOW or verdict == EnergyAudit.Verdict.OVERLOADED else AppTheme.ON_SURFACE
 			_text(ci, text, building.position + Vector2(0, building.radius() + 32.0), STATUS_TEXT, Color(tone, 1.0 if not focused or chain_buildings.has(building.id) or building.id == selected_id else 0.45))
 		if chain_buildings.has(building.id):
 			ci.draw_arc(building.position, building.radius() + 6.0, 0.0, TAU, 32, Color(AppTheme.ENERGY_CORE, 0.8), 3.0, true)

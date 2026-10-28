@@ -19,7 +19,7 @@ func test_chunks_cover_the_map() -> void:
 
 func test_every_tile_paints_without_errors() -> void:
 	var map := LevelMap.blank(Vector2i(12, 12))
-	var tiles := [LevelMap.Tile.RAMP, LevelMap.Tile.CLIFF, LevelMap.Tile.CHASM, LevelMap.Tile.TREE, LevelMap.Tile.ROCK]
+	var tiles := [LevelMap.Tile.RAMP, LevelMap.Tile.CLIFF, LevelMap.Tile.CHASM, LevelMap.Tile.TREE, LevelMap.Tile.ROCK, LevelMap.Tile.POND]
 	for i in tiles.size():
 		map.set_tile(Vector2i(2 + i * 2, 5), tiles[i])
 		map.set_tile(Vector2i(2 + i * 2, 6), tiles[i])
@@ -35,3 +35,23 @@ func test_every_tile_paints_without_errors() -> void:
 	layer.queue_redraw()
 	await wait_physics_frames(2)
 	assert_true(painted[0])
+
+
+func test_edge_bands_hug_the_open_side() -> void:
+	var rect := Rect2(Vector2(10, 20), Vector2(56, 56))
+	assert_eq(TerrainPainter.band(rect, Vector2i(1, 0), 5.0, 9.0), Rect2(Vector2(61, 20), Vector2(5, 56)))
+	assert_eq(TerrainPainter.band(rect, Vector2i(-1, 0), 5.0, 9.0), Rect2(Vector2(10, 20), Vector2(5, 56)))
+	assert_eq(TerrainPainter.band(rect, Vector2i(0, 1), 5.0, 9.0), Rect2(Vector2(10, 71), Vector2(56, 5)))
+	assert_eq(TerrainPainter.band(rect, Vector2i(0, -1), 5.0, 9.0), Rect2(Vector2(10, 20), Vector2(56, 9)))
+
+
+func test_water_gets_deeper_towards_the_middle() -> void:
+	var map := LevelMap.blank(Vector2i(5, 5))
+	for y in range(1, 4):
+		for x in range(1, 4):
+			map.set_tile(Vector2i(x, y), LevelMap.Tile.POND)
+	var painter := TerrainPainter.new(map)
+	assert_eq(painter.water_depth(Vector2i(2, 2)), 1.0)
+	assert_eq(painter.water_depth(Vector2i(1, 2)), 0.75)
+	assert_eq(painter.water_depth(Vector2i(1, 1)), 0.5)
+	assert_eq(painter.water_depth(Vector2i(0, 0)), 0.0)

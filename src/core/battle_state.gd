@@ -28,6 +28,7 @@ var pickups: Array[Pickup] = []
 var obstacles := {}
 var rng := RandomNumberGenerator.new()
 var core_id := -1
+var structures_spawned := false
 var kills := 0
 var lost := 0
 var earned := 0
@@ -60,9 +61,6 @@ static func create(index: int, seed_value: int = 0, p_setup: BattleSetup = null)
 	state.scout = Scout.new(state.map.drop)
 	state.money = int(state.level.money) + state.setup.arsenal.money_bonus
 	state.rng.seed = seed_value if seed_value != 0 else int(state.level.seed) * 7919
-	for structure in state.map.structures:
-		var building := state.add_building(structure.kind, structure.position)
-		building.immune = building.spawner and state.is_survival()
 	state.fog.refresh(state)
 	return state
 
@@ -72,7 +70,19 @@ func place_core(position: Vector2) -> Building:
 	core.energy = Formulas.capacity(core) * 0.5
 	core_id = core.id
 	phase = Phase.PLAN
+	if not structures_spawned:
+		spawn_structures(StructurePlacer.sites(self, core.position))
 	return core
+
+
+func spawn_structures(sites: Array[Dictionary]) -> Array[Building]:
+	structures_spawned = true
+	var placed: Array[Building] = []
+	for site in sites:
+		var building := add_building(str(site.kind), site.position)
+		building.immune = building.spawner and is_survival()
+		placed.append(building)
+	return placed
 
 
 func next_id() -> int:

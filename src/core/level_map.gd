@@ -1,7 +1,7 @@
 class_name LevelMap
 extends RefCounted
 
-enum Tile { OPEN, RAMP, CLIFF, CHASM, TREE, ROCK }
+enum Tile { OPEN, RAMP, CLIFF, CHASM, TREE, ROCK, POND }
 
 const TREE := "tree"
 const ROCK := "rock"

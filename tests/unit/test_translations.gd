@@ -46,6 +46,9 @@ func _keys() -> Array[String]:
 		keys.append("COMBO_TIER_%d" % (tier + 1))
 	for step in Tutorial.ORDER:
 		keys.append("TUTORIAL_%s" % step.to_upper())
+	keys.append_array(["MAP_TITLE", "MAP_PENDING", "MAP_STRUCTURES", "MAP_SPAWNED"] as Array[String])
+	for entry: Array in MapPanel.LEGEND:
+		keys.append(str(entry[1]))
 	return keys
 
 

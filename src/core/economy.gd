@@ -6,6 +6,7 @@ const MAX_KILL_COINS := 6
 const STRUCTURE_COINS := 12
 const COIN_SPEED := 120.0
 const COIN_DRAG := 4.0
+const EXPORT_EPSILON := 0.0001
 
 var state: BattleState
 var events: BattleEvents
@@ -86,16 +87,21 @@ func reset_combo() -> void:
 
 func _export(delta: float) -> void:
 	for building in state.of_kind(GameConfig.EXPORTER):
-		var rate := Formulas.export_rate(building)
-		if rate <= 0.0:
+		var batch := Formulas.export_batch(building)
+		if batch <= 0.0:
 			continue
-		var amount := minf(building.energy, rate * delta)
+		var amount := minf(building.energy, Formulas.export_rate(building) * delta)
 		building.energy -= amount
-		building.export_buffer += amount / GameConfig.ENERGY_PER_COIN
-		if building.export_buffer >= GameConfig.EXPORT_BATCH:
-			building.export_buffer -= GameConfig.EXPORT_BATCH
-			credit(GameConfig.EXPORT_BATCH)
-			events.emit("export", {"position": building.position, "value": GameConfig.EXPORT_BATCH})
+		building.export_buffer += amount
+		if building.export_buffer + EXPORT_EPSILON < batch:
+			continue
+		building.export_buffer = maxf(building.export_buffer - batch, 0.0)
+		var coins := Formulas.export_income(batch) + building.export_carry
+		var value := int(floor(coins + EXPORT_EPSILON))
+		building.export_carry = maxf(coins - value, 0.0)
+		if value > 0:
+			credit(value)
+			events.emit("export", {"position": building.position, "value": value, "id": building.id})
 
 
 func collect(pickup: Pickup) -> void:
