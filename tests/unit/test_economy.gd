@@ -175,3 +175,18 @@ func test_exporter_without_energy_earns_nothing() -> void:
 	battle.economy.update(10.0)
 	assert_eq(battle.state.money, money)
 	assert_eq(exporter.export_buffer, 0.0)
+
+
+func test_exporter_ring_only_closes_with_the_full_rate() -> void:
+	var exporter := BattleFixtures.add(battle, GameConfig.EXPORTER, Vector2(400, 400))
+	var rate := Formulas.export_rate(exporter)
+	exporter.energy = rate * GameConfig.TICK * 0.5
+	battle.economy.update(GameConfig.TICK)
+	assert_eq(exporter.export_buffer, 0.0)
+	assert_almost_eq(exporter.energy, rate * GameConfig.TICK * 0.5, 0.0001)
+	exporter.energy = rate * GameConfig.TICK
+	battle.economy.update(GameConfig.TICK)
+	assert_almost_eq(exporter.export_buffer, rate * GameConfig.TICK, 0.0001)
+	assert_almost_eq(exporter.energy, 0.0, 0.0001)
+	assert_gte(GameConfig.EXPORT_CYCLE, 5.0)
+	assert_almost_eq(Formulas.export_payout(exporter), Formulas.export_income(rate * GameConfig.EXPORT_CYCLE), 0.0001)

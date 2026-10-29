@@ -101,3 +101,52 @@ func test_draw_change_preview() -> void:
 	assert_eq(StatText.draw_change(_building(GameConfig.RELAY), GameConfig.TRACK_RATE), "")
 	assert_eq(StatText.upgraded(zapper, GameConfig.TRACK_SPEED).level(GameConfig.TRACK_SPEED), 1)
 	assert_eq(zapper.level(GameConfig.TRACK_SPEED), 0)
+
+
+func _row(rows: Array[Array], key: String) -> String:
+	for row in rows:
+		if row[0] == key:
+			return str(row[1])
+	return ""
+
+
+func test_lamp_fire_and_exporter_rows() -> void:
+	var battle := BattleFixtures.battle(GameConfig.level_count() - 1)
+	var lamp := _building(GameConfig.LAMP)
+	lamp.light_radius = 4.0
+	var lamp_rows := StatText.stats(lamp, battle.state)
+	assert_eq(_row(lamp_rows, "STAT_LIGHT_RADIUS"), Texts.format("STAT_LIGHT_RADIUS_VALUE", [4.0]))
+	assert_eq(_row(lamp_rows, "STAT_LIGHT_DRAW"), "%.1f/s" % Formulas.lamp_draw(lamp))
+	assert_eq(_row(lamp_rows, "STAT_LIGHT_STATE"), Texts.t("STAT_LIGHT_OFF"))
+	lamp.lit = true
+	lamp.energy = Formulas.capacity(lamp) * 0.5
+	assert_eq(_row(StatText.stats(lamp, battle.state), "STAT_LIGHT_STATE"), Texts.format("STAT_LIGHT_ON_VALUE", [2.0]))
+	assert_eq(StatText.light_state(lamp), Texts.format("STAT_LIGHT_ON_VALUE", [Formulas.lit_reach(lamp) / GameConfig.CELL]))
+	var locale := TranslationServer.get_locale()
+	TranslationServer.set_locale("de")
+	assert_eq(StatText.light_state(lamp), "An · 2.0 Felder")
+	TranslationServer.set_locale(locale)
+	lamp.lit = false
+	assert_eq(StatText.light_state(lamp), Texts.t("STAT_LIGHT_OFF"))
+	var fire := _building(GameConfig.FIRE)
+	assert_eq(_row(StatText.stats(fire, battle.state), "STAT_FUEL"), "0")
+	fire.fuel.append(Vector2i(3, 3))
+	fire.fuel.append(Vector2i(4, 3))
+	var fire_rows := StatText.stats(fire, battle.state)
+	assert_eq(_row(fire_rows, "STAT_FUEL"), "2")
+	assert_eq(_row(fire_rows, "STAT_FUEL_TIME"), NumberFormat.clock(GameConfig.FIRE_BURN_TIME * 2.0))
+	assert_eq(_row(lamp_rows, "STAT_FUEL"), "")
+	var exporter := _building(GameConfig.EXPORTER)
+	exporter.export_buffer = Formulas.export_batch(exporter) * 0.425
+	assert_eq(_row(StatText.stats(exporter, battle.state), "STAT_EXPORT_PROGRESS"), "42%")
+
+
+func test_lamp_upgrades_preview_their_draw() -> void:
+	var lamp := _building(GameConfig.LAMP)
+	lamp.light_radius = 6.0
+	var probe := StatText.upgraded(lamp, GameConfig.TRACK_EFFICIENCY)
+	assert_eq(probe.light_radius, 6.0)
+	assert_eq(StatText.draw_change(lamp, GameConfig.TRACK_EFFICIENCY), Texts.format("PANEL_DRAW_CHANGE", [Icons.BOLT, Formulas.lamp_draw(lamp), Formulas.lamp_draw(probe)]))
+	assert_eq(StatText.draw_change(lamp, GameConfig.TRACK_HULL), "")
+	var exporter := _building(GameConfig.EXPORTER)
+	assert_ne(StatText.draw_change(exporter, GameConfig.TRACK_RATE), "")

@@ -43,14 +43,14 @@ static func measure(state: BattleState, audit: EnergyAudit = null) -> EnergyStat
 	var day := 0.0
 	var night := 0.0
 	for building in state.producers():
-		var amount := Formulas.output(building)
-		day += amount
-		if not building.definition().get("solar", false):
-			night += amount
+		day += Formulas.forecast_output(building, false)
+		night += Formulas.forecast_output(building, true)
 	var fire := 0.0
 	for building in state.combatants():
 		if building.is_player():
 			fire += fire_draw(building)
+	for building in state.of_kind(GameConfig.LAMP):
+		fire += Formulas.lamp_draw(building)
 	var exported := 0.0
 	for building in state.of_kind(GameConfig.EXPORTER):
 		exported += Formulas.export_rate(building)

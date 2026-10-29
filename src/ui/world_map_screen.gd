@@ -4,6 +4,7 @@ extends Control
 signal campaign_chosen(index: int)
 signal survival_chosen(index: int, days: int)
 signal locale_changed
+signal progress_reset
 
 var progress: Progress
 var settings: AppSettings
@@ -12,6 +13,8 @@ var map: WorldMapView
 var panel: RegionPanel
 var tech: TechOverlay
 var tech_button: Button
+var reset_button: Button
+var reset_dialog: ConfirmOverlay
 var _top: VBoxContainer
 var _bottom: VBoxContainer
 var _stars: Label
@@ -97,7 +100,8 @@ func _build_bottom() -> void:
 	_sound = UiKit.button("", "Button", _toggle_sound)
 	_haptics = UiKit.button("", "Button", _toggle_haptics)
 	_language = UiKit.button("", "Button", _cycle_language)
-	for button in [_sound, _haptics, _language]:
+	reset_button = UiKit.button(Icons.RESET, "Button", confirm_reset_progress)
+	for button in [_sound, _haptics, _language, reset_button]:
 		row.add_child(button)
 	_bottom.add_child(row)
 	_bottom.add_child(UiKit.label(Texts.t("MENU_CREDITS"), "Tiny", HORIZONTAL_ALIGNMENT_CENTER))
@@ -163,7 +167,26 @@ func open_tech() -> void:
 	add_child(tech)
 
 
+func confirm_reset_progress() -> void:
+	if is_instance_valid(reset_dialog):
+		return
+	reset_dialog = ConfirmOverlay.new().setup(Texts.t("PROGRESS_RESET_TITLE"), Texts.t("PROGRESS_RESET_TEXT"), Texts.t("PROGRESS_RESET_CONFIRM"))
+	reset_dialog.cancelled.connect(reset_dialog.queue_free)
+	reset_dialog.confirmed.connect(_progress_reset_confirmed)
+	add_child(reset_dialog)
+
+
+func _progress_reset_confirmed() -> void:
+	if is_instance_valid(reset_dialog):
+		reset_dialog.queue_free()
+	progress.reset_all()
+	progress_reset.emit()
+
+
 func handle_back() -> bool:
+	if is_instance_valid(reset_dialog) and not reset_dialog.is_queued_for_deletion():
+		reset_dialog.queue_free()
+		return true
 	if is_instance_valid(tech) and not tech.is_queued_for_deletion():
 		tech.handle_back()
 		return true

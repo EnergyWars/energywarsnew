@@ -1,7 +1,7 @@
 class_name Battle
 extends RefCounted
 
-const STEP_PAINT := "paint"
+const STEP_LIGHT := "light"
 const STEP_CUT := "cut"
 
 var state: BattleState
@@ -13,6 +13,9 @@ var ai: EnemyAI
 var spawns: SpawnDirector
 var scouting: ScoutControl
 var mobility: MobileControl
+var lighting: Lighting
+var fuel: FuelControl
+var checkpoint: BattleCheckpoint
 var history := PlanHistory.new()
 var _accumulator := 0.0
 var _was_night := false
@@ -29,6 +32,9 @@ func _init(p_state: BattleState) -> void:
 	spawns = SpawnDirector.new(state, events)
 	scouting = ScoutControl.new(state, events)
 	mobility = MobileControl.new(state, events)
+	lighting = Lighting.new(state)
+	fuel = FuelControl.new(state, events)
+	combat.lighting = lighting
 	_was_night = state.is_night()
 	if state.is_planning():
 		history.begin(state)
@@ -68,7 +74,9 @@ func tick(delta: float) -> void:
 	state.round_time += delta
 	spawns.update(delta)
 	mobility.update(delta)
+	fuel.update(delta)
 	network.flow(delta)
+	lighting.update(delta)
 	combat.update(delta)
 	ai.update(delta)
 	_sweep()
@@ -130,8 +138,12 @@ func audit() -> EnergyAudit:
 
 
 func start_round() -> bool:
+	if not state.is_planning():
+		return false
+	var saved := BattleCheckpoint.capture(state)
 	if not spawns.start_round():
 		return false
+	checkpoint = saved
 	history.end()
 	return true
 
@@ -216,20 +228,23 @@ func clear_with_scout(world: Vector2) -> String:
 	return scouting.clear(world)
 
 
+func walk_scout(world: Vector2) -> String:
+	return scouting.walk_to(world)
+
+
 func place(kind: String, position: Vector2) -> String:
 	if kind == GameConfig.CORE:
 		return deploy_core(position)
 	var reason := BuildRules.reason(state, kind, position)
 	if reason != BuildRules.OK:
 		return reason
-	var tag := STEP_PAINT if GameConfig.is_wall(kind) else ""
-	var before := _checkpoint(tag)
+	var before := _checkpoint()
 	var cost := Formulas.build_cost(state, kind)
 	state.money -= cost
 	var building := state.add_building(kind, position)
 	building.spent = cost
 	building.plan_spent = cost if state.is_planning() else 0
-	_commit(before, tag)
+	_commit(before)
 	events.emit("placed", {"id": building.id, "kind": kind, "position": building.position})
 	return reason
 
@@ -350,6 +365,60 @@ func connect_buildings(from_id: int, to_id: int) -> String:
 		_commit(_checkpoint())
 		network.connect_buildings(from_id, to_id)
 	return reason
+
+
+func cut_link(from_id: int, to_id: int) -> bool:
+	var link := state.find_link(from_id, to_id)
+	if link == null or state.is_over():
+		return false
+	_commit(_checkpoint())
+	network.remove_link(link, "cut")
+	return true
+
+
+func cut_links_of(id: int, incoming: bool) -> int:
+	var building := state.building(id)
+	if building == null or not building.is_player() or state.is_over():
+		return 0
+	var any := state.links.any(func(link: EnergyLink) -> bool: return (link.target if incoming else link.source) == id)
+	if not any:
+		return 0
+	_commit(_checkpoint())
+	return network.remove_links_where(id, incoming, "cut")
+
+
+func toggle_fuel(id: int, cell: Vector2i) -> String:
+	var fire := state.building(id)
+	var marked := fire != null and fire.fuel.has(cell)
+	if not marked:
+		var reason := fuel.reason(fire, cell)
+		if reason != FuelControl.OK:
+			return reason
+	elif state.is_over():
+		return FuelControl.INVALID
+	_commit(_checkpoint())
+	return fuel.toggle(fire, cell)
+
+
+func set_light_radius(id: int, radius_cells: float) -> bool:
+	var lamp := state.building(id)
+	if lamp == null or not lamp.lighting or not lamp.is_player() or state.is_over():
+		return false
+	var value := Formulas.clamp_light(radius_cells)
+	if is_equal_approx(value, lamp.light_radius):
+		return false
+	_commit(_checkpoint(STEP_LIGHT), STEP_LIGHT)
+	lamp.light_radius = value
+	state.mark_changed()
+	return true
+
+
+func rename(id: int, text: String) -> bool:
+	var building := state.building(id)
+	if building == null or not building.is_player():
+		return false
+	building.label = text.strip_edges().left(Building.LABEL_MAX)
+	return true
 
 
 func cut(from: Vector2, to: Vector2) -> int:

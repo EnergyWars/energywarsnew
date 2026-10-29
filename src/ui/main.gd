@@ -40,6 +40,7 @@ func show_menu() -> void:
 	menu.campaign_chosen.connect(start_campaign)
 	menu.survival_chosen.connect(start_survival)
 	menu.locale_changed.connect(show_menu)
+	menu.progress_reset.connect(show_menu)
 	layer.add_child(menu)
 	_replace(layer)
 
@@ -59,12 +60,18 @@ func retry() -> void:
 		_start(last_index, BattleSetup.new(last_rules.mode, last_rules.days, progress.arsenal()))
 
 
-func _start(index: int, rules: BattleSetup) -> void:
+func resume(checkpoint: BattleCheckpoint) -> void:
+	if checkpoint != null:
+		_start(checkpoint.level_index, checkpoint.setup, checkpoint)
+
+
+func _start(index: int, rules: BattleSetup, checkpoint: BattleCheckpoint = null) -> void:
 	last_index = index
 	last_rules = rules
-	var battle := BattleScreen.new().setup(index, progress, settings, sfx, safe_top(), rules)
+	var battle := BattleScreen.new().setup(index, progress, settings, sfx, safe_top(), rules, checkpoint)
 	battle.menu_requested.connect(show_menu)
 	battle.retry_requested.connect(retry)
+	battle.checkpoint_requested.connect(resume)
 	menu = null
 	_replace(battle)
 

@@ -22,7 +22,7 @@ var demand := {}
 var needs := {}
 var generation: Array[Dictionary] = [{}, {}]
 var storage: Array[Dictionary] = [{}, {}]
-var gathered: Array[Dictionary] = [{}, {}]
+var local: Array[Dictionary] = [{}, {}]
 var served: Array[Dictionary] = [{}, {}]
 var received: Array[Dictionary] = [{}, {}]
 var forwarded: Array[Dictionary] = [{}, {}]
@@ -41,6 +41,7 @@ var _buildings := {}
 var _incoming := {}
 var _outgoing := {}
 var _sourced := {}
+var _fed := {}
 var _producers := {}
 var _targets := {}
 var _links: Array[EnergyLink] = []
@@ -51,8 +52,10 @@ static func measure(state: BattleState) -> EnergyAudit:
 	var audit := EnergyAudit.new()
 	audit._collect(state)
 	audit._needs()
+	audit._mark_fed()
 	for scenario in SCENARIOS:
 		audit._solve(scenario)
+		audit._localize(scenario)
 	for scenario in SCENARIOS:
 		audit._judge(scenario)
 	return audit
@@ -61,6 +64,8 @@ static func measure(state: BattleState) -> EnergyAudit:
 static func draw(building: Building) -> float:
 	if building.exporting:
 		return Formulas.export_rate(building)
+	if building.lighting:
+		return Formulas.lamp_draw(building)
 	return EnergyStats.fire_draw(building)
 
 
@@ -143,7 +148,7 @@ func demand_of(id: int) -> float:
 
 
 func available(id: int, scenario: int = WORST) -> float:
-	return float(gathered[resolve(id, scenario)].get(id, 0.0))
+	return float(local[resolve(id, scenario)].get(id, 0.0))
 
 
 func supply(id: int, scenario: int = WORST) -> float:
@@ -264,8 +269,8 @@ func _ratio(id: int, scenario: int) -> float:
 		return 1.0
 	var wish := need_of(id)
 	if wish <= EPSILON:
-		return 1.0 if _sourced.has(id) else 0.0
-	return clampf(float(gathered[scenario][id]) / wish, 0.0, 1.0)
+		return 1.0 if _fed.has(id) else 0.0
+	return clampf(float(local[scenario][id]) / wish, 0.0, 1.0)
 
 
 func _saturated(key: String, scenario: int) -> bool:
@@ -283,14 +288,12 @@ func _collect(state: BattleState) -> void:
 		_incoming[id] = []
 		_outgoing[id] = []
 		demand[id] = 0.0 if Formulas.is_overloaded(building) else draw(building)
-		var output := Formulas.output(building)
-		var solar := bool(building.definition().get("solar", false))
-		if output > 0.0:
+		if Formulas.output(building) > 0.0:
 			_producers[id] = true
-		generation[DAY][id] = output
-		generation[NIGHT][id] = 0.0 if solar else output
+		generation[DAY][id] = Formulas.forecast_output(building, false)
+		generation[NIGHT][id] = Formulas.forecast_output(building, true)
 		storage[DAY][id] = 0.0
-		storage[NIGHT][id] = Formulas.capacity(building) / night if Formulas.max_links(building) > 0 and not solar else 0.0
+		storage[NIGHT][id] = Formulas.capacity(building) / night if Formulas.max_links(building) > 0 and EnergyNetwork.can_receive(building) else 0.0
 	for link in state.links:
 		if not _buildings.has(link.source) or not _buildings.has(link.target):
 			continue
@@ -406,7 +409,6 @@ func _solve(scenario: int) -> void:
 		var total := _own(scenario, id) + incoming
 		received[scenario][id] = incoming
 		forwarded[scenario][id] = out
-		gathered[scenario][id] = total
 		served[scenario][id] = clampf(total - out, 0.0, float(demand[id]))
 	for link in _links:
 		var key := link.key()
@@ -414,6 +416,49 @@ func _solve(scenario: int) -> void:
 		sent[scenario][key] = amount
 		moved[scenario] += amount
 		lost[scenario] += amount * (1.0 - float(yields[key]))
+
+
+func _localize(scenario: int) -> void:
+	for id: int in _buildings:
+		var total := 0.0
+		if _fed.has(id):
+			total = _own(scenario, id)
+			for link: EnergyLink in _incoming[id]:
+				if is_active(link.key()):
+					total += _potential(scenario, link)
+		local[scenario][id] = total
+
+
+func _potential(scenario: int, link: EnergyLink) -> float:
+	var key := link.key()
+	var rate := float(sent[scenario][key]) if _producers.has(link.source) else float(caps[key])
+	return rate * float(yields[key])
+
+
+func _mark_fed() -> void:
+	for id: int in _buildings:
+		if _sourced.has(id) or _rooted(id):
+			_fed[id] = true
+
+
+func _rooted(id: int) -> bool:
+	var seen := {id: true}
+	var queue: Array[int] = [id]
+	var head := 0
+	while head < queue.size():
+		var current := queue[head]
+		head += 1
+		var inputs := 0
+		for link: EnergyLink in _incoming[current]:
+			if not is_active(link.key()):
+				continue
+			inputs += 1
+			if not seen.has(link.source):
+				seen[link.source] = true
+				queue.append(link.source)
+		if inputs == 0:
+			return current != id
+	return false
 
 
 func _distribute(scenario: int, id: int, delivered_by: Dictionary, flows: Dictionary) -> float:
@@ -450,7 +495,7 @@ func _judge(scenario: int) -> void:
 		var building: Building = _buildings[id]
 		if Formulas.is_overloaded(building):
 			_rule(scenario, id, Verdict.OVERLOADED, Cause.OVERLOAD)
-		elif not _sourced.has(id):
+		elif not _fed.has(id):
 			_offline(scenario, id)
 		elif _ratio(id, scenario) >= SATISFIED:
 			_rule(scenario, id, Verdict.OK, Cause.NONE)
@@ -467,19 +512,10 @@ func _rule(scenario: int, id: int, value: Verdict, reason: Cause, link: EnergyLi
 
 
 func _offline(scenario: int, id: int) -> void:
-	var seen := {id: true}
-	var queue: Array[int] = [id]
-	var head := 0
-	while head < queue.size():
-		var current := queue[head]
-		head += 1
-		for link: EnergyLink in _incoming[current]:
-			if not is_active(link.key()):
-				_rule(scenario, id, Verdict.LOW, Cause.OUT_OF_RANGE, link)
-				return
-			if not seen.has(link.source):
-				seen[link.source] = true
-				queue.append(link.source)
+	for link: EnergyLink in _incoming[id]:
+		if not is_active(link.key()):
+			_rule(scenario, id, Verdict.LOW, Cause.OUT_OF_RANGE, link)
+			return
 	_rule(scenario, id, Verdict.LOW, Cause.NO_SOURCE)
 
 
@@ -490,31 +526,20 @@ func _drains(id: int) -> bool:
 
 func _bottleneck(scenario: int, id: int) -> void:
 	var night_only := scenario == NIGHT and _ratio(id, DAY) >= SATISFIED
-	var seen := {id: true}
-	var queue: Array[int] = [id]
-	var head := 0
 	var broken: EnergyLink = null
 	var lossy: EnergyLink = null
 	var saturated: EnergyLink = null
-	var drained := -1
-	while head < queue.size():
-		var current := queue[head]
-		head += 1
-		if drained < 0 and _drains(current):
-			drained = current
-		for link: EnergyLink in _incoming[current]:
-			var key := link.key()
-			if not is_active(key):
-				if broken == null:
-					broken = link
-				continue
-			if saturated == null and _saturated(key, scenario):
-				saturated = link
-			if lossy == null and link_loss(key) >= HEAVY_LOSS:
-				lossy = link
-			if not seen.has(link.source):
-				seen[link.source] = true
-				queue.append(link.source)
+	var drained := id if _drains(id) else -1
+	for link: EnergyLink in _incoming[id]:
+		var key := link.key()
+		if not is_active(key):
+			if broken == null:
+				broken = link
+			continue
+		if saturated == null and _limits(scenario, link):
+			saturated = link
+		if lossy == null and link_loss(key) >= HEAVY_LOSS:
+			lossy = link
 	var darker := scenario == NIGHT and _ratio(id, NIGHT) < _ratio(id, DAY) - EPSILON
 	if night_only:
 		_blame_night(scenario, id, drained)
@@ -526,6 +551,13 @@ func _bottleneck(scenario: int, id: int) -> void:
 		_rule(scenario, id, Verdict.LOW, Cause.BEAM_LOSS, lossy)
 	elif darker:
 		_blame_night(scenario, id, drained)
+
+
+func _limits(scenario: int, link: EnergyLink) -> bool:
+	var key := link.key()
+	if _producers.has(link.source):
+		return _saturated(key, scenario)
+	return float(caps[key]) + EPSILON < need_of(link.target) - _own(scenario, link.target)
 
 
 func _blame_night(scenario: int, id: int, drained: int) -> void:

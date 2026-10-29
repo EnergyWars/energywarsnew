@@ -57,6 +57,9 @@ BUILDING_EXPORTER_SHORT,Export,Export
 BUILDING_HEALER,Medic Tower,Heilturm
 BUILDING_HEALER_INFO,Repairs damaged buildings nearby and automatically picks the one that needs it most.,Repariert beschädigte Gebäude in der Nähe und wählt automatisch das dringendste Ziel.
 BUILDING_HEALER_SHORT,Heal,Heilen
+BUILDING_BASTION,Bulwark tower,Bollwerk-Turm
+BUILDING_BASTION_INFO,"Sturdy anti-air tower. Flying enemies always attack it first. Air targets only.","Robuster Flugabwehrturm. Luftgegner greifen ihn immer zuerst an. Nur Luftziele."
+BUILDING_BASTION_SHORT,Bulwark,Bollwerk
 BUILDING_BULWARK,Bulwark,Bollwerk
 BUILDING_BULWARK_INFO,"Cheap, extremely tough wall block. Enemies can't pass – drag to build whole walls.","Günstiger, extrem widerstandsfähiger Mauerblock. Gegner kommen nicht durch – ziehe, um ganze Mauern zu bauen."
 BUILDING_BULWARK_SHORT,Bulwark,Bollwerk
@@ -142,8 +145,8 @@ COMBO_TIER_4,HIGH VOLTAGE!,HOCHSPANNUNG!
 COMBO_TIER_5,BLACKOUT!,BLACKOUT!
 COMBO_TIER_6,SUPERNOVA!,SUPERNOVA!
 COMBO_TIER_7,GOD MODE!,GOTTMODUS!
-TUTORIAL_BUILD_SOLAR,"Tap the solar panel below, then tap next to your core to build it.","Tippe unten auf das Solarpanel und dann neben deinen Kern, um es zu bauen."
-TUTORIAL_CONNECT,Tap “Connect” at the bottom right and drag from the solar panel to the core – or select the panel and tap “Connect” there. An energy beam appears!,Tippe unten rechts auf „Verbinden“ und ziehe vom Solarpanel zum Kern – oder wähle das Panel aus und tippe dort auf „Verbinden“. Ein Energiestrahl entsteht!
+TUTORIAL_BUILD_SOLAR,"Tap “Build” below, pick the solar panel and tap next to your core.","Tippe unten auf „Bauen“, wähle das Solarpanel und tippe neben deinen Kern."
+TUTORIAL_CONNECT,You are in connect mode: drag from the solar panel to the core – or select the panel and tap “Connect” there. An energy beam appears!,Du bist im Verbinden-Modus: Ziehe vom Solarpanel zum Kern – oder wähle das Panel aus und tippe dort auf „Verbinden“. Ein Energiestrahl entsteht!
 TUTORIAL_BUILD_TOWER,"Now build a zapper on the side facing the nest – the map shows where it is.","Baue jetzt einen Blitzturm auf der Seite Richtung Nest – die Karte zeigt, wo es liegt."
 TUTORIAL_POWER_TOWER,Drag a beam from your core to the zapper to power it.,"Ziehe einen Strahl vom Kern zum Blitzturm, damit er Energie bekommt."
 TUTORIAL_CAMERA,Switch to “Move” to drag the map with one finger. Two fingers zoom.,"Wechsle auf „Verschieben“, um die Karte mit einem Finger zu bewegen. Mit zwei Fingern zoomst du."
@@ -169,7 +172,7 @@ BANNER_ALL_DESTROYED,All bases destroyed!,Alle Basen zerstört!
 BANNER_STRUCTURE_DOWN,%s DESTROYED!,%s ZERSTÖRT!
 BANNER_FIGHT,ATTACK!,ANGRIFF!
 BANNER_NIGHT,Night falls,Die Nacht bricht herein
-BANNER_NIGHT_SUB,Solar is offline – your storage must hold,Solar ist aus – jetzt zählen deine Speicher
+BANNER_NIGHT_SUB,Solar is offline – towers only see what is lit,"Solar ist aus – Türme sehen nur, was beleuchtet ist"
 FLOAT_CRIT,CRIT %d!,KRIT %d!
 FLOAT_LEVEL,Level %d!,Stufe %d!
 TOAST_LOST,%s lost!,%s verloren!
@@ -194,7 +197,7 @@ REASON_BUILD_PHASE,Build your base first.,Errichte zuerst deine Basis.
 REASON_SCOUT_MISSING,No soldier available.,Kein Soldat verfügbar.
 REASON_SCOUT_LANDING,Still landing…,Landet noch …
 HUD_SCOUT,Find a base site,Suche einen Bauplatz
-SCOUT_HINT,"Soldier: drag anywhere on the map to steer, tap nearby trees or rocks to clear them.","Soldat: Irgendwo auf der Karte ziehen zum Lenken, Bäume oder Felsen in der Nähe antippen zum Abbauen."
+SCOUT_HINT,Soldier: drag to steer or tap a spot to walk there. Tap trees or rocks to clear them – far ones too.,"Soldat: Ziehen lenkt, Antippen schickt ihn hin. Bäume oder Felsen antippen räumt sie ab – auch entfernte."
 MAP_TITLE,Map,Karte
 MAP_PENDING,Enemy bases appear once your core stands.,"Feindliche Basen erscheinen, sobald dein Kern steht."
 MAP_STRUCTURES,"%d enemy structures marked · tap to jump there","%d feindliche Bauten markiert · antippen, um hinzuspringen"
@@ -206,9 +209,9 @@ MAP_LEGEND_SCOUT,Soldier,Soldat
 TOAST_LANDED,Landed! Explore the map.,Gelandet! Erkunde die Karte.
 BANNER_BASE,BASE ESTABLISHED,BASIS ERRICHTET
 BANNER_BASE_SUB,Plan in peace – nothing happens until you start the day,"Plane in Ruhe – bis du den Tag startest, passiert nichts"
-TUTORIAL_MOVE_SCOUT,"Your soldier has landed. Drag anywhere on the map to walk around and explore – look for a plateau or a spot sheltered by forest, rocks and water. One tap fells a tree.","Dein Soldat ist gelandet. Zieh irgendwo auf der Karte, um herumzulaufen und zu erkunden – suche ein Plateau oder einen Platz, den Wald, Felsen und Wasser schützen. Ein Tipp fällt einen Baum."
-TUTORIAL_DEPLOY_CORE,Tap “Base” below and place your core near the soldier. The soldier then mans the core and the enemy bases appear far away.,Tippe unten auf „Basis“ und platziere deinen Kern in der Nähe des Soldaten. Der Soldat besetzt dann den Kern und weit entfernt tauchen die feindlichen Basen auf.
-TUTORIAL_BUILD_WALL,Enemies wreck towers fast. Pick the bulwark and drag a wall that closes off your base – ramps and gaps first!,"Gegner zerlegen Türme schnell. Wähle das Bollwerk und ziehe eine Mauer, die deine Basis abschließt – zuerst Rampen und Lücken!"
+TUTORIAL_MOVE_SCOUT,"Your soldier has landed. Drag anywhere on the map to walk around or tap a spot to send the soldier there – look for a plateau or a spot sheltered by forest, rocks and water. Tapping a tree fells it.","Dein Soldat ist gelandet. Zieh irgendwo auf der Karte, um herumzulaufen, oder tippe einen Ort an, um ihn dorthin zu schicken – suche ein Plateau oder einen Platz, den Wald, Felsen und Wasser schützen. Ein Tipp auf einen Baum fällt ihn."
+TUTORIAL_DEPLOY_CORE,"Tap “Base” below and place your core near the soldier – if the spot is too far, the soldier walks there first. The soldier then mans the core and the enemy bases appear far away.","Tippe unten auf „Basis“ und platziere deinen Kern in der Nähe des Soldaten – ist der Ort zu weit weg, läuft der Soldat erst hin. Der Soldat besetzt dann den Kern und weit entfernt tauchen die feindlichen Basen auf."
+TUTORIAL_BUILD_WALL,Enemies wreck towers fast. Pick the bulwark under “Build” and place pieces that close off your base – ramps and gaps first! “Place multiple” keeps the bulwark selected.,"Gegner zerlegen Türme schnell. Wähle unter „Bauen“ das Bollwerk und setze Teile, die deine Basis abschließen – zuerst Rampen und Lücken! „Mehrfach platzieren“ behält das Bollwerk ausgewählt."
 STAT_BLOCKS,Blocks,Blockiert
 STAT_BLOCKS_VALUE,ground enemies,Bodengegner
 BUILDING_ROVER,Mobile tower,Mobiler Turm
@@ -216,7 +219,7 @@ BUILDING_ROVER_INFO,Drives wherever you steer it. Driving costs a lot of energy;
 BUILDING_ROVER_SHORT,Mobile,Mobil
 REASON_SCOUT_BOARDED,Your soldier is manning the core.,Dein Soldat besetzt den Kern.
 REASON_SCOUT_NOTHING,Nothing to clear here.,Hier gibt es nichts abzubauen.
-REASON_SCOUT_TOO_FAR,Walk closer first.,Lauf erst näher heran.
+REASON_SCOUT_TOO_FAR,The soldier can't get there.,Da kommt der Soldat nicht hin.
 REASON_BUILD_IMMOBILE,This building can't be moved.,Dieses Gebäude kann nicht versetzt werden.
 REASON_BUILD_SAME,It's already here.,Es steht bereits hier.
 REASON_FOCUS_INVALID,That can't be attacked.,Das kann nicht angegriffen werden.
@@ -325,6 +328,9 @@ TECH_HINT,Spend skill points from challenges on new towers and upgrades for ever
 TECH_BUY,%d SP,%d SP
 TECH_OWNED,Done,Erforscht
 TECH_REQUIRES,Requires: %s,Benötigt: %s
+PROGRESS_RESET_TITLE,Reset save game?,Spielstand zurücksetzen?
+PROGRESS_RESET_TEXT,"All conquered regions, stars, research and statistics will be deleted permanently. This cannot be undone.","Alle eroberten Regionen, Sterne, Forschung und Statistiken werden unwiderruflich gelöscht."
+PROGRESS_RESET_CONFIRM,Delete everything,Alles löschen
 TECH_RESET,Reset research,Forschung zurücksetzen
 TECH_RESET_TITLE,Reset research?,Forschung zurücksetzen?
 TECH_RESET_TEXT,You get all %d skill points back and can spend them again.,Du bekommst alle %d Skillpunkte zurück und kannst sie neu verteilen.
@@ -360,6 +366,8 @@ TECH_HEALER,Medic tower,Heilturm
 TECH_HEALER_INFO,Unlocks the medic tower,Schaltet den Heilturm frei
 TECH_HEALER_POWER,Nano repair,Nanoreparatur
 TECH_HEALER_POWER_INFO,Medic tower +25% healing,Heilturm +25 % Heilkraft
+TECH_BASTION,Bulwark tower,Bollwerk-Turm
+TECH_BASTION_INFO,Unlocks the bulwark tower,Schaltet den Bollwerk-Turm frei
 TECH_SHIELD,Shield generator,Schildgenerator
 TECH_SHIELD_INFO,Unlocks the shield generator,Schaltet den Schildgenerator frei
 TECH_PLATING_1,Armour plating I,Panzerung I
@@ -410,8 +418,6 @@ PANEL_SELL_LOSS,Sell  +%d (−%d loss),Verkaufen  +%d (−%d Verlust)
 STATUS_OK,Supplied,Versorgt
 STATUS_LOW,Undersupplied,Unterversorgt
 STATUS_OVERLOADED,Overloaded,Überladen
-STATUS_FRESH,Built this planning: full refund,In dieser Planung gebaut: volle Erstattung
-STATUS_HINT,"Tap a building to light up its supply chain. The red share of the ring is the missing supply. Demand assumes non-stop fire, batteries bridge the night with their storage. Beams show loss · arriving energy, neighbouring tiles are lossless.","Tippe ein Gebäude an, um seine Versorgungskette zu sehen. Der rote Anteil im Ring ist die fehlende Versorgung. Bedarf gilt für Dauerfeuer, Batterien überbrücken die Nacht mit ihrem Speicher. Strahlen zeigen Verlust · ankommende Energie, Nachbarfelder sind verlustfrei."
 STATUS_UNKNOWN,a building,einem Gebäude
 STATUS_SUMMARY,%s %s · %s missing,%s %s · %s fehlen
 STATUS_WHEN_DAY,by day,tagsüber
@@ -424,8 +430,7 @@ STATUS_LABEL_SHOT,%s/shot · %s,%s/Schuss · %s
 STATUS_LABEL_OUTPUT,+%s,+%s
 STATUS_LABEL_RELAY,passes %s,leitet %s
 STATUS_LINK_RANGE,out of range,außer Reichweite
-STATUS_LINK_LABEL,−%s · %s of %s,−%s · %s von %s
-STATUS_LINK_LOSSLESS,lossless · %s of %s,verlustfrei · %s von %s
+STATUS_LINK_OUT,%s (−%s),%s (−%s)
 STATUS_CAUSE_OVERLOAD,"Needs %s per shot but stores only %s, so it never fires. Upgrade capacity or efficiency.","Braucht %s pro Schuss, speichert aber nur %s – feuert nie. Kapazität oder Effizienz ausbauen."
 STATUS_CAUSE_NO_SOURCE,No beam chain leads to a producer. Connect it to your network.,Keine Strahlkette führt zu einem Erzeuger. Verbinde es mit deinem Netz.
 STATUS_CAUSE_OUT_OF_RANGE,The beam from %s is out of range.,Der Strahl von %s ist außer Reichweite.
@@ -439,3 +444,46 @@ TOAST_STATUS_OFF,Status view off,Statusansicht aus
 TOAST_GUARDS,"Guards patrol the enemy bases – tough, but they never attack","Wächter patrouillieren um die Feindbasen – zäh, greifen aber nie an"
 TOAST_GUARDS_BURN,%d guards go up in flames,%d Wächter gehen in Flammen auf
 TOAST_OVERLOADED,Overloaded: one shot needs more than its storage – it stops firing,Überladen: Ein Schuss braucht mehr als der Speicher – der Turm feuert nicht mehr
+PANEL_NAME_HINT,Name (optional),Name (optional)
+PANEL_LINKS,Connections (tap to select),Verbindungen (Tippen zum Auswählen)
+PANEL_CUT_IN,Remove all incoming (%d),Alle eingehenden entfernen (%d)
+PANEL_CUT_OUT,Remove all outgoing (%d),Alle ausgehenden entfernen (%d)
+BUILDING_WATER,Water wheel,Wasserrad
+BUILDING_WATER_INFO,"Produces a little energy – day and night, no matter the sun.","Erzeugt wenig Energie – dafür Tag und Nacht, unabhängig von der Sonne."
+BUILDING_WATER_SHORT,Water,Wasser
+BUILDING_FIRE,Fire pit,Feuerstelle
+BUILDING_FIRE_INFO,"Very cheap and very strong, but only burns while it has trees you marked. Trees are finite – burned trees no longer shelter your base.","Sehr billig und sehr stark, brennt aber nur, solange es von dir markierte Bäume gibt. Bäume sind endlich – verbrannte Bäume schützen deine Basis nicht mehr."
+BUILDING_FIRE_SHORT,Fire,Feuer
+BUILDING_LAMP,Lamp,Lampe
+BUILDING_LAMP_INFO,Lights up the night so your towers can see enemies. Uses energy at night – a bigger radius costs disproportionately more.,"Erhellt die Nacht, damit deine Türme Gegner sehen. Braucht nachts Energie – ein größerer Radius kostet überproportional mehr."
+BUILDING_LAMP_SHORT,Lamp,Lampe
+TECH_WATER,Water wheel,Wasserrad
+TECH_WATER_INFO,"Unlocks the water wheel: little energy, but day and night.","Schaltet das Wasserrad frei: wenig Energie, dafür Tag und Nacht."
+TECH_FIRE,Fire pit,Feuerstelle
+TECH_FIRE_INFO,"Unlocks the fire pit: costs almost nothing and delivers a lot, but burns the trees you mark.","Schaltet die Feuerstelle frei: kostet fast nichts und bringt viel, verbrennt aber die Bäume, die du markierst."
+TRACK_EFFICIENCY_LAMP,Light efficiency,Lichteffizienz
+BUILD_OPEN,Build,Bauen
+BUILD_ONCE,Place once,1× platzieren
+BUILD_MULTI,Place multiple,Mehrfach platzieren
+BUILD_CANCEL,Cancel: %s,Abbrechen: %s
+RESULT_CHECKPOINT,Retry from last start,Ab letztem Start nochmal
+TOAST_SCOUT_WALKS,The soldier is on the way – tap again once close enough.,"Der Soldat läuft hin – tippe erneut, sobald er nah genug ist."
+TOAST_PICK_FUEL,Tap trees to mark them as fuel – tap again to unmark,"Tippe Bäume an, um sie als Brennstoff zu markieren – erneut tippen hebt es auf"
+TOAST_FUEL_EMPTY,A fire pit has burned all its trees,Eine Feuerstelle hat alle Bäume verbrannt
+REASON_FUEL_INVALID,Not possible right now.,Gerade nicht möglich.
+REASON_FUEL_NOT_TREE,Only trees can be burned.,Nur Bäume können verbrannt werden.
+REASON_FUEL_RANGE,Too far from the fire pit.,Zu weit von der Feuerstelle entfernt.
+REASON_FUEL_UNEXPLORED,Explore this area first.,Erkunde diesen Bereich zuerst.
+PANEL_LIGHT,Brightness,Helligkeit
+PANEL_LIGHT_VALUE,%.1f tiles · %.1f/s,%.1f Felder · %.1f/s
+PANEL_LIGHT_HINT,Only lit at night. Twice the radius costs about 5.7× the energy.,"Leuchtet nur nachts. Doppelter Radius kostet etwa 5,7× so viel Energie."
+PANEL_FUEL,Mark trees (%d),Bäume markieren (%d)
+STAT_FUEL,Marked trees,Markierte Bäume
+STAT_FUEL_TIME,Burns for,Brennt noch
+STAT_LIGHT_RADIUS,Light radius,Lichtradius
+STAT_LIGHT_RADIUS_VALUE,%.1f tiles,%.1f Felder
+STAT_LIGHT_DRAW,Draw at night,Verbrauch nachts
+STAT_LIGHT_STATE,Light,Licht
+STAT_LIGHT_ON_VALUE,On · %.1f tiles,An · %.1f Felder
+STAT_LIGHT_OFF,Off,Aus
+STAT_EXPORT_PROGRESS,Current cycle,Aktueller Zyklus

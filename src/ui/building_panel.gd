@@ -9,17 +9,33 @@ signal target_raised(id: int, unit_class: String)
 signal link_pressed(id: int)
 signal focus_pressed(id: int)
 signal relocate_pressed(id: int)
+signal rename_submitted(id: int, text: String)
+signal cut_all_pressed(id: int, incoming: bool)
+signal cut_pressed(from_id: int, to_id: int)
+signal building_picked(id: int)
+signal light_changed(id: int, radius: float)
+signal light_drag_started(id: int)
+signal light_drag_ended(id: int)
+signal fuel_pressed(id: int)
 
-const VISIBLE_TRACKS := 4
-const TRACK_ROW_HEIGHT := 62.0
-const TRACK_SCROLL_DEADZONE := 12
+const SCROLL_DEADZONE := 12
 const PULSE := 1.2
+const MINIMIZED_PADDING := AppTheme.SPACING_SM
 
 var battle: Battle
 var building_id := -1
 var _icon: BuildingIcon
 var _title: Label
+var _name: LineEdit
 var _info: Label
+var _header: HBoxContainer
+var _scroll: ScrollContainer
+var _links: VBoxContainer
+var _cut_in: Button
+var _cut_out: Button
+var _link_list: VBoxContainer
+var _link_rows: Array[Dictionary] = []
+var _link_signature := ""
 var _minimize: Button
 var _body: VBoxContainer
 var _stats: GridContainer
@@ -30,7 +46,6 @@ var _status_cause: Label
 var _status_grid: GridContainer
 var _status_values: Array[Label] = []
 var _tracks: VBoxContainer
-var _track_scroll: ScrollContainer
 var _targets: VBoxContainer
 var _target_row: HBoxContainer
 var _target_buttons: Array[Button] = []
@@ -39,11 +54,19 @@ var _actions: HBoxContainer
 var _link: Button
 var _focus: Button
 var _relocate: Button
+var _fuel: Button
+var _light_box: VBoxContainer
+var _light_value: Label
+var _light_hint: Label
+var light_slider: HSlider
+var _light_dragging := false
 var active_pick := ""
 var _track_rows := {}
 var _stat_values: Array[Label] = []
 var _pulse := false
 var minimized := false
+var _name_shown := false
+var _status_shown := false
 
 
 func setup(p_battle: Battle) -> BuildingPanel:
@@ -53,17 +76,22 @@ func setup(p_battle: Battle) -> BuildingPanel:
 
 func _ready() -> void:
 	theme_type_variation = "Card"
-	add_theme_stylebox_override(&"panel", AppTheme.box(AppTheme.PANEL, AppTheme.RADIUS_CARD, AppTheme.OUTLINE, AppTheme.SPACING_LG))
+	_apply_padding(AppTheme.SPACING_LG)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var column := UiKit.vbox(AppTheme.SPACING_SM)
 	add_child(column)
 	var header := UiKit.hbox(AppTheme.SPACING_MD)
+	_header = header
 	_icon = BuildingIcon.new().setup("", 64.0)
 	header.add_child(_icon)
 	var titles := UiKit.vbox(0)
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title = UiKit.label("", "Title")
+	_title.clip_text = true
+	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	titles.add_child(_title)
+	_name = _name_field()
+	titles.add_child(_name)
 	_info = UiKit.label("", "Caption")
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_info.custom_minimum_size = Vector2(300, 0)
@@ -86,8 +114,14 @@ func _ready() -> void:
 	status_texts.add_child(_status_cause)
 	_status.add_child(status_texts)
 	column.add_child(_status)
+	_build_light(column)
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.scroll_deadzone = SCROLL_DEADZONE
 	_body = UiKit.vbox(AppTheme.SPACING_SM)
-	column.add_child(_body)
+	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_body)
+	column.add_child(_scroll)
 	_stats = _grid()
 	_body.add_child(_stats)
 	_status_grid = _grid()
@@ -97,18 +131,16 @@ func _ready() -> void:
 	_target_row = UiKit.hbox(AppTheme.SPACING_XS)
 	_targets.add_child(_target_row)
 	_body.add_child(_targets)
-	_track_scroll = ScrollContainer.new()
-	_track_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_track_scroll.scroll_deadzone = TRACK_SCROLL_DEADZONE
 	_tracks = UiKit.vbox(AppTheme.SPACING_XS)
 	_tracks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_track_scroll.add_child(_tracks)
-	_body.add_child(_track_scroll)
+	_body.add_child(_tracks)
 	_actions = UiKit.hbox(AppTheme.SPACING_XS)
 	_link = _action_button(func() -> void: link_pressed.emit(building_id))
 	_focus = _action_button(func() -> void: focus_pressed.emit(building_id))
 	_relocate = _action_button(func() -> void: relocate_pressed.emit(building_id))
+	_fuel = _action_button(func() -> void: fuel_pressed.emit(building_id))
 	_body.add_child(_actions)
+	_build_links()
 	_sell = UiKit.button("", "DangerButton", func() -> void: sell_pressed.emit(building_id))
 	_body.add_child(_sell)
 	_apply_minimized()
@@ -125,9 +157,189 @@ func set_minimized(value: bool) -> void:
 
 
 func _apply_minimized() -> void:
-	_body.visible = not minimized
+	_scroll.visible = not minimized
 	_info.visible = not minimized
+	_icon.visible = not minimized
+	_status.visible = not minimized and _status_shown
+	_name.visible = not minimized and _name_shown
+	_light_hint.visible = not minimized
 	_minimize.text = Icons.EXPAND_LESS if minimized else Icons.EXPAND_MORE
+	_apply_padding(MINIMIZED_PADDING if minimized else AppTheme.SPACING_LG)
+
+
+func _apply_padding(padding: int) -> void:
+	add_theme_stylebox_override(&"panel", AppTheme.box(AppTheme.PANEL, AppTheme.RADIUS_CARD, AppTheme.OUTLINE, padding))
+
+
+func fit(max_height: float) -> void:
+	if minimized or not visible:
+		_scroll.custom_minimum_size.y = 0.0
+		return
+	var chrome := get_combined_minimum_size().y - _scroll.custom_minimum_size.y
+	var wanted := _body.get_combined_minimum_size().y
+	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(max_height - chrome, 0.0))
+
+
+func _name_field() -> LineEdit:
+	var field := LineEdit.new()
+	field.placeholder_text = Texts.t("PANEL_NAME_HINT")
+	field.max_length = Building.LABEL_MAX
+	field.add_theme_font_override(&"font", AppTheme.FONT_REGULAR)
+	field.add_theme_font_size_override(&"font_size", AppTheme.SIZE_SMALL)
+	field.add_theme_color_override(&"font_color", AppTheme.ON_SURFACE)
+	field.add_theme_color_override(&"font_placeholder_color", AppTheme.ON_SURFACE_VARIANT)
+	field.add_theme_stylebox_override(&"normal", AppTheme.box(AppTheme.SURFACE_VARIANT, AppTheme.RADIUS_CARD, AppTheme.OUTLINE, AppTheme.SPACING_SM, 1))
+	field.add_theme_stylebox_override(&"focus", AppTheme.box(AppTheme.SURFACE_VARIANT, AppTheme.RADIUS_CARD, AppTheme.ENERGY, AppTheme.SPACING_SM, 2))
+	field.text_submitted.connect(func(_text: String) -> void:
+		_commit_name()
+		field.release_focus())
+	field.focus_exited.connect(_commit_name)
+	return field
+
+
+func _commit_name() -> void:
+	var building := battle.state.building(building_id)
+	if building == null or not building.is_player() or _name.text.strip_edges() == building.label:
+		return
+	rename_submitted.emit(building_id, _name.text)
+
+
+func _build_links() -> void:
+	_links = UiKit.vbox(AppTheme.SPACING_XS)
+	_links.add_child(UiKit.label(Texts.t("PANEL_LINKS"), "Caption"))
+	var cuts := UiKit.hbox(AppTheme.SPACING_XS)
+	_cut_in = _cut_button(cuts, true)
+	_cut_out = _cut_button(cuts, false)
+	_links.add_child(cuts)
+	_link_list = UiKit.vbox(AppTheme.SPACING_XS)
+	_links.add_child(_link_list)
+	_body.add_child(_links)
+
+
+func _build_light(parent: Container) -> void:
+	_light_box = UiKit.vbox(AppTheme.SPACING_XS)
+	var header := UiKit.hbox(AppTheme.SPACING_SM)
+	header.add_child(UiKit.icon(Icons.LIGHT, AppTheme.LAMP_LIGHT, 26))
+	var caption := UiKit.label(Texts.t("PANEL_LIGHT"), "Caption")
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(caption)
+	_light_value = UiKit.label("", "Body")
+	header.add_child(_light_value)
+	_light_box.add_child(header)
+	light_slider = HSlider.new()
+	light_slider.min_value = GameConfig.LAMP_RADIUS_MIN
+	light_slider.max_value = GameConfig.LAMP_RADIUS_MAX
+	light_slider.step = GameConfig.LAMP_RADIUS_STEP
+	light_slider.focus_mode = Control.FOCUS_NONE
+	light_slider.custom_minimum_size = Vector2(0, 48)
+	light_slider.value_changed.connect(func(value: float) -> void: light_changed.emit(building_id, value))
+	light_slider.drag_started.connect(func() -> void:
+		_light_dragging = true
+		light_drag_started.emit(building_id))
+	light_slider.drag_ended.connect(func(_changed: bool) -> void:
+		_light_dragging = false
+		light_drag_ended.emit(building_id))
+	_light_box.add_child(light_slider)
+	_light_hint = UiKit.label(Texts.t("PANEL_LIGHT_HINT"), "Tiny")
+	_light_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_light_hint.custom_minimum_size = Vector2(300, 0)
+	_light_box.add_child(_light_hint)
+	parent.add_child(_light_box)
+
+
+func _refresh_light(building: Building) -> void:
+	if not _light_box.visible:
+		return
+	if not _light_dragging and not is_equal_approx(light_slider.value, building.light_radius):
+		light_slider.set_value_no_signal(building.light_radius)
+	_light_value.text = Texts.format("PANEL_LIGHT_VALUE", [building.light_radius, Formulas.lamp_draw(building)])
+
+
+func _cut_button(parent: Container, incoming: bool) -> Button:
+	var button := UiKit.button("", "DangerButton", func() -> void: cut_all_pressed.emit(building_id, incoming))
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_font_size_override(&"font_size", AppTheme.SIZE_SMALL)
+	parent.add_child(button)
+	return button
+
+
+static func building_label(building: Building) -> String:
+	var name := Texts.building_name(building.kind)
+	return name if building.label.is_empty() else "%s · %s" % [name, building.label]
+
+
+func _links_of(building: Building) -> Array[EnergyLink]:
+	var result: Array[EnergyLink] = []
+	for link in battle.state.links:
+		if link.source == building.id or link.target == building.id:
+			result.append(link)
+	return result
+
+
+func _rebuild_links(building: Building) -> void:
+	for child in _link_list.get_children():
+		child.queue_free()
+	_link_rows.clear()
+	var connected: Array[EnergyLink] = []
+	if building.is_player():
+		connected = _links_of(building)
+	_links.visible = not connected.is_empty()
+	var state := battle.state
+	for link: EnergyLink in connected:
+		var incoming := link.target == building.id
+		var other := state.building(link.source if incoming else link.target)
+		if other == null:
+			continue
+		var row := UiKit.hbox(AppTheme.SPACING_XS)
+		var texts := UiKit.vbox(0)
+		texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var other_id := other.id
+		var pick := UiKit.button("%s  %s" % ["←" if incoming else "→", building_label(other)], "Button", func() -> void: building_picked.emit(other_id))
+		pick.add_theme_font_size_override(&"font_size", AppTheme.SIZE_SMALL)
+		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		pick.clip_text = true
+		texts.add_child(pick)
+		var data := UiKit.label("", "Caption")
+		texts.add_child(data)
+		row.add_child(texts)
+		var source_id := link.source
+		var target_id := link.target
+		row.add_child(UiKit.icon_button(Icons.CLOSE, func() -> void: cut_pressed.emit(source_id, target_id), 52.0))
+		_link_list.add_child(row)
+		_link_rows.append({"key": link.key(), "data": data, "outgoing": not incoming})
+	_link_signature = _signature(building)
+
+
+func _signature(building: Building) -> String:
+	var parts: PackedStringArray = []
+	for link in _links_of(building):
+		var other := battle.state.building(link.source if link.target == building.id else link.target)
+		parts.append("%s:%s" % [link.key(), other.label if other != null else ""])
+	return ",".join(parts)
+
+
+func _refresh_links(building: Building) -> void:
+	if _signature(building) != _link_signature:
+		_rebuild_links(building)
+	if not _links.visible:
+		return
+	var state := battle.state
+	var incoming := 0
+	for link in state.links:
+		if link.target == building.id:
+			incoming += 1
+	var outgoing := state.outgoing(building.id).size()
+	_cut_in.visible = incoming > 0
+	_cut_out.visible = outgoing > 0
+	_cut_in.text = Texts.format("PANEL_CUT_IN", [incoming])
+	_cut_out.text = Texts.format("PANEL_CUT_OUT", [outgoing])
+	var audit := battle.audit()
+	var current := scenario()
+	for row in _link_rows:
+		var data: Label = row.data
+		var key: String = row.key
+		data.text = StatusText.link_label(audit, key, bool(row.outgoing), current)
+		data.add_theme_color_override(&"font_color", StatusText.link_color(audit, key, current))
 
 
 func _grid() -> GridContainer:
@@ -148,13 +360,19 @@ func _action_button(callback: Callable) -> Button:
 
 
 func show_building(id: int) -> void:
+	if id != building_id:
+		_commit_name()
+		_name.release_focus()
 	building_id = id
 	var building := battle.state.building(id)
 	visible = building != null
 	if building == null:
 		return
 	_icon.kind = building.kind
-	_title.text = Texts.building_name(building.kind)
+	_refresh_title(building)
+	_name_shown = building.is_player()
+	_name.text = building.label
+	_name.visible = _name_shown and not minimized
 	_info.text = Texts.building_info(building.kind)
 	_rebuild(building)
 	refresh()
@@ -181,20 +399,25 @@ func _rebuild(building: Building) -> void:
 		var value := UiKit.label(str(row[1]), "Body")
 		_status_grid.add_child(value)
 		_status_values.append(value)
-	_status.visible = audit != null and audit.shows(building.id)
+	_status_shown = audit != null and audit.shows(building.id)
+	_status.visible = _status_shown and not minimized
 	_status_grid.visible = not _status_values.is_empty()
 	var tracks: Array = building.definition().get("tracks", []) if building.is_player() else []
 	for track: String in tracks:
 		_tracks.add_child(_track_row(building, track))
-	_track_scroll.visible = not tracks.is_empty()
-	_track_scroll.custom_minimum_size.y = mini(tracks.size(), VISIBLE_TRACKS) * TRACK_ROW_HEIGHT
-	_track_scroll.scroll_vertical = 0
+	_tracks.visible = not tracks.is_empty()
+	_scroll.scroll_vertical = 0
+	_rebuild_links(building)
 	_rebuild_targets(building)
 	_sell.visible = building.is_player() and building.id != battle.state.core_id
 	_link.visible = EnergyNetwork.can_send(building)
 	_focus.visible = building.is_player() and GameConfig.has_attack(building.kind)
 	_relocate.visible = building.is_player() and building.id != battle.state.core_id and not GameConfig.is_mobile(building.kind)
-	_actions.visible = _link.visible or _focus.visible or _relocate.visible
+	_fuel.visible = building.is_player() and building.burner
+	_actions.visible = _link.visible or _focus.visible or _relocate.visible or _fuel.visible
+	_light_box.visible = building.is_player() and building.lighting
+	if _light_box.visible:
+		light_slider.set_value_no_signal(building.light_radius)
 
 
 func _rebuild_targets(building: Building) -> void:
@@ -305,7 +528,16 @@ func refresh() -> void:
 			button.disabled = not battle.can_upgrade(building_id, track)
 	_sell.text = sell_text(building, battle.state.is_planning())
 	_refresh_actions(building)
+	_refresh_title(building)
+	_refresh_light(building)
 	_refresh_targets(building)
+	_refresh_links(building)
+	if not _name.has_focus() and _name.text != building.label:
+		_name.text = building.label
+
+
+func _refresh_title(building: Building) -> void:
+	_title.text = building_label(building) if minimized else Texts.building_name(building.kind)
 
 
 static func sell_text(building: Building, planning: bool) -> String:
@@ -327,7 +559,7 @@ func _refresh_status(building: Building) -> void:
 		return
 	var audit := battle.audit()
 	var current := scenario()
-	if _status.visible:
+	if _status_shown:
 		var verdict := audit.verdict(building.id, current)
 		_status_icon.text = StatusText.icon(verdict)
 		_status_icon.add_theme_color_override(&"font_color", StatusText.color(verdict))
@@ -352,6 +584,10 @@ func _refresh_actions(building: Building) -> void:
 		var focused := battle.combat.focused(building) != null
 		_focus.text = "%s  %s" % [Icons.TARGET, Texts.t("PANEL_UNFOCUS" if focused else "PANEL_FOCUS")]
 		_focus.theme_type_variation = "PrimaryButton" if active_pick == "focus" or focused else "Button"
+	if _fuel.visible:
+		_fuel.text = "%s  %s" % [Icons.TREE, Texts.format("PANEL_FUEL", [building.fuel.size()])]
+		_fuel.theme_type_variation = "PrimaryButton" if active_pick == "fuel" else "Button"
+		_fuel.disabled = state.is_over()
 	if _relocate.visible:
 		var cost := Formulas.relocate_cost(building, state.is_planning())
 		var label := Texts.t("PANEL_RELOCATE_FREE") if cost == 0 else Texts.format("PANEL_RELOCATE", [cost])

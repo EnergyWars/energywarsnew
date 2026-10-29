@@ -76,6 +76,9 @@ func _choose(enemy: Enemy) -> Building:
 		_ranked = Targeting.rank(state.player_buildings())
 		_by_component = {}
 	if enemy.is_air():
+		var lure := Targeting.lure(enemy.position, state.player_buildings())
+		if lure != null:
+			return lure
 		return Targeting.best_ranked(enemy.position, _ranked)
 	var component := state.nav.component_at(enemy.position)
 	if not _by_component.has(component):

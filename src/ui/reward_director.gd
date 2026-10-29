@@ -286,7 +286,32 @@ func _on_stalled(_event: Dictionary) -> void:
 	hud.toast(Texts.t("TOAST_STALLED"), AppTheme.WARNING)
 
 
+func _on_fuel_marked(event: Dictionary) -> void:
+	view.fx.ring(event.position, 34.0, 8.0, AppTheme.FLAME, 0.35, 3.0)
+	_play(SoundBank.CLICK, 1.3)
+
+
+func _on_fuel_unmarked(event: Dictionary) -> void:
+	view.fx.ring(event.position, 8.0, 30.0, AppTheme.ON_SURFACE_VARIANT, 0.3, 2.0)
+	_play(SoundBank.CLICK, 0.9)
+
+
+func _on_fuel_empty(event: Dictionary) -> void:
+	view.fx.ring(event.position, 20.0, 60.0, AppTheme.FLAME, 0.5, 3.0)
+	hud.toast(Texts.t("TOAST_FUEL_EMPTY"), AppTheme.WARNING)
+
+
+func _on_scout_route(event: Dictionary) -> void:
+	view.fx.ring(event.target, 30.0, 6.0, AppTheme.ENERGY_CORE, 0.35, 3.0)
+	_play(SoundBank.CLICK, 1.1)
+
+
 func _on_cleared(event: Dictionary) -> void:
+	if event.has("fire"):
+		view.fx.burst(event.position, AppTheme.FLAME, 24, 200.0, 6.0, 0.7, -160.0)
+		view.fx.burst(event.position, AppTheme.TRUNK, 10, 120.0, 4.0, 0.6, -60.0)
+		_play(SoundBank.WHOOSH, 0.9)
+		return
 	var tree := str(event.obstacle) == LevelMap.TREE
 	var color := AppTheme.TREE_LIGHT if tree else AppTheme.ROCK
 	view.fx.burst(event.position, color, 22, 220.0, 6.0, 0.6)

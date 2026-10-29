@@ -1,8 +1,12 @@
 class_name Building
 extends RefCounted
 
+const LABEL_MAX := 24
+const NO_CELL := Vector2i(-1, -1)
+
 var id: int
 var kind: String
+var label := ""
 var position: Vector2
 var hp: float
 var energy := 0.0
@@ -27,6 +31,11 @@ var laser_target: Object = null
 var scan_timer := 0.0
 var export_buffer := 0.0
 var export_carry := 0.0
+var fuel: Array[Vector2i] = []
+var burn_cell := NO_CELL
+var burn_progress := 0.0
+var light_radius := 0.0
+var lit := false
 var origin := Vector2i.ZERO
 var elevation := 0:
 	set(value):
@@ -48,6 +57,8 @@ var shielding := false
 var exporting := false
 var mobile := false
 var spawner := false
+var burner := false
+var lighting := false
 var _team := GameConfig.TEAM_PLAYER
 var _definition: Dictionary
 var _cells := 1
@@ -68,6 +79,9 @@ func _init(p_id: int, p_kind: String, p_position: Vector2) -> void:
 	exporting = _definition.has("export")
 	mobile = _definition.has("mobile")
 	spawner = bool(_definition.get("spawns", false))
+	burner = bool(_definition.get("fuel", false))
+	lighting = bool(_definition.get("light", false))
+	light_radius = GameConfig.LAMP_RADIUS if lighting else 0.0
 	_cells = int(_definition.get("cells", 1))
 	_half = _cells * GameConfig.CELL * 0.5
 	_radius = float(_definition.get("radius", 20.0))
@@ -75,6 +89,36 @@ func _init(p_id: int, p_kind: String, p_position: Vector2) -> void:
 	position = LevelMap.footprint_center(origin, cells())
 	hp = max_hp()
 	spent = int(definition().get("cost", 0))
+
+
+func copy() -> Building:
+	var twin := Building.new(id, kind, position)
+	twin.label = label
+	twin.origin = origin
+	twin.position = position
+	twin.boosts = boosts.duplicate()
+	twin.levels = levels.duplicate()
+	twin.elevation = elevation
+	twin.hp = hp
+	twin.energy = energy
+	twin.cooldown = cooldown
+	twin.spent = spent
+	twin.plan_spent = plan_spent
+	twin.spawn_progress = spawn_progress
+	twin.spawn_queue = spawn_queue
+	twin.spawn_heading = spawn_heading
+	twin.spawn_timer = spawn_timer
+	twin.guard_timer = guard_timer
+	twin.export_buffer = export_buffer
+	twin.export_carry = export_carry
+	twin.immune = immune
+	twin.target_order = target_order.duplicate()
+	twin.target_disabled = target_disabled.duplicate()
+	twin.fuel = fuel.duplicate()
+	twin.burn_cell = burn_cell
+	twin.burn_progress = burn_progress
+	twin.light_radius = light_radius
+	return twin
 
 
 func definition() -> Dictionary:

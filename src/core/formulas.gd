@@ -72,6 +72,66 @@ static func output(building: Building) -> float:
 	return building.stat(Stat.OUTPUT)
 
 
+static func generation(building: Building, sun: float) -> float:
+	var amount := output(building)
+	if building.definition().get("solar", false):
+		return amount * sun
+	if building.burner and building.fuel.is_empty():
+		return 0.0
+	return amount
+
+
+static func forecast_output(building: Building, night: bool) -> float:
+	return generation(building, 0.0 if night else 1.0)
+
+
+static func fuel_reach(building: Building) -> float:
+	return GameConfig.FIRE_REACH * GameConfig.CELL if building.burner else 0.0
+
+
+static func fuel_time(building: Building) -> float:
+	if not building.burner or building.fuel.is_empty():
+		return 0.0
+	var started := building.burn_progress if building.burn_cell == building.fuel[0] else 0.0
+	return maxf(GameConfig.FIRE_BURN_TIME * building.fuel.size() - started, 0.0)
+
+
+static func clamp_light(radius_cells: float) -> float:
+	return clampf(snappedf(radius_cells, GameConfig.LAMP_RADIUS_STEP), GameConfig.LAMP_RADIUS_MIN, GameConfig.LAMP_RADIUS_MAX)
+
+
+static func lamp_draw(building: Building) -> float:
+	return lamp_draw_at(building, building.light_radius)
+
+
+static func lamp_draw_at(building: Building, radius_cells: float) -> float:
+	if not building.lighting:
+		return 0.0
+	return GameConfig.LAMP_BASE_DRAW * pow(maxf(radius_cells, 0.0) / GameConfig.LAMP_BASE_RADIUS, GameConfig.LAMP_EXPONENT) / efficiency(building)
+
+
+static func light_reach(building: Building) -> float:
+	if building.lighting:
+		return building.light_radius * GameConfig.CELL
+	if building.kind == GameConfig.CORE:
+		return building.half_extent() + GameConfig.CORE_LIGHT * GameConfig.CELL
+	return 0.0
+
+
+static func light_fill(building: Building) -> float:
+	var full := capacity(building)
+	return clampf(building.energy / full, 0.0, 1.0) if full > 0.0 else 0.0
+
+
+static func lit_reach(building: Building) -> float:
+	var reach := light_reach(building)
+	return reach * light_fill(building) if building.lighting else reach
+
+
+static func glows(building: Building) -> bool:
+	return building.is_player() and building.is_alive() and building.energy >= GameConfig.GLOW_ENERGY
+
+
 static func rate(building: Building) -> float:
 	return building.stat(Stat.RATE)
 

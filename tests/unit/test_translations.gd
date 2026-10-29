@@ -47,6 +47,14 @@ func _keys() -> Array[String]:
 	for step in Tutorial.ORDER:
 		keys.append("TUTORIAL_%s" % step.to_upper())
 	keys.append_array(["MAP_TITLE", "MAP_PENDING", "MAP_STRUCTURES", "MAP_SPAWNED"] as Array[String])
+	keys.append_array(["BUILD_OPEN", "BUILD_ONCE", "BUILD_MULTI", "BUILD_CANCEL", "RESULT_CHECKPOINT", "TOAST_SCOUT_WALKS",
+		"TOAST_PICK_FUEL", "TOAST_FUEL_EMPTY", "PANEL_LIGHT", "PANEL_LIGHT_VALUE", "PANEL_LIGHT_HINT", "PANEL_FUEL", "STAT_FUEL",
+		"STAT_FUEL_TIME", "STAT_LIGHT_RADIUS", "STAT_LIGHT_RADIUS_VALUE", "STAT_LIGHT_DRAW", "STAT_LIGHT_STATE", "STAT_LIGHT_ON_VALUE", "STATUS_LINK_OUT",
+		"STAT_LIGHT_OFF", "STAT_EXPORT_PROGRESS", "TRACK_EFFICIENCY_LAMP"] as Array[String])
+	for code in [FuelControl.INVALID, FuelControl.NOT_TREE, FuelControl.RANGE, FuelControl.UNEXPLORED]:
+		keys.append("REASON_FUEL_%s" % code.to_upper())
+	for code in [ScoutControl.MISSING, ScoutControl.LANDING, ScoutControl.BOARDED, ScoutControl.NOTHING, ScoutControl.TOO_FAR]:
+		keys.append("REASON_SCOUT_%s" % code.to_upper())
 	for entry: Array in MapPanel.LEGEND:
 		keys.append(str(entry[1]))
 	return keys
@@ -82,5 +90,10 @@ func test_german_differs_where_expected() -> void:
 	assert_ne(Texts.tech_info("laser"), "TECH_LASER_INFO")
 	assert_eq(Texts.format("HUD_DAY_WAVE", [Texts.format("HUD_DAY_OF", [2, 5]), 1, 9]), "Tag 2/5 · Welle 1/9")
 	assert_eq(Texts.tutorial(Tutorial.CUT), Texts.t("TUTORIAL_CUT"))
+	assert_eq(Texts.building_name(GameConfig.LAMP), "Lampe")
+	assert_eq(Texts.building_name(GameConfig.WATER), "Wasserrad")
+	assert_eq(Texts.track_name(GameConfig.TRACK_EFFICIENCY, GameConfig.LAMP), "Lichteffizienz")
+	assert_eq(Texts.format("BUILD_CANCEL", [Texts.building_name(GameConfig.FIRE)]), "Abbrechen: Feuerstelle")
+	assert_eq(Texts.format("PANEL_LIGHT_VALUE", [3.0, 3.31]), "3.0 Felder · 3.3/s")
 	TranslationServer.set_locale("en")
 	assert_eq(Texts.building_name(GameConfig.BATTERY), "Storage")

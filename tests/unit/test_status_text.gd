@@ -43,8 +43,7 @@ func test_every_verdict_has_icon_colour_and_translated_title() -> void:
 			assert_ne(StatusText.title(verdict), StatusText.STYLES[verdict].key, "%s %d" % [locale, verdict])
 		for key: String in StatusText.CAUSE_KEYS.values():
 			assert_ne(Texts.t(key), key, "%s %s" % [locale, key])
-		for key in ["STATUS_FRESH", "STATUS_HINT", "STATUS_UNKNOWN", "STATUS_SUMMARY", "STATUS_LINK_RANGE", "STATUS_LINK_LABEL",
-				"STATUS_LINK_LOSSLESS", "STATUS_WHEN_DAY", "STATUS_WHEN_NIGHT", "TOAST_STATUS_ON", "TOAST_STATUS_OFF", "TOAST_GUARDS",
+		for key in ["STATUS_UNKNOWN", "STATUS_SUMMARY", "STATUS_LINK_RANGE", "STATUS_LINK_OUT", "STATUS_WHEN_DAY", "STATUS_WHEN_NIGHT", "TOAST_STATUS_ON", "TOAST_STATUS_OFF", "TOAST_GUARDS",
 				"TOAST_GUARDS_BURN", "TOAST_OVERLOADED", "PANEL_SELL_FULL", "PANEL_SELL_LOSS", "PANEL_OVERLOAD_NEXT", "PANEL_OVERLOAD_FIXED",
 				"STAT_BEAM_LOSS", "STAT_EXPORT_RATIO", "STAT_EXPORT_CYCLE", "STAT_EXPORT_CYCLE_VALUE", "STAT_EXPORT_ROUND", "STAT_NEED",
 				"STAT_SUPPLY_DAY", "STAT_SUPPLY_NIGHT", "STAT_NIGHT_RESERVE", "STAT_EXPORT_REAL", "STAT_FLOW", "STATS_INCOME_VALUE"]:
@@ -97,29 +96,35 @@ func test_labels_never_show_percentages_but_relay_throughput() -> void:
 	assert_false(StatusText.label(zapper, audit).contains("%"))
 
 
-func test_link_labels_show_loss_and_transfer_rate() -> void:
+func test_link_labels_show_the_rate_and_only_outgoing_beams_the_loss() -> void:
 	core.set_level(GameConfig.TRACK_OUTPUT, 30)
 	var zapper := _add(GameConfig.ZAPPER, core.position + Vector2(0, -168))
 	var near := _add(GameConfig.ZAPPER, core.position + Vector2(84, 28))
 	battle.network.connect_buildings(core.id, zapper.id)
 	battle.network.connect_buildings(core.id, near.id)
 	var link := state.find_link(core.id, zapper.id)
+	var key := link.key()
 	var touching := state.find_link(core.id, near.id).key()
 	var audit := battle.audit()
-	var yield_rate := audit.link_yield(link.key())
-	var limit := "%.1f/s" % audit.link_cap(link.key())
-	var expected := Texts.format("STATUS_LINK_LABEL", [EnergyStatsText.percent(1.0 - yield_rate), "%.1f/s" % (audit.flow(link.key()) * yield_rate), limit])
-	assert_eq(StatusText.link_label(audit, link.key()), expected)
-	assert_eq(StatusText.link_label(audit, touching), Texts.format("STATUS_LINK_LOSSLESS", ["%.1f/s" % audit.delivered(touching), "%.1f/s" % audit.link_cap(touching)]))
-	assert_eq(StatusText.link_color(audit, link.key()), AppTheme.ENERGY)
+	var loss := EnergyStatsText.percent(audit.link_loss(key))
+	assert_gt(audit.link_loss(key), 0.0)
+	assert_eq(StatusText.link_label(audit, key, false), "%.1f/s" % audit.delivered(key))
+	assert_eq(StatusText.link_label(audit, key, true), Texts.format("STATUS_LINK_OUT", ["%.1f/s" % audit.flow(key), loss]))
+	assert_eq(StatusText.link_label(audit, key, true), "%.1f/s (−%s)" % [audit.flow(key), loss])
+	assert_eq(StatusText.link_label(audit, touching, true), "%.1f/s (−0%%)" % audit.flow(touching))
+	assert_eq(StatusText.link_label(audit, touching, false), "%.1f/s" % audit.delivered(touching))
+	assert_eq(StatusText.link_label(audit, key, false, EnergyAudit.NIGHT), "%.1f/s" % audit.delivered(key, EnergyAudit.NIGHT))
+	assert_false(StatusText.link_label(audit, key, false).contains("%"))
+	assert_eq(StatusText.link_color(audit, key), AppTheme.ENERGY)
 	assert_eq(StatusText.link_color(audit, touching), AppTheme.ENERGY)
 	TranslationServer.set_locale("de")
-	assert_true(StatusText.link_label(audit, touching).begins_with("verlustfrei"))
+	assert_eq(StatusText.link_label(audit, key, true), "%.1f/s (−%s)" % [audit.flow(key), loss])
 	TranslationServer.set_locale("en")
 	state.move_building(zapper, core.position + Vector2(0, -600))
 	var broken := battle.audit()
-	assert_eq(StatusText.link_label(broken, link.key()), Texts.t("STATUS_LINK_RANGE"))
-	assert_eq(StatusText.link_color(broken, link.key()), AppTheme.DANGER)
+	assert_eq(StatusText.link_label(broken, key, true), Texts.t("STATUS_LINK_RANGE"))
+	assert_eq(StatusText.link_label(broken, key, false), Texts.t("STATUS_LINK_RANGE"))
+	assert_eq(StatusText.link_color(broken, key), AppTheme.DANGER)
 
 
 func test_saturated_and_lossy_links_are_coloured() -> void:
@@ -134,14 +139,16 @@ func test_saturated_and_lossy_links_are_coloured() -> void:
 	core.set_level(GameConfig.TRACK_OUTPUT, 20)
 	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -168))
 	relay.set_level(GameConfig.TRACK_RANGE, 15)
-	var zapper := _add(GameConfig.ZAPPER, relay.position + Vector2(504, 0))
+	var hub := _add(GameConfig.RELAY, relay.position + Vector2(504, 0))
+	for spot in [Vector2(0, -112), Vector2(0, 112), Vector2(112, 0)]:
+		battle.network.connect_buildings(hub.id, _add(GameConfig.ZAPPER, hub.position + spot).id)
 	battle.network.connect_buildings(core.id, relay.id)
-	battle.network.connect_buildings(relay.id, zapper.id)
+	battle.network.connect_buildings(relay.id, hub.id)
 	var lossy := battle.audit()
-	var lossy_key := state.find_link(relay.id, zapper.id).key()
+	var lossy_key := state.find_link(relay.id, hub.id).key()
 	assert_eq(StatusText.link_color(lossy, lossy_key), AppTheme.PLASMA_ORANGE)
 	var loss := EnergyStatsText.percent(1.0 - lossy.link_yield(lossy_key))
-	assert_eq(StatusText.cause_text(lossy, zapper, state), Texts.format("STATUS_CAUSE_BEAM_LOSS", [Texts.building_name(GameConfig.RELAY), loss]))
+	assert_eq(StatusText.cause_text(lossy, hub, state), Texts.format("STATUS_CAUSE_BEAM_LOSS", [Texts.building_name(GameConfig.RELAY), loss]))
 
 
 func test_cause_texts() -> void:
@@ -175,14 +182,17 @@ func test_storage_cause_summary_and_rows() -> void:
 	battle.network.connect_buildings(battery.id, zapper.id)
 	var audit := battle.audit()
 	var lasts := EnergyStatsText.duration(audit.night_reserve(battery.id))
-	assert_eq(StatusText.cause_text(audit, zapper, state), Texts.format("STATUS_CAUSE_STORAGE", [Texts.building_name(GameConfig.BATTERY), lasts]))
-	var shortfall := "%.1f/s" % audit.shortfall(zapper.id)
-	assert_eq(StatusText.summary(audit, zapper), Texts.format("STATUS_SUMMARY", [Texts.t("STATUS_LOW"), Texts.t("STATUS_WHEN_NIGHT"), shortfall]))
-	assert_false(StatusText.summary(audit, zapper).contains("%"))
-	assert_eq(StatusText.summary(audit, zapper, EnergyAudit.DAY), Texts.t("STATUS_OK"))
+	assert_eq(StatusText.cause_text(audit, battery, state), Texts.format("STATUS_CAUSE_STORAGE", [Texts.building_name(GameConfig.BATTERY), lasts]))
+	assert_eq(StatusText.cause_text(audit, zapper, state), "")
+	var shortfall := "%.1f/s" % audit.shortfall(battery.id)
+	assert_eq(StatusText.summary(audit, battery), Texts.format("STATUS_SUMMARY", [Texts.t("STATUS_LOW"), Texts.t("STATUS_WHEN_NIGHT"), shortfall]))
+	assert_false(StatusText.summary(audit, battery).contains("%"))
+	assert_eq(StatusText.summary(audit, battery, EnergyAudit.DAY), Texts.t("STATUS_OK"))
+	assert_eq(StatusText.summary(audit, zapper), Texts.t("STATUS_OK"))
 	assert_eq(StatusText.summary(audit, solar), "")
-	assert_eq(StatusText.supply_value(audit, zapper.id, EnergyAudit.DAY), "%s %.1f/s" % [Icons.CHECK, 4.0 / 0.45])
-	assert_eq(StatusText.supply_value(audit, zapper.id, EnergyAudit.NIGHT), "%s %.1f/s" % [Icons.WARNING, audit.supply(zapper.id, EnergyAudit.NIGHT)])
+	assert_eq(StatusText.supply_value(audit, battery.id, EnergyAudit.DAY), "%s %.1f/s" % [Icons.CHECK, audit.need_of(battery.id)])
+	assert_eq(StatusText.supply_value(audit, battery.id, EnergyAudit.NIGHT), "%s %.1f/s" % [Icons.WARNING, audit.supply(battery.id, EnergyAudit.NIGHT)])
+	assert_eq(StatusText.supply_value(audit, zapper.id, EnergyAudit.NIGHT), "%s %.1f/s" % [Icons.CHECK, 4.0 / 0.45])
 	var rows := StatText.status_rows(battery, audit)
 	var keys: Array = rows.map(func(row: Array) -> String: return row[0])
 	assert_eq(keys, ["STAT_NEED", "STAT_SUPPLY_DAY", "STAT_SUPPLY_NIGHT", "STAT_NIGHT_RESERVE", "STAT_FLOW"])

@@ -24,6 +24,19 @@ static func base_tier(kind: String) -> int:
 	return TIER_GRID
 
 
+static func lure(origin: Vector2, candidates: Array[Building]) -> Building:
+	var result: Building = null
+	var best_distance := INF
+	for building in candidates:
+		if not building.is_alive() or not building.definition().has("lure"):
+			continue
+		var distance := building.edge_distance(origin)
+		if distance < best_distance:
+			result = building
+			best_distance = distance
+	return result
+
+
 static func tier(building: Building) -> int:
 	var base := base_tier(building.kind)
 	if base != TIER_CORE and is_idle(building):

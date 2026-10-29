@@ -141,6 +141,15 @@ func test_level_lookup_clamps() -> void:
 	assert_eq(GameConfig.level(99).id, GameConfig.LEVELS[GameConfig.level_count() - 1].id)
 
 
+func test_bastion_is_an_anti_air_lure_tower() -> void:
+	assert_true(GameConfig.is_tower(GameConfig.BASTION))
+	assert_true(GameConfig.building(GameConfig.BASTION).has("lure"))
+	assert_true(GameConfig.building(GameConfig.BASTION).attack.air)
+	assert_false(GameConfig.building(GameConfig.BASTION).attack.ground)
+	assert_false(GameConfig.STARTER_KINDS.has(GameConfig.BASTION))
+	assert_eq(GameConfig.tech("bastion").unlock, GameConfig.BASTION)
+
+
 func test_tower_detection() -> void:
 	assert_true(GameConfig.is_tower(GameConfig.ZAPPER))
 	assert_true(GameConfig.is_tower(GameConfig.PLASMA))
@@ -219,3 +228,28 @@ func test_structure_placement_settings_are_sane() -> void:
 	assert_gt(GameConfig.STRUCTURE_SPACING, 0.0)
 	assert_gte(GameConfig.STRUCTURE_MARGIN, 1)
 	assert_lt(GameConfig.TURRET_POST_RING.x, GameConfig.TURRET_POST_RING.y)
+
+
+func test_water_wheel_lamp_and_fire_pit_definitions() -> void:
+	var water := GameConfig.building(GameConfig.WATER)
+	var solar := GameConfig.building(GameConfig.SOLAR)
+	assert_lt(float(water.output), float(solar.output))
+	assert_false(water.get("solar", false))
+	assert_false(bool(water.receives))
+	assert_false(GameConfig.STARTER_KINDS.has(GameConfig.WATER))
+	assert_eq(GameConfig.tech("water").unlock, GameConfig.WATER)
+	var wheel := Building.new(1, GameConfig.WATER, Vector2.ZERO)
+	assert_eq(Formulas.forecast_output(wheel, true), Formulas.forecast_output(wheel, false))
+	assert_gt(Formulas.forecast_output(wheel, true), 0.0)
+	assert_true(GameConfig.STARTER_KINDS.has(GameConfig.LAMP))
+	assert_true(GameConfig.is_lamp(GameConfig.LAMP))
+	assert_false(GameConfig.is_lamp(GameConfig.RELAY))
+	assert_eq(int(GameConfig.building(GameConfig.LAMP).links), 0)
+	assert_lt(GameConfig.LAMP_RADIUS_MIN, GameConfig.LAMP_RADIUS)
+	assert_lt(GameConfig.LAMP_RADIUS, GameConfig.LAMP_RADIUS_MAX)
+	assert_gt(GameConfig.LAMP_EXPONENT, 2.0)
+	assert_almost_eq(GameConfig.CORE_LIGHT, 3.0, 0.001)
+	assert_true(GameConfig.is_burner(GameConfig.FIRE))
+	assert_gt(GameConfig.FIRE_BURN_TIME, 0.0)
+	assert_lt(GameConfig.CLEAR_REACH * GameConfig.CELL, GameConfig.CELL * 3.0)
+	assert_gt(GameConfig.CLEAR_REACH * GameConfig.CELL, Vector2(2, 2).length() * GameConfig.CELL)

@@ -93,21 +93,23 @@ func test_battery_bridges_the_night_with_its_storage() -> void:
 	assert_almost_eq(audit.reserve_rate(battery.id), _night_storage(battery), 0.001)
 	assert_eq(audit.reserve_rate(left.id), 0.0)
 	assert_almost_eq(audit.need_of(battery.id), _zapper_draw() / yield_rate, 0.001)
-	assert_almost_eq(audit.ratio(zapper.id, EnergyAudit.DAY), 1.0, 0.001)
+	assert_almost_eq(audit.ratio(battery.id, EnergyAudit.DAY), 1.0, 0.001)
 	assert_gt(night, 0.5)
-	assert_almost_eq(audit.ratio(zapper.id, EnergyAudit.NIGHT), night, 0.001)
-	assert_almost_eq(audit.missing(zapper.id, EnergyAudit.NIGHT), 1.0 - night, 0.001)
-	assert_eq(audit.verdict(zapper.id, EnergyAudit.DAY), EnergyAudit.Verdict.OK)
-	assert_eq(audit.verdict(zapper.id, EnergyAudit.NIGHT), EnergyAudit.Verdict.LOW)
-	assert_eq(audit.resolve(zapper.id), EnergyAudit.NIGHT)
-	assert_eq(audit.verdict(zapper.id), EnergyAudit.Verdict.LOW)
-	assert_eq(audit.cause(zapper.id), EnergyAudit.Cause.STORAGE)
-	assert_eq(audit.culprit(zapper.id), battery.id)
+	assert_almost_eq(audit.ratio(battery.id, EnergyAudit.NIGHT), night, 0.001)
+	assert_almost_eq(audit.missing(battery.id, EnergyAudit.NIGHT), 1.0 - night, 0.001)
+	assert_eq(audit.verdict(battery.id, EnergyAudit.DAY), EnergyAudit.Verdict.OK)
+	assert_eq(audit.verdict(battery.id, EnergyAudit.NIGHT), EnergyAudit.Verdict.LOW)
+	assert_eq(audit.resolve(battery.id), EnergyAudit.NIGHT)
 	assert_eq(audit.cause(battery.id), EnergyAudit.Cause.STORAGE)
 	assert_eq(audit.culprit(battery.id), battery.id)
+	assert_almost_eq(audit.ratio(zapper.id, EnergyAudit.NIGHT), 1.0, 0.001)
+	assert_eq(audit.verdict(zapper.id, EnergyAudit.NIGHT), EnergyAudit.Verdict.OK)
+	assert_eq(audit.verdict(zapper.id), EnergyAudit.Verdict.OK)
+	assert_eq(audit.cause(zapper.id), EnergyAudit.Cause.NONE)
 	assert_almost_eq(audit.night_reserve(battery.id), Formulas.capacity(battery) / audit.need_of(battery.id), 0.01)
-	assert_eq(audit.link_scenario(feed.key()), EnergyAudit.NIGHT)
-	assert_almost_eq(audit.flow(feed.key()), audit.flow(feed.key(), EnergyAudit.NIGHT), 0.0001)
+	assert_eq(audit.link_scenario(feed.key()), EnergyAudit.DAY)
+	assert_lt(audit.flow(feed.key(), EnergyAudit.NIGHT), audit.flow(feed.key(), EnergyAudit.DAY))
+	assert_lt(audit.inflow(zapper.id, EnergyAudit.NIGHT), audit.available(zapper.id, EnergyAudit.NIGHT))
 	assert_eq(audit.verdict(left.id), EnergyAudit.Verdict.NONE)
 	var chain := audit.chain(zapper.id)
 	assert_true(chain.buildings.has(battery.id))
@@ -162,9 +164,11 @@ func test_tiny_relay_storage_is_not_blamed_at_night() -> void:
 	var audit := EnergyAudit.measure(state)
 	assert_almost_eq(audit.reserve_rate(relay.id), _night_storage(relay), 0.001)
 	assert_lt(audit.reserve_rate(relay.id), EnergyAudit.RESERVE_SHARE * audit.need_of(relay.id))
-	assert_eq(audit.verdict(zapper.id, EnergyAudit.DAY), EnergyAudit.Verdict.OK)
-	assert_eq(audit.cause(zapper.id), EnergyAudit.Cause.NIGHT)
+	assert_eq(audit.verdict(relay.id, EnergyAudit.DAY), EnergyAudit.Verdict.OK)
+	assert_eq(audit.verdict(relay.id, EnergyAudit.NIGHT), EnergyAudit.Verdict.LOW)
 	assert_eq(audit.cause(relay.id), EnergyAudit.Cause.NIGHT)
+	assert_eq(audit.verdict(zapper.id), EnergyAudit.Verdict.OK)
+	assert_eq(audit.cause(zapper.id), EnergyAudit.Cause.NONE)
 
 
 func test_relay_and_battery_need_what_they_forward() -> void:
@@ -221,16 +225,33 @@ func test_out_of_range_beam_is_named() -> void:
 	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -224))
 	var zapper := _add(GameConfig.ZAPPER, relay.position + Vector2(0, -112))
 	var feed := _link(core, relay)
-	_link(relay, zapper)
+	var beam := _link(relay, zapper)
 	state.move_building(relay, core.position + Vector2(0, -700))
 	var audit := EnergyAudit.measure(state)
 	assert_false(audit.is_active(feed.key()))
+	assert_false(audit.is_active(beam.key()))
 	assert_eq(audit.verdict(relay.id), EnergyAudit.Verdict.LOW)
 	assert_eq(audit.cause(relay.id), EnergyAudit.Cause.OUT_OF_RANGE)
 	assert_eq(audit.culprit(relay.id), core.id)
 	assert_eq(audit.culprit_link(relay.id), feed.key())
 	assert_eq(audit.cause(zapper.id), EnergyAudit.Cause.OUT_OF_RANGE)
+	assert_eq(audit.culprit(zapper.id), relay.id)
+	assert_eq(audit.culprit_link(zapper.id), beam.key())
 	assert_true(audit.chain(zapper.id).links.has(feed.key()))
+
+
+func test_broken_feed_upstream_leaves_the_next_link_alone() -> void:
+	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -224))
+	var zapper := _add(GameConfig.ZAPPER, relay.position + Vector2(0, -112))
+	var feed := _link(core, relay)
+	_link(relay, zapper)
+	state.move_building(relay, core.position + Vector2(0, -560))
+	state.move_building(zapper, relay.position + Vector2(0, -112))
+	var audit := EnergyAudit.measure(state)
+	assert_false(audit.is_active(feed.key()))
+	assert_eq(audit.cause(relay.id), EnergyAudit.Cause.OUT_OF_RANGE)
+	assert_eq(audit.verdict(zapper.id), EnergyAudit.Verdict.OK)
+	assert_eq(audit.cause(zapper.id), EnergyAudit.Cause.NONE)
 
 
 func test_saturated_beam_is_the_bottleneck() -> void:
@@ -252,20 +273,90 @@ func test_saturated_beam_is_the_bottleneck() -> void:
 	assert_eq(audit.export_income(EnergyAudit.NIGHT), 0.0)
 
 
+func _hub(relay: Building, offset: Vector2, kind: String) -> Building:
+	var hub := _add(GameConfig.RELAY, relay.position + offset)
+	for spot in [Vector2(0, -112), Vector2(0, 112), Vector2(112, 0)]:
+		_link(hub, _add(kind, hub.position + spot))
+	return hub
+
+
 func test_long_lossy_beam_is_named() -> void:
 	core.set_level(GameConfig.TRACK_OUTPUT, 20)
 	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -168))
 	relay.set_level(GameConfig.TRACK_RANGE, 15)
-	var zapper := _add(GameConfig.ZAPPER, relay.position + Vector2(504, 0))
 	_link(core, relay)
-	var lossy := _link(relay, zapper)
+	var hub := _hub(relay, Vector2(504, 0), GameConfig.ZAPPER)
+	var lossy := _link(relay, hub)
 	var audit := EnergyAudit.measure(state)
-	assert_gte(audit.link_loss(lossy.key()), EnergyAudit.HEAVY_LOSS)
-	assert_eq(audit.resolve(zapper.id), EnergyAudit.DAY)
-	assert_eq(audit.verdict(zapper.id), EnergyAudit.Verdict.LOW)
-	assert_eq(audit.cause(zapper.id), EnergyAudit.Cause.BEAM_LOSS)
-	assert_eq(audit.culprit(zapper.id), relay.id)
-	assert_eq(audit.culprit_link(zapper.id), lossy.key())
+	var key := lossy.key()
+	assert_gte(audit.link_loss(key), EnergyAudit.HEAVY_LOSS)
+	assert_gte(audit.link_cap(key), audit.need_of(hub.id))
+	assert_lt(audit.link_cap(key) * audit.link_yield(key), audit.need_of(hub.id))
+	assert_eq(audit.resolve(hub.id), EnergyAudit.DAY)
+	assert_eq(audit.verdict(hub.id), EnergyAudit.Verdict.LOW)
+	assert_eq(audit.cause(hub.id), EnergyAudit.Cause.BEAM_LOSS)
+	assert_eq(audit.culprit(hub.id), relay.id)
+	assert_eq(audit.culprit_link(hub.id), key)
+
+
+func test_weak_beam_of_a_relay_is_the_bottleneck() -> void:
+	core.set_level(GameConfig.TRACK_OUTPUT, 30)
+	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -168))
+	_link(core, relay)
+	var hub := _hub(relay, Vector2(112, 0), GameConfig.TESLA)
+	var feed := _link(relay, hub)
+	var audit := EnergyAudit.measure(state)
+	assert_lt(audit.link_cap(feed.key()), audit.need_of(hub.id))
+	assert_eq(audit.verdict(hub.id), EnergyAudit.Verdict.LOW)
+	assert_eq(audit.cause(hub.id), EnergyAudit.Cause.BEAM_RATE)
+	assert_eq(audit.culprit(hub.id), relay.id)
+	assert_eq(audit.culprit_link(hub.id), feed.key())
+	for link in state.outgoing(hub.id):
+		assert_eq(audit.verdict(link.target), EnergyAudit.Verdict.OK)
+
+
+func test_shortage_is_only_flagged_one_link_downstream() -> void:
+	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -224))
+	var zapper := _add(GameConfig.ZAPPER, relay.position + Vector2(0, -112))
+	var tesla := _add(GameConfig.TESLA, core.position + Vector2(224, 0))
+	var feed := _link(core, relay)
+	var beam := _link(relay, zapper)
+	_link(core, tesla)
+	var audit := EnergyAudit.measure(state)
+	assert_eq(audit.verdict(relay.id), EnergyAudit.Verdict.LOW)
+	assert_eq(audit.cause(relay.id), EnergyAudit.Cause.GENERATION)
+	assert_almost_eq(audit.available(relay.id, EnergyAudit.DAY), audit.delivered(feed.key(), EnergyAudit.DAY), 0.001)
+	assert_lt(audit.inflow(zapper.id, EnergyAudit.DAY), audit.need_of(zapper.id))
+	assert_almost_eq(audit.available(zapper.id, EnergyAudit.DAY), audit.link_cap(beam.key()) * audit.link_yield(beam.key()), 0.001)
+	assert_eq(audit.verdict(zapper.id), EnergyAudit.Verdict.OK)
+	assert_eq(audit.missing(zapper.id), 0.0)
+	assert_eq(audit.verdict(tesla.id), EnergyAudit.Verdict.LOW)
+
+
+func test_unsourced_chain_flags_only_its_first_link() -> void:
+	var relay := _add(GameConfig.RELAY, core.position + Vector2(0, -224))
+	var zapper := _add(GameConfig.ZAPPER, relay.position + Vector2(0, -112))
+	_link(relay, zapper)
+	var audit := EnergyAudit.measure(state)
+	assert_eq(audit.verdict(relay.id), EnergyAudit.Verdict.LOW)
+	assert_eq(audit.cause(relay.id), EnergyAudit.Cause.NO_SOURCE)
+	assert_eq(audit.verdict(zapper.id), EnergyAudit.Verdict.OK)
+
+
+func test_loop_without_any_input_has_no_source() -> void:
+	var a := _add(GameConfig.RELAY, core.position + Vector2(0, -336))
+	var b := _add(GameConfig.RELAY, a.position + Vector2(168, 0))
+	var c := _add(GameConfig.RELAY, a.position + Vector2(84, -168))
+	var zapper := _add(GameConfig.ZAPPER, c.position + Vector2(0, -112))
+	_link(a, b)
+	_link(b, c)
+	_link(c, a)
+	_link(c, zapper)
+	var audit := EnergyAudit.measure(state)
+	for building: Building in [a, b, c, zapper]:
+		assert_eq(audit.verdict(building.id), EnergyAudit.Verdict.LOW, building.kind)
+		assert_eq(audit.cause(building.id), EnergyAudit.Cause.NO_SOURCE, building.kind)
+		assert_eq(audit.ratio(building.id), 0.0, building.kind)
 
 
 func test_core_that_forwards_everything_starves_its_towers() -> void:
@@ -372,3 +463,42 @@ func test_battle_caches_the_audit_until_the_layout_changes() -> void:
 	var fourth := battle.audit()
 	state.move_building(zapper, core.position + Vector2(0, -224))
 	assert_ne(battle.audit(), fourth)
+
+
+func test_water_wheel_keeps_a_tower_supplied_at_night() -> void:
+	var zapper := _add(GameConfig.ZAPPER, core.position + Vector2(0, -476))
+	var wheels: Array[Building] = []
+	for offset in [Vector2(-112, 0), Vector2(112, 0), Vector2(0, -112)]:
+		var wheel := _add(GameConfig.WATER, zapper.position + offset)
+		wheel.set_level(GameConfig.TRACK_OUTPUT, 5)
+		_link(wheel, zapper)
+		wheels.append(wheel)
+	var audit := EnergyAudit.measure(state)
+	assert_almost_eq(audit.ratio(zapper.id, EnergyAudit.DAY), audit.ratio(zapper.id, EnergyAudit.NIGHT), 0.001)
+	assert_gt(audit.ratio(zapper.id, EnergyAudit.NIGHT), 0.0)
+	assert_ne(audit.cause(zapper.id), EnergyAudit.Cause.NIGHT)
+
+
+func test_fire_pit_without_fuel_supplies_nothing() -> void:
+	var zapper := _add(GameConfig.ZAPPER, core.position + Vector2(0, -476))
+	var fire := _add(GameConfig.FIRE, zapper.position + Vector2(-112, 0))
+	_link(fire, zapper)
+	assert_eq(EnergyAudit.measure(state).ratio(zapper.id, EnergyAudit.DAY), 0.0)
+	var tree := state.map.cell_of(fire.position) + Vector2i(-2, 0)
+	state.map.set_tile(tree, LevelMap.Tile.TREE)
+	state.nav.terrain_changed(tree)
+	assert_eq(battle.toggle_fuel(fire.id, tree), FuelControl.OK)
+	var audit := battle.audit()
+	assert_eq(audit.verdict(zapper.id, EnergyAudit.DAY), EnergyAudit.Verdict.OK)
+	assert_eq(audit.verdict(zapper.id, EnergyAudit.NIGHT), EnergyAudit.Verdict.OK)
+
+
+func test_lamp_counts_its_light_as_demand() -> void:
+	var lamp := _add(GameConfig.LAMP, core.position + Vector2(0, -224))
+	assert_almost_eq(EnergyAudit.draw(lamp), Formulas.lamp_draw(lamp), 0.0001)
+	_link(core, lamp)
+	var audit := EnergyAudit.measure(state)
+	assert_true(audit.has(lamp.id))
+	assert_almost_eq(audit.demand_of(lamp.id), Formulas.lamp_draw(lamp), 0.0001)
+	lamp.light_radius = GameConfig.LAMP_RADIUS_MAX
+	assert_gt(EnergyAudit.draw(lamp), audit.demand_of(lamp.id))

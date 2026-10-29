@@ -9,10 +9,11 @@ signal mode_changed(mode: Mode)
 signal scout_selected(active: bool)
 signal pick_changed(pick: Pick)
 signal status_mode_changed(active: bool)
+signal notice_shown(message: String)
 
 enum Mode { MOVE, CONNECT }
 enum Gesture { NONE, BUILD, LINK_PENDING, LINK, TAP_PENDING, CUT_PENDING, CUT, PAN, PICK, STEER_PENDING, STEER }
-enum Pick { NONE, LINK, FOCUS }
+enum Pick { NONE, LINK, FOCUS, FUEL }
 
 const BEAM_REFRESH := 0.06
 const PICK_SLACK := 14.0
@@ -41,6 +42,7 @@ var zoom := INITIAL_ZOOM
 var top_inset := 0.0
 var bottom_inset := 0.0
 var build_kind := ""
+var build_repeat := false
 var selected_id := -1
 var scout_active := false
 var pick := Pick.NONE
@@ -66,8 +68,6 @@ var _enemy_index := {}
 var _camera_reported := false
 var _coverage_timer := 0.0
 var _coverage_key := ""
-var _painted := false
-var _paint_last := Vector2.INF
 var _terrain_painter: TerrainPainter
 var _fog_texture: FogTexture
 var _coverage_texture: CoverageTexture
@@ -80,6 +80,7 @@ var _view_rect := Rect2()
 var _world: DrawLayer
 var _fog: DrawLayer
 var _night: DrawLayer
+var _night_shade := NightShade.new()
 var _glow: DrawLayer
 var _overlay: DrawLayer
 
@@ -89,6 +90,7 @@ func setup(p_battle: Battle) -> BattleView:
 	_terrain_painter = TerrainPainter.new(battle.state.map)
 	_fog_texture = FogTexture.new(battle.state.fog)
 	_coverage_texture = CoverageTexture.new(battle.state.map)
+	_night_shade.bind(battle.lighting)
 	return self
 
 
@@ -114,6 +116,7 @@ func _ready() -> void:
 	_fog.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_fog.material = _fog_texture.material
 	_night = DrawLayer.new().setup(_paint_night)
+	_night.material = _night_shade.material
 	_glow = DrawLayer.new().setup(_paint_glow)
 	_overlay = DrawLayer.new().setup(_paint_overlay)
 	for layer in [_world, _fog, _night, _glow, _overlay]:
@@ -170,16 +173,15 @@ func set_build_kind(kind: String) -> void:
 	relocate_id = -1
 	if not kind.is_empty():
 		select(-1)
-	_painted = false
-	_paint_last = Vector2.INF
 	build_mode_changed.emit(kind)
 
 
-func set_mode(value: Mode) -> void:
+func set_mode(value: Mode, announce: bool = true) -> void:
 	mode = value
 	gesture = Gesture.NONE
 	trail.clear()
-	mode_changed.emit(mode)
+	if announce:
+		mode_changed.emit(mode)
 
 
 func toggle_mode() -> void:
@@ -295,6 +297,8 @@ func advance(delta: float) -> void:
 		gesture = Gesture.NONE
 		release_stick()
 	_update_coverage(delta)
+	_night_shade.apply(battle.lighting.current(), darkness())
+	_night_shade.refresh_glow()
 	if _fog_texture.refresh():
 		_fog.queue_redraw()
 	_apply_camera()
@@ -484,7 +488,6 @@ func begin(world: Vector2, screen: Vector2 = Vector2.INF) -> void:
 	if not build_kind.is_empty():
 		gesture = Gesture.BUILD
 		ghost = world
-		_paint_last = world
 		return
 	if mode == Mode.CONNECT and tracker.double:
 		gesture = Gesture.PAN
@@ -528,8 +531,6 @@ func drag_to(world: Vector2, moved: bool, screen_delta: Vector2 = Vector2.ZERO) 
 	match gesture:
 		Gesture.BUILD:
 			ghost = world
-			if moved and GameConfig.is_wall(build_kind) and not is_relocating():
-				_paint_to(world)
 		Gesture.LINK_PENDING:
 			if moved:
 				gesture = Gesture.LINK
@@ -550,30 +551,10 @@ func _cut_to(world: Vector2) -> void:
 	trail.append({"position": world, "time": clock})
 
 
-func _paint_to(world: Vector2) -> void:
-	var from := world if _paint_last == Vector2.INF else _paint_last
-	var steps := maxi(int(ceil(from.distance_to(world) / (GameConfig.CELL * 0.5))), 1)
-	for i in steps + 1:
-		var point := LevelMap.snap(from.lerp(world, float(i) / steps), GameConfig.cells(build_kind))
-		if battle.state.nav.occupant_at(battle.state.map.cell_of(point)) != NavGrid.FREE:
-			continue
-		var reason := battle.place(build_kind, point)
-		if reason == BuildRules.OK:
-			_painted = true
-		elif reason == BuildRules.MONEY:
-			action_failed.emit(Texts.reason("build_" + reason), point)
-			set_build_kind("")
-			gesture = Gesture.NONE
-			return
-	_paint_last = world
-
-
 func finish(world: Vector2) -> void:
 	match gesture:
 		Gesture.BUILD:
-			if not _painted:
-				place_at(world)
-			_painted = false
+			place_at(world)
 		Gesture.LINK:
 			var target := link_target(world)
 			if target != null and target.id != link_source:
@@ -608,10 +589,12 @@ func tap(world: Vector2) -> void:
 
 
 func _tap_ground(world: Vector2) -> void:
-	if scout_active and battle.state.map.is_clearable(battle.state.map.cell_of(world)):
-		clear_with_scout(world)
-	else:
+	if not scout_active:
 		select(-1)
+		return
+	var reason := battle.walk_scout(world)
+	if reason != ScoutControl.OK and reason != ScoutControl.NOTHING:
+		action_failed.emit(Texts.reason("scout_" + reason), world)
 
 
 func resolve_pick(world: Vector2) -> void:
@@ -636,6 +619,19 @@ func resolve_pick(world: Vector2) -> void:
 				action_failed.emit(Texts.reason("focus_" + reason), world)
 				return
 			cancel_pick()
+		Pick.FUEL:
+			_mark_fuel(world)
+
+
+func _mark_fuel(world: Vector2) -> void:
+	var fire := battle.state.building(pick_id)
+	var cell := battle.state.map.cell_of(world)
+	if fire == null or (not fire.fuel.has(cell) and battle.state.map.tile(cell) != LevelMap.Tile.TREE):
+		cancel_pick()
+		return
+	var reason := battle.toggle_fuel(pick_id, cell)
+	if reason != FuelControl.OK:
+		action_failed.emit(Texts.reason("fuel_" + reason), world)
 
 
 func clear_with_scout(world: Vector2) -> void:
@@ -655,10 +651,15 @@ func place_at(world: Vector2) -> void:
 		select(id)
 		return
 	var reason := battle.place(build_kind, world)
+	if reason == BuildRules.SCOUT_FAR and battle.walk_scout(world) == ScoutControl.OK:
+		notice_shown.emit(Texts.t("TOAST_SCOUT_WALKS"))
+		return
 	if reason != BuildRules.OK:
 		action_failed.emit(Texts.reason("build_" + reason), world)
 		return
-	if not GameConfig.is_wall(build_kind):
+	if build_kind.is_empty() or build_kind == GameConfig.CORE:
+		return
+	if not build_repeat or battle.state.money < Formulas.build_cost(battle.state, build_kind):
 		set_build_kind("")
 
 
@@ -701,20 +702,48 @@ func _paint_world(ci: CanvasItem) -> void:
 	for building: Building in state.buildings.values():
 		if building.kind == GameConfig.BULWARK or not is_on_screen(building.position, building.half_extent()):
 			continue
-		var capacity := Formulas.capacity(building)
-		var fill := building.energy / capacity if capacity > 0.0 else 0.0
-		if building.exporting:
-			fill = Formulas.export_progress(building)
-		Painter.building(ci, building.kind, building.position, building.radius(), clock, fill, float(_aims.get(building.id, DEFAULT_AIM)), light)
+		Painter.building(ci, building.kind, building.position, building.radius(), clock, paint_fill(building), float(_aims.get(building.id, DEFAULT_AIM)), light)
+	for fire in state.of_kind(GameConfig.FIRE):
+		_paint_fuel(ci, fire)
 	for pickup in state.pickups:
 		if not is_on_screen(pickup.position):
 			continue
 		var bob := sin(clock * 8.0 + pickup.position.x) * 2.0
 		Painter.coin(ci, pickup.position + Vector2(0, bob), 7.0, clock + pickup.position.y)
+	_paint_rest(ci, light)
+
+
+func paint_fill(building: Building) -> float:
+	if building.exporting:
+		return Formulas.export_progress(building)
+	if building.burner:
+		return 0.0 if building.fuel.is_empty() else 1.0
+	if building.lighting:
+		return 1.0 if building.lit else 0.0
+	var capacity := Formulas.capacity(building)
+	return building.energy / capacity if capacity > 0.0 else 0.0
+
+
+func _paint_fuel(ci: CanvasItem, fire: Building) -> void:
+	var map := battle.state.map
+	for cell in fire.fuel:
+		var center := map.center_of(cell)
+		if not is_on_screen(center, GameConfig.CELL):
+			continue
+		if cell == fire.burn_cell:
+			Painter.flames(ci, center + Vector2(0, GameConfig.CELL * 0.1), GameConfig.CELL * 0.32, clock + cell.x * 0.7 + cell.y * 0.3)
+			Painter.bar(ci, center + Vector2(0, -GameConfig.CELL * 0.55), GameConfig.CELL * 0.8, battle.fuel.burn_ratio(fire), AppTheme.FLAME, 5.0)
+		else:
+			ci.draw_arc(center, GameConfig.CELL * 0.42, 0.0, TAU, 24, Color(AppTheme.FLAME, 0.75), 3.0, true)
+			ci.draw_circle(center + Vector2(0, -GameConfig.CELL * 0.3), 4.0, AppTheme.FLAME_CORE)
+
+
+func _paint_rest(ci: CanvasItem, light: float) -> void:
+	var state := battle.state
 	for projectile in state.projectiles:
 		ci.draw_circle(projectile.position(), 8.0, AppTheme.SHADOW)
 	for enemy in state.enemies:
-		if is_on_screen(enemy.position) and state.fog.is_visible(enemy.position):
+		if is_on_screen(enemy.position) and shows_enemy(enemy):
 			Painter.enemy(ci, enemy.kind, enemy.position, enemy.radius(), enemy.heading, clock + enemy.id * 0.37, 1.0 - light)
 			if enemy.is_burning():
 				Painter.flames(ci, enemy.position, enemy.radius(), clock + enemy.id * 0.53, 1.4 if enemy.is_guard() else 1.0)
@@ -738,6 +767,8 @@ func _paint_scout(ci: CanvasItem) -> void:
 		return
 	if scout_active:
 		_paint_clearable(ci, scout)
+	if scout.is_walking():
+		_paint_route(ci, scout)
 	if scout.is_clearing():
 		var target := battle.state.map.center_of(scout.clear_cell)
 		ci.draw_arc(target, GameConfig.CELL * 0.55, 0.0, TAU, 32, Color(AppTheme.GOLD, 0.8), 3.0, true)
@@ -748,11 +779,23 @@ func _paint_scout(ci: CanvasItem) -> void:
 	Painter.scout(ci, scout.position, scout.heading, clock, scout.drop_ratio(), scout.is_clearing() and not scout.is_moving())
 
 
+func _paint_route(ci: CanvasItem, scout: Scout) -> void:
+	var from := scout.position
+	for point in scout.route:
+		_dashed_line(ci, from, point, Color(AppTheme.ENERGY_CORE, 0.6))
+		from = point
+	if scout.pending_cell != Scout.NO_CELL:
+		_crosshair(ci, battle.state.map.center_of(scout.pending_cell), GameConfig.CELL * 0.45, AppTheme.GOLD)
+	else:
+		ci.draw_arc(scout.destination(), 12.0, 0.0, TAU, 20, AppTheme.ENERGY_CORE, 3.0, true)
+
+
 func _paint_clearable(ci: CanvasItem, scout: Scout) -> void:
 	var map := battle.state.map
 	var origin := map.cell_of(scout.position)
-	for y in range(-2, 3):
-		for x in range(-2, 3):
+	var span := int(ceil(GameConfig.CLEAR_REACH))
+	for y in range(-span, span + 1):
+		for x in range(-span, span + 1):
 			var cell := origin + Vector2i(x, y)
 			if cell != scout.clear_cell and map.is_clearable(cell) and battle.scouting.in_reach(cell):
 				ci.draw_arc(map.center_of(cell), GameConfig.CELL * 0.45, 0.0, TAU, 24, Color(AppTheme.GOLD, 0.35 + 0.15 * sin(clock * 5.0)), 2.0, true)
@@ -766,18 +809,28 @@ func darkness() -> float:
 	return 1.0 - battle.state.light()
 
 
+func reveals(target: Object) -> bool:
+	return battle.lighting.sees(target.position, float(target.radius()))
+
+
+func shows_enemy(enemy: Enemy) -> bool:
+	return battle.state.fog.is_visible(enemy.position) and reveals(enemy)
+
+
 func _paint_night(ci: CanvasItem) -> void:
 	var dark := darkness()
 	if dark <= 0.01:
 		return
 	var size := battle.state.map.size
-	ci.draw_rect(Rect2(Vector2(-2000, -2000), size + Vector2(4000, 4000)), Color(AppTheme.NIGHT_TINT, AppTheme.NIGHT_TINT.a * dark))
+	ci.draw_rect(Rect2(Vector2(-2000, -2000), size + Vector2(4000, 4000)), Color.WHITE)
 
 
 func _paint_glow(ci: CanvasItem) -> void:
 	var state := battle.state
 	var dark := darkness()
 	for link in state.links:
+		if status_mode and not touches_selected(link):
+			continue
 		var straight := state.link_points(link)
 		if not _segment_on_screen(straight[0], straight[1]):
 			continue
@@ -806,11 +859,16 @@ func _paint_glow(ci: CanvasItem) -> void:
 				ci.draw_line(building.position, target, Color(color, 0.9), 4.0, true)
 				ci.draw_line(building.position, target, Color(1, 1, 1, 0.9), 1.5, true)
 				ci.draw_circle(target, 7.0 * flicker, Color(1, 0.9, 0.9, 0.8))
-		elif dark > 0.2 and building.energy > 0.5:
+		elif building.lighting and building.lit:
+			ci.draw_circle(building.position, Formulas.lit_reach(building) * 0.6, Color(AppTheme.LAMP_LIGHT, 0.05 * dark))
+			ci.draw_circle(building.position, building.radius() * 1.4, Color(AppTheme.LAMP_LIGHT, 0.25 * dark))
+		elif building.burner and not building.fuel.is_empty():
+			ci.draw_circle(building.position, building.radius() * 2.2, Color(AppTheme.FLAME, 0.08 + 0.1 * dark))
+		elif dark > 0.2 and Formulas.glows(building):
 			ci.draw_circle(building.position, building.radius() * 0.5, Color(AppTheme.building_color(building.kind), 0.12 * dark))
 	if dark > 0.2:
 		for enemy in state.enemies:
-			if not is_on_screen(enemy.position) or not state.fog.is_visible(enemy.position):
+			if not is_on_screen(enemy.position) or not shows_enemy(enemy):
 				continue
 			var forward := enemy.heading * enemy.radius() * 0.95
 			var side := enemy.heading.orthogonal() * enemy.radius() * 0.22
@@ -841,7 +899,7 @@ func _paint_overlay(ci: CanvasItem) -> void:
 	for building: Building in state.buildings.values():
 		if not is_on_screen(building.position, building.half_extent()):
 			continue
-		if building.hp < building.max_hp():
+		if building.hp < building.max_hp() and (building.is_player() or reveals(building)):
 			Painter.bar(ci, building.position + Vector2(0, -building.radius() - 12.0), building.radius() * 1.6, building.hp_ratio(), Painter.hp_color(building.hp_ratio()))
 		if building.is_player() and GameConfig.uses_energy_actively(building.kind):
 			var fill := building.energy / Formulas.capacity(building)
@@ -852,7 +910,7 @@ func _paint_overlay(ci: CanvasItem) -> void:
 		if obstacle.hp < obstacle.max_hp:
 			Painter.bar(ci, obstacle.position + Vector2(0, -obstacle.radius() - 6.0), GameConfig.CELL * 0.8, obstacle.hp_ratio(), AppTheme.GOLD, 5.0)
 	for enemy in state.enemies:
-		if enemy.hp < enemy.max_hp and is_on_screen(enemy.position) and state.fog.is_visible(enemy.position):
+		if enemy.hp < enemy.max_hp and is_on_screen(enemy.position) and shows_enemy(enemy):
 			Painter.bar(ci, enemy.position + Vector2(0, -enemy.radius() - 9.0), maxf(enemy.radius() * 2.0, 20.0), enemy.hp_ratio(), Painter.hp_color(enemy.hp_ratio()), 4.0)
 	if status_mode:
 		_paint_status(ci)
@@ -901,15 +959,33 @@ func shows_beam_labels() -> bool:
 	return status_mode or (building != null and building.is_player())
 
 
+func labeled_links() -> Array[EnergyLink]:
+	var result: Array[EnergyLink] = []
+	if not shows_beam_labels():
+		return result
+	for link in battle.state.links:
+		if touches_selected(link):
+			result.append(link)
+	return result
+
+
 func _paint_beam_labels(ci: CanvasItem) -> void:
 	var state := battle.state
 	var audit := battle.audit()
 	var scenario := EnergyAudit.view_scenario(state)
-	for link in state.links:
+	for link in labeled_links():
 		var points := state.link_points(link)
 		if _segment_on_screen(points[0], points[1]):
-			var key := link.key()
-			_text(ci, StatusText.link_label(audit, key, scenario), points[0].lerp(points[1], 0.5) + Vector2(0, -8.0), STATUS_TEXT, StatusText.link_color(audit, key, scenario))
+			_paint_link_label(ci, link, points, audit, scenario)
+
+
+func beam_label(link: EnergyLink) -> String:
+	return StatusText.link_label(battle.audit(), link.key(), link.source == selected_id, EnergyAudit.view_scenario(battle.state))
+
+
+func _paint_link_label(ci: CanvasItem, link: EnergyLink, points: PackedVector2Array, audit: EnergyAudit, scenario: int) -> void:
+	var key := link.key()
+	_text(ci, beam_label(link), points[0].lerp(points[1], 0.5) + Vector2(0, -8.0), STATUS_TEXT, StatusText.link_color(audit, key, scenario))
 
 
 func _paint_badge(ci: CanvasItem, building: Building, audit: EnergyAudit, scenario: int) -> void:
@@ -931,44 +1007,19 @@ func _paint_status(ci: CanvasItem) -> void:
 	var state := battle.state
 	var audit := battle.audit()
 	var scenario := EnergyAudit.view_scenario(state)
-	var chain := audit.chain(selected_id)
-	var chain_links := {}
-	for key: String in chain.links:
-		chain_links[key] = true
-	var chain_buildings := {}
-	for id: int in chain.buildings:
-		chain_buildings[id] = true
-	var focused := not chain_links.is_empty()
-	var culprit_link := audit.culprit_link(selected_id, scenario)
-	var culprit := audit.culprit(selected_id, scenario)
-	var pulse := 0.5 + 0.5 * sin(clock * 8.0)
-	for link in state.links:
+	for link in labeled_links():
 		var points := state.link_points(link)
 		if not _segment_on_screen(points[0], points[1]):
 			continue
-		var key := link.key()
-		var color := StatusText.link_color(audit, key, scenario)
-		var lit := chain_links.has(key)
-		var strong := lit or not focused
-		if key == culprit_link:
-			ci.draw_line(points[0], points[1], Color(AppTheme.DANGER, 0.3 + 0.4 * pulse), 16.0, true)
-		ci.draw_line(points[0], points[1], Color(color, 0.9 if strong else 0.3), 6.0 if lit else 3.0, true)
-		_text(ci, StatusText.link_label(audit, key, scenario), points[0].lerp(points[1], 0.5) + Vector2(0, -8.0), STATUS_TEXT, Color(color, 1.0 if strong else 0.55))
+		ci.draw_line(points[0], points[1], Color(StatusText.link_color(audit, link.key(), scenario), 0.9), 6.0, true)
+		_paint_link_label(ci, link, points, audit, scenario)
 	for building in state.player_buildings():
-		if not audit.has(building.id) or not is_on_screen(building.position, building.half_extent()):
-			continue
-		var verdict := audit.verdict(building.id, scenario)
-		_paint_badge(ci, building, audit, scenario)
-		if state.is_planning() and Formulas.is_fresh(building):
-			_icon(ci, Icons.SELL, building.position + Vector2(-building.radius(), -building.radius()) * 0.8, STATUS_BADGE - 4, AppTheme.GOLD)
-		var text := StatusText.label(building, audit, scenario)
-		if not text.is_empty():
-			var tone := StatusText.color(verdict) if verdict == EnergyAudit.Verdict.LOW or verdict == EnergyAudit.Verdict.OVERLOADED else AppTheme.ON_SURFACE
-			_text(ci, text, building.position + Vector2(0, building.radius() + 32.0), STATUS_TEXT, Color(tone, 1.0 if not focused or chain_buildings.has(building.id) or building.id == selected_id else 0.45))
-		if chain_buildings.has(building.id):
-			ci.draw_arc(building.position, building.radius() + 6.0, 0.0, TAU, 32, Color(AppTheme.ENERGY_CORE, 0.8), 3.0, true)
-		if building.id == culprit:
-			ci.draw_arc(building.position, building.radius() + 10.0 + 4.0 * pulse, 0.0, TAU, 32, Color(AppTheme.DANGER, 0.5 + 0.4 * pulse), 4.0, true)
+		if audit.has(building.id) and is_on_screen(building.position, building.half_extent()):
+			_paint_badge(ci, building, audit, scenario)
+
+
+func touches_selected(link: EnergyLink) -> bool:
+	return selected_id >= 0 and (link.source == selected_id or link.target == selected_id)
 
 
 func _paint_stick(ci: CanvasItem) -> void:
@@ -1010,9 +1061,14 @@ func _paint_pick(ci: CanvasItem) -> void:
 			_dashed_circle(ci, source.position, Formulas.link_range(source), Color(AppTheme.ENERGY, 0.9))
 			for target in link_candidates(source):
 				ci.draw_arc(target.position, (target.radius() + 10.0) * pulse, 0.0, TAU, 32, AppTheme.SUCCESS, 4.0, true)
+		Pick.FUEL:
+			_dashed_circle(ci, source.position, Formulas.fuel_reach(source), Color(AppTheme.FLAME, 0.9))
+			for cell in battle.fuel.candidates(source):
+				if not source.fuel.has(cell):
+					ci.draw_arc(battle.state.map.center_of(cell), GameConfig.CELL * 0.42 * pulse, 0.0, TAU, 20, Color(AppTheme.SUCCESS, 0.8), 2.5, true)
 		Pick.FOCUS:
 			for enemy in battle.state.enemies:
-				if enemy.is_alive() and battle.state.fog.is_visible(enemy.position) and battle.combat.focus_reason(source, enemy) == Combat.OK and battle.combat.in_attack_range(source, enemy):
+				if enemy.is_alive() and shows_enemy(enemy) and battle.combat.focus_reason(source, enemy) == Combat.OK and battle.combat.in_attack_range(source, enemy):
 					ci.draw_arc(enemy.position, (enemy.radius() + 6.0) * pulse, 0.0, TAU, 20, AppTheme.DANGER, 3.0, true)
 
 
@@ -1029,6 +1085,10 @@ func _paint_support_ranges(ci: CanvasItem, building: Building, alpha: float) -> 
 		_dashed_circle(ci, building.position, Formulas.shield_radius(building), Color(AppTheme.SHIELD_BLUE, alpha))
 	if building.definition().has("heal"):
 		_dashed_circle(ci, building.position, Formulas.heal_range(building), Color(AppTheme.HEAL, alpha))
+	if building.lighting:
+		_dashed_circle(ci, building.position, Formulas.light_reach(building), Color(AppTheme.LAMP_LIGHT, alpha))
+	if building.burner:
+		_dashed_circle(ci, building.position, Formulas.fuel_reach(building), Color(AppTheme.FLAME, alpha))
 
 
 func _paint_gesture(ci: CanvasItem) -> void:

@@ -29,6 +29,8 @@ const PLASMA_ORANGE := Color("#ff8a3d")
 const SHIELD_BLUE := Color("#5aa9ff")
 const HEAL := Color("#6dff9e")
 const ON_ACCENT := Color("#08111f")
+const PRIMARY_CONTAINER := Color("#0f3352")
+const PRIMARY_OUTLINE := Color("#1d5f8a")
 
 const GROUND := Color("#35502f")
 const GROUND_LIGHT := Color("#42633a")
@@ -60,7 +62,6 @@ const CHUTE := Color("#e8eef8")
 const CHUTE_STRIPE := Color("#3ee8ff")
 const SPITTER := Color("#7aa83a")
 const DRONE := Color("#5d6470")
-const NIGHT_TINT := Color(0.02, 0.03, 0.12, 0.62)
 const METAL := Color("#8b97ad")
 const METAL_DARK := Color("#4a5468")
 const METAL_DEEP := Color("#2b3244")
@@ -92,6 +93,8 @@ const RAIDER_HELMET := Color("#1a1c24")
 const PHANTOM := Color("#3a3550")
 const FLAME := Color("#ff7a1a")
 const FLAME_CORE := Color("#ffe27a")
+const LAMP_LIGHT := Color("#ffe9a8")
+const LAMP_OFF := Color("#5a5446")
 const IMMUNE := Color("#b57bff")
 const WORLD_SEA := Color("#0d1a33")
 const WORLD_SEA_LIGHT := Color("#14274a")
@@ -113,8 +116,12 @@ const BUILDING_COLORS := {
 	GameConfig.PLASMA: Color("#ff8a3d"),
 	GameConfig.SHIELD: Color("#5aa9ff"),
 	GameConfig.EXPORTER: Color("#ffc83d"),
+	GameConfig.WATER: Color("#4fb3ff"),
+	GameConfig.FIRE: Color("#ff7a1a"),
+	GameConfig.LAMP: Color("#ffe9a8"),
 	GameConfig.HEALER: Color("#6dff9e"),
 	GameConfig.BULWARK: Color("#ff9f43"),
+	GameConfig.BASTION: Color("#ffb86b"),
 	GameConfig.ROVER: Color("#c6ff5a"),
 	GameConfig.NEST: Color("#d14b8f"),
 	GameConfig.CAMP: Color("#c9b458"),
@@ -259,7 +266,7 @@ static func _button_variant(theme: Theme, name: String, bg: Color, fg: Color, bo
 
 static func _buttons(theme: Theme) -> void:
 	_button_variant(theme, "Button", SURFACE_VARIANT, ON_SURFACE, OUTLINE)
-	_button_variant(theme, "PrimaryButton", ENERGY, ON_ACCENT, ENERGY_CORE)
+	_button_variant(theme, "PrimaryButton", PRIMARY_CONTAINER, ENERGY, PRIMARY_OUTLINE)
 	_button_variant(theme, "GoldButton", GOLD, ON_ACCENT, Color("#fff1b8"))
 	_button_variant(theme, "DangerButton", Color("#5a1a28"), Color("#ffd3dc"), DANGER)
 	_button_variant(theme, "IconButton", Color(SURFACE_VARIANT, 0.85), ON_SURFACE, OUTLINE, RADIUS_PILL)

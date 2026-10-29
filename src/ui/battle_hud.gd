@@ -210,12 +210,7 @@ func _build_legend() -> void:
 	flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for verdict in StatusText.LEGEND:
 		flow.add_child(_legend_entry(StatusText.icon(verdict), StatusText.color(verdict), StatusText.title(verdict)))
-	flow.add_child(_legend_entry(Icons.SELL, AppTheme.GOLD, Texts.t("STATUS_FRESH")))
 	column.add_child(flow)
-	var hint := UiKit.label(Texts.t("STATUS_HINT"), "Tiny")
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.custom_minimum_size = Vector2(LEGEND_WIDTH, 0)
-	column.add_child(hint)
 	_legend.add_child(column)
 
 
@@ -234,11 +229,11 @@ func set_status_mode(active: bool) -> void:
 	_legend.visible = active
 	if active:
 		Juice.pop_in(_legend)
-		var box := AppTheme.box(AppTheme.ENERGY, AppTheme.RADIUS_PILL, AppTheme.ENERGY_CORE, AppTheme.SPACING_MD)
+		var box := AppTheme.box(AppTheme.PRIMARY_CONTAINER, AppTheme.RADIUS_PILL, AppTheme.PRIMARY_OUTLINE, AppTheme.SPACING_MD)
 		for style in [&"normal", &"hover", &"pressed"]:
 			_status_button.add_theme_stylebox_override(style, box)
 		for slot in [&"font_color", &"font_hover_color", &"font_pressed_color"]:
-			_status_button.add_theme_color_override(slot, AppTheme.ON_ACCENT)
+			_status_button.add_theme_color_override(slot, AppTheme.ENERGY)
 	else:
 		for style in [&"normal", &"hover", &"pressed"]:
 			_status_button.remove_theme_stylebox_override(style)

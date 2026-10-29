@@ -36,6 +36,12 @@ static func icon_button(glyph: String, callback: Callable = Callable(), size: fl
 	return item
 
 
+static func dock_bottom(control: Control) -> void:
+	control.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	control.offset_top = 0.0
+	control.grow_vertical = Control.GROW_DIRECTION_BEGIN
+
+
 static func spacer(height: float = 0.0, expand: bool = false) -> Control:
 	var item := Control.new()
 	item.custom_minimum_size = Vector2(0, height)

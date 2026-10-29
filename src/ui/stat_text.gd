@@ -49,6 +49,12 @@ static func track_value(building: Building, track: String) -> String:
 	return ""
 
 
+static func light_state(building: Building) -> String:
+	if not building.lit:
+		return Texts.t("STAT_LIGHT_OFF")
+	return Texts.format("STAT_LIGHT_ON_VALUE", [Formulas.lit_reach(building) / GameConfig.CELL])
+
+
 static func coins(value: float) -> String:
 	return str(int(roundf(value))) if is_equal_approx(value, roundf(value)) else "%.2f" % value
 
@@ -81,13 +87,14 @@ static func upgraded(building: Building, track: String) -> Building:
 	probe.boosts = building.boosts
 	probe.levels = building.levels.duplicate()
 	probe.elevation = building.elevation
+	probe.light_radius = building.light_radius
 	probe.set_level(track, building.level(track) + 1)
 	return probe
 
 
 static func draw_change(building: Building, track: String) -> String:
-	var before := EnergyStats.fire_draw(building)
-	var after := EnergyStats.fire_draw(upgraded(building, track))
+	var before := EnergyAudit.draw(building)
+	var after := EnergyAudit.draw(upgraded(building, track))
 	if absf(after - before) < EnergyStatsText.RATE_STEP:
 		return ""
 	return Texts.format("PANEL_DRAW_CHANGE", [Icons.BOLT, before, after])
@@ -141,7 +148,15 @@ static func stats(building: Building, state: BattleState) -> Array[Array]:
 		rows.append(["STAT_EXPORT_INCOME", "%.1f/s" % Formulas.export_income(Formulas.export_rate(building))])
 		rows.append(["STAT_EXPORT_RATIO", Texts.format("STAT_EXPORT_RATIO_VALUE", [GameConfig.ENERGY_PER_COIN])])
 		rows.append(["STAT_EXPORT_CYCLE", Texts.format("STAT_EXPORT_CYCLE_VALUE", [coins(Formulas.export_payout(building)), int(GameConfig.EXPORT_CYCLE)])])
+		rows.append(["STAT_EXPORT_PROGRESS", "%d%%" % int(floor(Formulas.export_progress(building) * 100.0))])
 		rows.append(["STAT_EXPORT_ROUND", "+%d" % int(round(Formulas.export_income(Formulas.export_rate(building)) * DayCycle.length(state.level)))])
+	if building.burner:
+		rows.append(["STAT_FUEL", str(building.fuel.size())])
+		rows.append(["STAT_FUEL_TIME", NumberFormat.clock(Formulas.fuel_time(building))])
+	if building.lighting:
+		rows.append(["STAT_LIGHT_RADIUS", Texts.format("STAT_LIGHT_RADIUS_VALUE", [building.light_radius])])
+		rows.append(["STAT_LIGHT_DRAW", "%.1f/s" % Formulas.lamp_draw(building)])
+		rows.append(["STAT_LIGHT_STATE", light_state(building)])
 	if building.kind == GameConfig.SHIELD:
 		rows.append(["STAT_SHIELD_RADIUS", str(int(round(Formulas.shield_radius(building))))])
 		rows.append(["STAT_SHIELD_RATIO", "%.1f" % Formulas.shield_ratio(building)])

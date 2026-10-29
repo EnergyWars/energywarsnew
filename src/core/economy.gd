@@ -90,8 +90,10 @@ func _export(delta: float) -> void:
 		var batch := Formulas.export_batch(building)
 		if batch <= 0.0:
 			continue
-		var amount := minf(building.energy, Formulas.export_rate(building) * delta)
-		building.energy -= amount
+		var amount := Formulas.export_rate(building) * delta
+		if building.energy + EXPORT_EPSILON < amount:
+			continue
+		building.energy = maxf(building.energy - amount, 0.0)
 		building.export_buffer += amount
 		if building.export_buffer + EXPORT_EPSILON < batch:
 			continue

@@ -63,10 +63,18 @@ static func building(ci: CanvasItem, kind: String, center: Vector2, radius: floa
 			_shield(ci, center, radius, time, fill)
 		GameConfig.EXPORTER:
 			_exporter(ci, center, radius, time, fill)
+		GameConfig.WATER:
+			_water(ci, center, radius, time)
+		GameConfig.FIRE:
+			_fire(ci, center, radius, time, fill)
+		GameConfig.LAMP:
+			_lamp(ci, center, radius, time, fill)
 		GameConfig.HEALER:
 			_healer(ci, center, radius, time, fill)
 		GameConfig.BULWARK:
 			_bulwark(ci, center, radius, time, fill)
+		GameConfig.BASTION:
+			_bastion(ci, center, radius, time, aim, fill)
 		GameConfig.ROVER:
 			_rover(ci, center, radius, time, aim, fill)
 		GameConfig.NEST:
@@ -198,7 +206,46 @@ static func _exporter(ci: CanvasItem, center: Vector2, radius: float, time: floa
 	var spin := absf(cos(time * (1.5 + 3.0 * fill)))
 	ci.draw_colored_polygon(ellipse(center, Vector2(radius * 0.5 * maxf(spin, 0.2), radius * 0.5), 16), AppTheme.GOLD_DARK)
 	ci.draw_colored_polygon(ellipse(center, Vector2(radius * 0.38 * maxf(spin, 0.15), radius * 0.38), 16), AppTheme.GOLD.lerp(Color.WHITE, 0.2 * fill))
-	ci.draw_arc(center, radius * 0.7, -PI / 2.0, -PI / 2.0 + TAU * clampf(fill, 0.0, 1.0), 24, AppTheme.ENERGY, 3.0, true)
+	ci.draw_arc(center, radius * 1.12, 0.0, TAU, 40, Color(AppTheme.METAL_DEEP, 0.85), 6.0, true)
+	ci.draw_arc(center, radius * 1.12, -PI / 2.0, -PI / 2.0 + TAU * clampf(fill, 0.0, 1.0), 40, AppTheme.ENERGY, 6.0, true)
+
+
+static func _water(ci: CanvasItem, center: Vector2, radius: float, time: float) -> void:
+	_base(ci, center, radius, 8)
+	ci.draw_circle(center, radius * 0.72, AppTheme.WATER_DEEP)
+	ci.draw_circle(center, radius * 0.56, AppTheme.WATER)
+	for i in 6:
+		var angle := time * 1.8 + TAU * i / 6.0
+		var tip := center + Vector2.from_angle(angle) * radius * 0.7
+		ci.draw_line(center, tip, AppTheme.METAL, 3.0, true)
+		ci.draw_circle(tip, 3.0, AppTheme.WATER_LIGHT)
+	ci.draw_circle(center, radius * 0.18, AppTheme.METAL_DARK)
+
+
+static func _fire(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	shadow(ci, center, radius)
+	ci.draw_colored_polygon(polygon(center, radius, 10, 0.0), AppTheme.ROCK_DARK)
+	ci.draw_colored_polygon(polygon(center, radius * 0.78, 10, 0.0), AppTheme.ROCK)
+	ci.draw_circle(center, radius * 0.6, AppTheme.METAL_DEEP)
+	for i in 3:
+		var angle := TAU * i / 3.0 + 0.4
+		ci.draw_line(center + Vector2.from_angle(angle) * radius * 0.5, center - Vector2.from_angle(angle) * radius * 0.5, AppTheme.TRUNK, 5.0, true)
+	if fill > 0.0:
+		glow(ci, center, radius * 0.35, AppTheme.FLAME, 0.6 * fill)
+		flames(ci, center + Vector2(0, -radius * 0.1), radius * 0.45, time, fill)
+	else:
+		ci.draw_circle(center, radius * 0.2, Color(AppTheme.FLAME, 0.25))
+
+
+static func _lamp(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
+	shadow(ci, center, radius * 0.7)
+	ci.draw_circle(center, radius * 0.72, AppTheme.METAL_DEEP)
+	ci.draw_circle(center, radius * 0.56, AppTheme.METAL_DARK)
+	var lit := clampf(fill, 0.0, 1.0)
+	var flicker := 1.0 + 0.04 * sin(time * 11.0 + center.x)
+	ci.draw_circle(center, radius * 0.38, AppTheme.LAMP_OFF.lerp(AppTheme.LAMP_LIGHT, lit))
+	if lit > 0.05:
+		glow(ci, center, radius * 0.4 * flicker, AppTheme.LAMP_LIGHT, lit)
 
 
 static func _healer(ci: CanvasItem, center: Vector2, radius: float, time: float, fill: float) -> void:
@@ -213,6 +260,16 @@ static func _healer(ci: CanvasItem, center: Vector2, radius: float, time: float,
 	ci.draw_rect(Rect2(center - Vector2(width, arm), Vector2(width * 2.0, arm * 2.0)), Color.WHITE)
 	ci.draw_arc(center, radius * 0.72, time * 1.5, time * 1.5 + PI * 0.5, 12, Color(color, 0.8), 2.5, true)
 	ci.draw_arc(center, radius * 0.72, time * 1.5 + PI, time * 1.5 + PI * 1.5, 12, Color(color, 0.8), 2.5, true)
+
+
+static func _bastion(ci: CanvasItem, center: Vector2, radius: float, time: float, aim: float, fill: float) -> void:
+	_base(ci, center, radius, 8)
+	var color := AppTheme.building_color(GameConfig.BASTION)
+	ci.draw_rect(Rect2(center - Vector2(radius * 0.78, radius * 0.78), Vector2(radius * 1.56, radius * 1.56)), AppTheme.METAL_DARK)
+	ci.draw_circle(center, radius * 0.5, AppTheme.METAL)
+	ci.draw_circle(center, radius * 0.34, Color(color, 0.25 + 0.55 * fill))
+	ci.draw_line(center, center + Vector2.from_angle(aim) * radius * 1.0, AppTheme.METAL_DEEP, 5.0, true)
+	ci.draw_arc(center, radius * 0.9, time, time + PI * 0.6, 12, Color(color, 0.8), 2.5, true)
 
 
 static func _rover(ci: CanvasItem, center: Vector2, radius: float, time: float, aim: float, fill: float) -> void:

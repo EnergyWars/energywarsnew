@@ -75,6 +75,15 @@ func remove_links_of(id: int) -> void:
 			remove_link(link, "destroyed")
 
 
+func remove_links_where(id: int, incoming: bool, cause: String) -> int:
+	var count := 0
+	for link: EnergyLink in state.links.duplicate():
+		if (link.target if incoming else link.source) == id:
+			remove_link(link, cause)
+			count += 1
+	return count
+
+
 func drop_out_of_range(id: int) -> int:
 	var count := 0
 	for link: EnergyLink in state.links.duplicate():
@@ -129,11 +138,9 @@ func _crossed(link: EnergyLink, from: Vector2, to: Vector2) -> bool:
 func flow(delta: float) -> void:
 	var sun := state.light()
 	for building in state.producers():
-		var amount := Formulas.output(building)
+		var amount := Formulas.generation(building, sun)
 		if amount <= 0.0:
 			continue
-		if building.definition().get("solar", false):
-			amount *= sun
 		building.energy = minf(Formulas.capacity(building), building.energy + amount * delta)
 	for group: Array in groups():
 		var source := state.building(group[0])

@@ -71,14 +71,12 @@ static func label(building: Building, audit: EnergyAudit, scenario: int = Energy
 	return ""
 
 
-static func link_label(audit: EnergyAudit, key: String, scenario: int = EnergyAudit.WORST) -> String:
+static func link_label(audit: EnergyAudit, key: String, outgoing: bool, scenario: int = EnergyAudit.WORST) -> String:
 	if not audit.is_active(key):
 		return Texts.t("STATUS_LINK_RANGE")
-	var arriving := rate(audit.delivered(key, scenario))
-	var limit := rate(audit.link_cap(key))
-	if audit.link_loss(key) < EnergyAudit.LOSSLESS:
-		return Texts.format("STATUS_LINK_LOSSLESS", [arriving, limit])
-	return Texts.format("STATUS_LINK_LABEL", [EnergyStatsText.percent(audit.link_loss(key)), arriving, limit])
+	if not outgoing:
+		return rate(audit.delivered(key, scenario))
+	return Texts.format("STATUS_LINK_OUT", [rate(audit.flow(key, scenario)), EnergyStatsText.percent(audit.link_loss(key))])
 
 
 static func link_color(audit: EnergyAudit, key: String, scenario: int = EnergyAudit.WORST) -> Color:

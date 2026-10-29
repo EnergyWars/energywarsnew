@@ -143,6 +143,19 @@ func test_flyers_ignore_walls() -> void:
 	assert_lt(zapper.hp, zapper.max_hp())
 
 
+func test_flyers_prefer_bastion_over_everything() -> void:
+	_powered(GameConfig.ZAPPER, Vector2i(0, -2))
+	var bastion := _powered(GameConfig.BASTION, Vector2i(6, 6))
+	var wasp := BattleFixtures.enemy(battle, "wasp", _cell(Vector2i(0, -9)))
+	assert_eq(battle.ai.choose_target(wasp), bastion)
+
+
+func test_ground_units_ignore_bastion_lure() -> void:
+	var bastion := _powered(GameConfig.BASTION, Vector2i(6, 6))
+	var crawler := BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9)))
+	assert_ne(battle.ai.choose_target(crawler), bastion)
+
+
 func test_ground_units_path_around_chasms() -> void:
 	for x in range(-12, 13):
 		if x != 8:

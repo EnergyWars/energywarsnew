@@ -51,6 +51,9 @@ func test_battle_screen_starts_with_scouting() -> void:
 	assert_eq(screen.battle.state.time, 0.0)
 	assert_true(screen.build_bar.visible)
 	assert_eq(screen.build_bar.kinds, [GameConfig.CORE] as Array[String])
+	assert_false(screen.build_bar.collapsible)
+	assert_true(screen.build_bar.shows_cards())
+	assert_eq(screen.view.mode, BattleView.Mode.MOVE)
 	assert_false(screen.mode_button.visible)
 	assert_false(screen.scout_button.visible)
 	assert_gt(screen.hud.top_height(), 0.0)
@@ -100,6 +103,11 @@ func test_scout_lands_steers_and_boards_the_core() -> void:
 	assert_false(screen.scout_button.visible)
 	assert_eq(screen.tutorial.step, Tutorial.BUILD_SOLAR)
 	assert_true(screen.mode_button.visible)
+	assert_eq(screen.view.mode, BattleView.Mode.CONNECT)
+	assert_true(screen.mode_button.text.contains(Texts.t("MODE_CONNECT")))
+	assert_true(screen.build_bar.collapsible)
+	assert_false(screen.build_bar.shows_cards())
+	assert_true(screen.build_bar.build_button.visible)
 	assert_eq(screen.steering_input(), Vector2.ZERO)
 
 
@@ -116,8 +124,7 @@ func test_scout_clears_by_tap_while_scouting() -> void:
 	state.nav.terrain_changed(tree)
 	screen.view.begin(state.map.center_of(tree))
 	screen.view.tap(state.map.center_of(tree))
-	assert_true(state.scout.is_clearing())
-	_frames(screen, 80)
+	assert_false(state.scout.is_clearing())
 	assert_true(state.map.is_walkable(tree))
 	var far := origin + Vector2i(6, 0)
 	state.map.set_tile(far, LevelMap.Tile.ROCK)
@@ -125,8 +132,30 @@ func test_scout_clears_by_tap_while_scouting() -> void:
 	watch_signals(screen.view)
 	screen.view.begin(state.map.center_of(far))
 	screen.view.tap(state.map.center_of(far))
+	assert_signal_not_emitted(screen.view, "action_failed")
+	assert_true(state.scout.is_walking())
+	assert_eq(state.scout.pending_cell, far)
+	_frames(screen, 90)
+	assert_false(state.scout.is_walking())
+	assert_true(state.scout.is_clearing() or state.map.is_walkable(far))
+	_frames(screen, 60)
+	assert_true(state.map.is_walkable(far))
+	var spot := state.map.cell_of(state.scout.position) + Vector2i(0, 4)
+	screen.view.begin(state.map.center_of(spot))
+	screen.view.tap(state.map.center_of(spot))
+	assert_true(state.scout.is_walking())
+	_frames(screen, 60)
+	assert_eq(state.map.cell_of(state.scout.position), spot)
+	var walled := state.map.cell_of(state.scout.position) + Vector2i(5, 0)
+	for y in range(-1, 2):
+		for x in range(-1, 2):
+			if x != 0 or y != 0:
+				state.map.set_tile(walled + Vector2i(x, y), LevelMap.Tile.CLIFF)
+				state.nav.terrain_changed(walled + Vector2i(x, y))
+	screen.view.begin(state.map.center_of(walled))
+	screen.view.tap(state.map.center_of(walled))
 	assert_signal_emitted(screen.view, "action_failed")
-	assert_false(state.scout.is_clearing())
+	assert_false(state.scout.is_walking())
 	screen.focus_scout()
 	assert_true(screen.view.scout_active)
 
@@ -354,7 +383,7 @@ func test_build_flow_through_view() -> void:
 	assert_eq(screen.view.build_kind, "")
 
 
-func test_wall_painting_keeps_build_mode() -> void:
+func test_bulwarks_are_placed_one_by_one_like_other_buildings() -> void:
 	var screen := _deployed()
 	var state := screen.battle.state
 	var start := state.core().position + Vector2(-200, -150)
@@ -363,17 +392,31 @@ func test_wall_painting_keeps_build_mode() -> void:
 	screen.view.drag_to(start + Vector2(40, 0), true)
 	screen.view.drag_to(start + Vector2(400, 0), true)
 	screen.view.finish(start + Vector2(400, 0))
-	assert_eq(state.count_kind(GameConfig.BULWARK), 8)
-	assert_eq(screen.view.build_kind, GameConfig.BULWARK)
-	screen.view.begin(start + Vector2(0, -200))
-	screen.view.tap(start + Vector2(0, -200))
-	assert_eq(state.count_kind(GameConfig.BULWARK), 9)
-	state.money = 0
-	watch_signals(screen.view)
-	screen.view.begin(start + Vector2(0, -300))
-	screen.view.drag_to(start + Vector2(200, -300), true)
-	assert_signal_emitted(screen.view, "action_failed")
+	assert_eq(state.count_kind(GameConfig.BULWARK), 1)
+	assert_eq(state.of_kind(GameConfig.BULWARK)[0].position, LevelMap.snap(start + Vector2(400, 0), 1))
 	assert_eq(screen.view.build_kind, "")
+
+
+func test_multi_placement_keeps_the_building_selected() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var start := state.core().position + Vector2(-200, -150)
+	screen.build_bar.set_repeat(true)
+	assert_true(screen.view.build_repeat)
+	screen.choose_kind(GameConfig.BULWARK)
+	for i in 3:
+		var spot := start + Vector2(GameConfig.CELL * i, 0)
+		screen.view.begin(spot)
+		screen.view.tap(spot)
+	assert_eq(state.count_kind(GameConfig.BULWARK), 3)
+	assert_eq(screen.view.build_kind, GameConfig.BULWARK)
+	state.money = Formulas.build_cost(state, GameConfig.BULWARK)
+	screen.view.begin(start + Vector2(0, -100))
+	screen.view.tap(start + Vector2(0, -100))
+	assert_eq(state.count_kind(GameConfig.BULWARK), 4)
+	assert_eq(screen.view.build_kind, "")
+	screen.build_bar.set_repeat(false)
+	assert_false(screen.view.build_repeat)
 
 
 func test_failed_placement_is_reported() -> void:
@@ -394,7 +437,6 @@ func test_link_and_cut_gestures() -> void:
 	var core := state.core()
 	screen.battle.place(GameConfig.SOLAR, core.position + Vector2(150, 0))
 	var solar: Building = state.player_buildings().back()
-	screen.toggle_mode()
 	assert_eq(screen.view.mode, BattleView.Mode.CONNECT)
 	screen.view.begin(solar.position)
 	assert_eq(screen.view.gesture, BattleView.Gesture.LINK_PENDING)
@@ -433,6 +475,7 @@ func test_move_mode_drag_pans_instead_of_linking() -> void:
 	var core := state.core()
 	screen.battle.place(GameConfig.SOLAR, core.position + Vector2(150, 0))
 	var solar: Building = state.player_buildings().back()
+	screen.toggle_mode()
 	assert_eq(screen.view.mode, BattleView.Mode.MOVE)
 	screen.view.zoom = 1.0
 	screen.view.focus(core.position + Vector2(0, -300))
@@ -524,15 +567,21 @@ func test_mode_button_toggles_and_shows_mode() -> void:
 	var screen := _deployed()
 	_frames(screen, 1)
 	assert_true(screen.mode_button.visible)
-	assert_true(screen.mode_button.text.contains(Texts.t("MODE_MOVE")))
-	screen.mode_button.pressed.emit()
 	assert_eq(screen.view.mode, BattleView.Mode.CONNECT)
 	assert_true(screen.mode_button.text.contains(Texts.t("MODE_CONNECT")))
 	assert_eq(screen.mode_button.theme_type_variation, "PrimaryButton")
+	screen.mode_button.pressed.emit()
+	assert_eq(screen.view.mode, BattleView.Mode.MOVE)
+	assert_true(screen.mode_button.text.contains(Texts.t("MODE_MOVE")))
+	assert_eq(screen.mode_button.theme_type_variation, "Button")
+	assert_eq(screen.hud._toast_label.text, Texts.t("TOAST_MODE_MOVE"))
+	screen.mode_button.pressed.emit()
+	assert_eq(screen.view.mode, BattleView.Mode.CONNECT)
 	_frames(screen, 1)
 	assert_lt(screen.mode_button.position.y + screen.mode_button.size.y, screen.root.size.y - screen.view.bottom_inset)
 	screen.handle_back()
-	assert_eq(screen.view.mode, BattleView.Mode.MOVE)
+	assert_eq(screen.view.mode, BattleView.Mode.CONNECT)
+	assert_true(screen.paused)
 
 
 func test_beams_only_visible_while_energy_flows() -> void:
@@ -715,18 +764,175 @@ func test_world_rect_matches_the_camera() -> void:
 	assert_almost_eq(rect.size.distance_to(view.view_size() / view.zoom), 0.0, 0.01)
 
 
-func test_upgrade_list_scrolls_for_many_tracks() -> void:
+func test_upgrade_list_shows_every_track_without_inner_scroll() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	screen.view.select(core.id)
+	_frames(screen, 2)
+	assert_true(screen.panel._tracks.visible)
+	assert_eq(screen.panel._track_rows.size(), core.definition().tracks.size())
+	var nest: Building = screen.battle.state.enemy_buildings()[0]
+	screen.view.select(nest.id)
+	_frames(screen, 1)
+	assert_false(screen.panel._tracks.visible)
+
+
+func test_panel_fits_its_content_and_stops_below_the_top_bar() -> void:
 	var screen := _deployed()
 	var core := screen.battle.state.core()
 	screen.view.select(core.id)
 	_frames(screen, 1)
-	assert_true(screen.panel._track_scroll.visible)
-	assert_eq(screen.panel._track_rows.size(), core.definition().tracks.size())
-	assert_eq(screen.panel._track_scroll.custom_minimum_size.y, BuildingPanel.VISIBLE_TRACKS * BuildingPanel.TRACK_ROW_HEIGHT)
-	var nest: Building = screen.battle.state.enemy_buildings()[0]
+	var panel := screen.panel
+	panel.fit(100000.0)
+	assert_almost_eq(panel._scroll.custom_minimum_size.y, panel._body.get_combined_minimum_size().y, 0.01)
+	panel.fit(300.0)
+	var chrome := panel.get_combined_minimum_size().y - panel._scroll.custom_minimum_size.y
+	assert_almost_eq(panel._scroll.custom_minimum_size.y, maxf(300.0 - chrome, 0.0), 0.01)
+	panel.fit(0.0)
+	assert_eq(panel._scroll.custom_minimum_size.y, 0.0)
+	panel.set_minimized(true)
+	panel.fit(300.0)
+	assert_eq(panel._scroll.custom_minimum_size.y, 0.0)
+
+
+func test_minimized_panel_is_only_one_button_high() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	screen.battle.connect_buildings(core.id, zapper.id)
+	screen.view.select(zapper.id)
+	_frames(screen, 2)
+	var panel := screen.panel
+	panel.set_minimized(true)
+	assert_false(panel._icon.visible)
+	assert_false(panel._status.visible)
+	assert_false(panel._name.visible)
+	assert_false(panel._scroll.visible)
+	assert_lte(panel.get_combined_minimum_size().y, 52.0 + AppTheme.SPACING_SM * 2.0 + 2.0)
+
+
+func test_custom_name_keeps_the_minimized_panel_one_row_high() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var core := battle.state.core()
+	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	screen.view.select(zapper.id)
+	_frames(screen, 1)
+	var panel := screen.panel
+	assert_eq(panel._title.text, Texts.building_name(GameConfig.ZAPPER))
+	panel.set_minimized(true)
+	var plain := panel.get_combined_minimum_size().y
+	assert_true(battle.rename(zapper.id, "Northern gate keeper"))
+	panel.refresh()
+	assert_eq(panel._title.text, BuildingPanel.building_label(zapper))
+	assert_false(panel._name.visible)
+	assert_true(panel._title.clip_text)
+	assert_almost_eq(panel.get_combined_minimum_size().y, plain, 0.5)
+	await wait_process_frames(2)
+	assert_almost_eq(panel.size.y, panel.get_combined_minimum_size().y, 1.0)
+	panel.set_minimized(false)
+	assert_eq(panel._title.text, Texts.building_name(GameConfig.ZAPPER))
+	assert_true(panel._name.visible)
+
+
+func test_minimized_lamp_panel_keeps_the_light_slider() -> void:
+	var screen := _deployed()
+	var lamp := BattleFixtures.add(screen.battle, GameConfig.LAMP, screen.battle.state.core().position + Vector2(0, -168))
+	screen.view.select(lamp.id)
+	_frames(screen, 1)
+	var panel := screen.panel
+	assert_true(panel._light_box.visible)
+	assert_true(panel._light_hint.visible)
+	panel.set_minimized(true)
+	assert_false(panel._scroll.visible)
+	assert_true(panel._light_box.visible)
+	assert_true(panel.light_slider.is_visible_in_tree())
+	assert_false(panel._light_hint.visible)
+	panel.light_slider.value = 5.0
+	assert_eq(lamp.light_radius, 5.0)
+	panel.refresh()
+	assert_eq(panel._light_value.text, Texts.format("PANEL_LIGHT_VALUE", [5.0, Formulas.lamp_draw(lamp)]))
+	panel.set_minimized(false)
+	assert_true(panel._light_hint.visible)
+	screen.view.select(screen.battle.state.core_id)
+	_frames(screen, 1)
+	assert_false(panel._light_box.visible)
+
+
+func test_link_and_relocate_minimize_the_panel() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	screen.view.select(core.id)
+	_frames(screen, 1)
+	assert_false(screen.panel.minimized)
+	screen.start_link_pick(core.id)
+	assert_true(screen.panel.minimized)
+	screen.panel.set_minimized(false)
+	screen.view.cancel_pick()
+	screen.view.select(zapper.id)
+	screen.start_relocate(zapper.id)
+	assert_true(screen.panel.minimized)
+
+
+func test_panel_lists_connections_and_cuts_them() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var core := battle.state.core()
+	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	var second := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(168, 0))
+	battle.connect_buildings(core.id, zapper.id)
+	battle.connect_buildings(core.id, second.id)
+	screen.view.select(core.id)
+	_frames(screen, 2)
+	var panel := screen.panel
+	assert_true(panel._links.visible)
+	assert_eq(panel._link_rows.size(), 2)
+	assert_true(panel._cut_out.visible)
+	assert_false(panel._cut_in.visible)
+	assert_eq(panel._cut_out.text, Texts.format("PANEL_CUT_OUT", [2]))
+	assert_ne(panel._link_rows[0].data.text, "")
+	screen.view.select(zapper.id)
+	_frames(screen, 2)
+	assert_eq(panel._link_rows.size(), 1)
+	assert_true(panel._cut_in.visible)
+	assert_false(panel._cut_out.visible)
+	panel.building_picked.emit(core.id)
+	assert_eq(screen.view.selected_id, core.id)
+	panel.cut_pressed.emit(core.id, zapper.id)
+	_frames(screen, 2)
+	assert_null(battle.state.find_link(core.id, zapper.id))
+	assert_not_null(battle.state.find_link(core.id, second.id))
+	assert_eq(panel._link_rows.size(), 1)
+	panel.cut_all_pressed.emit(core.id, false)
+	_frames(screen, 2)
+	assert_true(battle.state.links.is_empty())
+	assert_false(panel._links.visible)
+
+
+func test_panel_name_field_renames_and_shows_under_the_title() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var core := battle.state.core()
+	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	screen.view.select(zapper.id)
+	_frames(screen, 1)
+	var panel := screen.panel
+	assert_true(panel._name.visible)
+	panel._name.text = "  North  "
+	panel._name.text_submitted.emit(panel._name.text)
+	assert_eq(zapper.label, "North")
+	assert_eq(BuildingPanel.building_label(zapper), "%s · North" % Texts.building_name(GameConfig.ZAPPER))
+	screen.view.select(core.id)
+	_frames(screen, 1)
+	assert_eq(panel._name.text, "")
+	screen.view.select(zapper.id)
+	_frames(screen, 1)
+	assert_eq(panel._name.text, "North")
+	var nest: Building = battle.state.enemy_buildings()[0]
 	screen.view.select(nest.id)
 	_frames(screen, 1)
-	assert_false(screen.panel._track_scroll.visible)
+	assert_false(panel._name.visible)
 
 
 func test_pause_speed_and_skip() -> void:
@@ -792,6 +998,8 @@ func test_defeat_shows_result() -> void:
 	assert_true(screen.overlay is ResultOverlay)
 	assert_false((screen.overlay as ResultOverlay).won)
 	assert_eq((screen.overlay as ResultOverlay).title_key(), "RESULT_DEFEAT")
+	assert_false((screen.overlay as ResultOverlay).can_resume)
+	assert_false(screen.can_resume())
 	assert_false(progress.is_conquered(0))
 
 
@@ -853,6 +1061,11 @@ func test_reward_director_handles_every_event() -> void:
 		{"type": "stalled", "id": 1, "position": position},
 		{"type": "cleared", "position": position, "obstacle": LevelMap.TREE, "cell": Vector2i(1, 1)},
 		{"type": "cleared", "position": position, "obstacle": LevelMap.ROCK, "cell": Vector2i(1, 1)},
+		{"type": "cleared", "position": position, "obstacle": LevelMap.TREE, "cell": Vector2i(1, 1), "fire": 3},
+		{"type": "fuel_marked", "id": 3, "cell": Vector2i(1, 1), "position": position},
+		{"type": "fuel_unmarked", "id": 3, "cell": Vector2i(1, 1), "position": position},
+		{"type": "fuel_empty", "id": 3, "position": position},
+		{"type": "scout_route", "position": position, "target": position},
 		{"type": "fight_started", "round": 1},
 		{"type": "nightfall", "round": 1},
 		{"type": "night_over", "round": 1, "left": 3},
@@ -968,6 +1181,24 @@ func test_region_panel_offers_survival_targets() -> void:
 	assert_eq(RegionPanel.survival_options().back(), 0)
 
 
+func test_world_map_progress_reset_needs_confirmation() -> void:
+	progress.mark_conquered(0)
+	var menu := _world()
+	watch_signals(menu)
+	menu.reset_button.pressed.emit()
+	assert_not_null(menu.reset_dialog)
+	menu.confirm_reset_progress()
+	menu.reset_dialog.cancel_button.pressed.emit()
+	assert_signal_not_emitted(menu, "progress_reset")
+	assert_true(progress.is_conquered(0))
+	menu.confirm_reset_progress()
+	assert_true(menu.handle_back())
+	menu.confirm_reset_progress()
+	menu.reset_dialog.confirm_button.pressed.emit()
+	assert_signal_emitted(menu, "progress_reset")
+	assert_false(progress.is_conquered(0))
+
+
 func test_world_map_settings_and_tech() -> void:
 	progress.mark_conquered(0)
 	var menu := _world()
@@ -1080,6 +1311,13 @@ func test_main_switches_screens() -> void:
 	assert_false(main.last_rules.is_survival())
 	main.retry()
 	assert_true(main.screen is BattleScreen)
+	main.resume(null)
+	var saved := BattleFixtures.deployed(0)
+	saved.start_round()
+	main.resume(saved.checkpoint)
+	assert_true(main.screen is BattleScreen)
+	assert_eq((main.screen as BattleScreen).resume, saved.checkpoint)
+	assert_eq(main.last_index, 0)
 	progress.mark_conquered(0)
 	main.start_survival(0, 10)
 	assert_true(main.last_rules.is_survival())
@@ -1330,6 +1568,8 @@ func test_rover_is_steered_by_dragging_during_the_fight() -> void:
 	screen.start_round()
 	view.select(rover.id)
 	_frames(screen, 1)
+	assert_false(view.can_steer())
+	screen.toggle_mode()
 	assert_true(view.can_steer())
 	var anchor := view.view_size() * 0.5
 	var start := rover.position
@@ -1426,15 +1666,15 @@ func test_panel_can_be_minimized_while_the_selection_stays() -> void:
 	_frames(screen, 2)
 	var panel := screen.panel
 	assert_false(panel.minimized)
-	assert_true(panel._body.visible)
+	assert_true(panel._scroll.visible)
 	assert_true(panel._info.visible)
 	assert_eq(panel._minimize.text, Icons.EXPAND_MORE)
 	var full_height := panel.get_combined_minimum_size().y
 	panel._minimize.pressed.emit()
 	assert_true(panel.minimized)
-	assert_false(panel._body.visible)
+	assert_false(panel._scroll.visible)
 	assert_false(panel._info.visible)
-	assert_true(panel._status.visible)
+	assert_false(panel._status.visible)
 	assert_false(panel._status_cause.visible)
 	assert_eq(panel._minimize.text, Icons.EXPAND_LESS)
 	assert_lt(panel.get_combined_minimum_size().y, full_height)
@@ -1446,14 +1686,44 @@ func test_panel_can_be_minimized_while_the_selection_stays() -> void:
 	screen.view.select(core.id)
 	_frames(screen, 1)
 	assert_true(panel.minimized)
-	assert_false(panel._body.visible)
+	assert_false(panel._scroll.visible)
 	panel.toggle_minimized()
 	assert_false(panel.minimized)
-	assert_true(panel._body.visible)
+	assert_true(panel._scroll.visible)
 	assert_true(panel._info.visible)
 
 
-func test_selected_building_labels_every_beam() -> void:
+func test_selected_building_labels_only_its_own_beams() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var state := battle.state
+	var core := state.core()
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -224))
+	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, relay.position + Vector2(0, -280))
+	battle.connect_buildings(core.id, relay.id)
+	battle.connect_buildings(relay.id, zapper.id)
+	var feed := state.find_link(core.id, relay.id)
+	var beam := state.find_link(relay.id, zapper.id)
+	var view := screen.view
+	assert_true(view.labeled_links().is_empty())
+	view.select(zapper.id)
+	assert_eq(view.labeled_links(), [beam] as Array[EnergyLink])
+	var audit := battle.audit()
+	var scenario := EnergyAudit.view_scenario(state)
+	assert_eq(view.beam_label(beam), StatusText.link_label(audit, beam.key(), false, scenario))
+	assert_false(view.beam_label(beam).contains("%"))
+	view.select(relay.id)
+	assert_eq(view.labeled_links().size(), 2)
+	assert_true(view.labeled_links().has(feed))
+	assert_eq(view.beam_label(beam), StatusText.link_label(audit, beam.key(), true, scenario))
+	assert_true(view.beam_label(beam).contains("(−"))
+	assert_false(view.beam_label(feed).contains("%"))
+	view.select(core.id)
+	assert_eq(view.labeled_links(), [feed] as Array[EnergyLink])
+	view.select(-1)
+
+
+func test_selected_building_labels_its_beams() -> void:
 	var screen := _deployed()
 	var state := screen.battle.state
 	var core := state.core()
@@ -1504,3 +1774,378 @@ func test_guards_are_painted_and_burn_in_the_planning_phase() -> void:
 	_frames(screen, 1)
 	await wait_process_frames(1)
 	assert_true(guard.is_burning())
+
+
+func test_status_mode_only_touches_links_of_the_selection() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var core := battle.state.core()
+	var near := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	var far := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(168, 0))
+	battle.connect_buildings(core.id, near.id)
+	battle.connect_buildings(core.id, far.id)
+	var to_near := battle.state.find_link(core.id, near.id)
+	var to_far := battle.state.find_link(core.id, far.id)
+	assert_false(screen.view.touches_selected(to_near))
+	screen.view.select(near.id)
+	assert_true(screen.view.touches_selected(to_near))
+	assert_false(screen.view.touches_selected(to_far))
+	screen.view.select(core.id)
+	assert_true(screen.view.touches_selected(to_far))
+	screen.toggle_status()
+	_frames(screen, 2)
+	await wait_process_frames(2)
+	screen.view.select(-1)
+	await wait_process_frames(1)
+
+
+func test_build_bar_collapses_and_offers_a_big_cancel_button() -> void:
+	var screen := _deployed()
+	var bar := screen.build_bar
+	_frames(screen, 1)
+	assert_true(bar.build_button.visible)
+	assert_false(bar.shows_cards())
+	assert_false(bar.cancel_button.visible)
+	bar.build_button.pressed.emit()
+	assert_true(bar.expanded)
+	assert_true(bar.shows_cards())
+	assert_true(bar._options.visible)
+	assert_false(bar.build_button.visible)
+	assert_eq(bar.once_button.theme_type_variation, "PrimaryButton")
+	assert_eq(bar.multi_button.theme_type_variation, "Button")
+	assert_not_null(bar.button_for(GameConfig.LAMP))
+	bar.button_for(GameConfig.SOLAR).pressed.emit()
+	assert_eq(screen.view.build_kind, GameConfig.SOLAR)
+	_frames(screen, 1)
+	assert_true(bar.expanded)
+	assert_false(bar.shows_cards())
+	assert_true(bar.cancel_button.visible)
+	assert_false(bar.build_button.visible)
+	assert_eq(bar.cancel_button.theme_type_variation, "DangerButton")
+	assert_true(bar.cancel_button.text.contains(Texts.building_name(GameConfig.SOLAR)))
+	bar.cancel_button.pressed.emit()
+	assert_eq(screen.view.build_kind, "")
+	_frames(screen, 1)
+	assert_true(bar.shows_cards())
+	assert_false(bar.build_button.visible)
+	assert_false(bar.cancel_button.visible)
+	bar.collapse_button.pressed.emit()
+	assert_false(bar.expanded)
+	assert_true(bar.build_button.visible)
+	bar.multi_button.pressed.emit()
+	assert_true(bar.repeat)
+	assert_eq(bar.multi_button.theme_type_variation, "PrimaryButton")
+	assert_eq(bar.once_button.theme_type_variation, "Button")
+	assert_true(screen.view.build_repeat)
+	bar.once_button.pressed.emit()
+	assert_false(screen.view.build_repeat)
+	bar.set_collapsible(false)
+	assert_true(bar.shows_cards())
+	assert_false(bar._options.visible)
+
+
+func test_build_bar_stays_open_after_placing_and_back_closes_it() -> void:
+	var screen := _deployed()
+	var bar := screen.build_bar
+	var state := screen.battle.state
+	state.money = 1000
+	bar.build_button.pressed.emit()
+	screen.choose_kind(GameConfig.RELAY)
+	_frames(screen, 1)
+	assert_false(bar.shows_cards())
+	var count := state.player_buildings().size()
+	screen.view.place_at(state.core().position + Vector2(150, 0))
+	assert_eq(state.player_buildings().size(), count + 1)
+	assert_eq(screen.view.build_kind, "")
+	_frames(screen, 1)
+	assert_true(bar.expanded)
+	assert_true(bar.shows_cards())
+	assert_false(bar.build_button.visible)
+	screen.handle_back()
+	assert_false(bar.expanded)
+	assert_true(bar.build_button.visible)
+	assert_false(screen.paused)
+	await wait_process_frames(2)
+	assert_almost_eq(bar.size.y, bar.get_combined_minimum_size().y, 1.0)
+
+
+func test_primary_buttons_are_dark_blue() -> void:
+	var theme := AppTheme.build()
+	var normal := theme.get_stylebox(&"normal", "PrimaryButton") as StyleBoxFlat
+	assert_eq(normal.bg_color, AppTheme.PRIMARY_CONTAINER)
+	assert_eq(normal.border_color, AppTheme.PRIMARY_OUTLINE)
+	assert_eq(theme.get_color(&"font_color", "PrimaryButton"), AppTheme.ENERGY)
+	assert_lt(AppTheme.PRIMARY_CONTAINER.get_luminance(), 0.25)
+	var screen := _deployed()
+	screen.hud.set_status_mode(true)
+	var active := screen.hud._status_button.get_theme_stylebox(&"normal") as StyleBoxFlat
+	assert_eq(active.bg_color, AppTheme.PRIMARY_CONTAINER)
+	assert_eq(screen.hud._status_button.get_theme_color(&"font_color"), AppTheme.ENERGY)
+	screen.hud.set_status_mode(false)
+
+
+func test_cancel_during_relocation_keeps_the_building_selected() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	screen.battle.place(GameConfig.RELAY, state.core().position + Vector2(150, 0))
+	var relay: Building = state.player_buildings().back()
+	screen.start_relocate(relay.id)
+	_frames(screen, 1)
+	assert_true(screen.build_bar.visible)
+	assert_true(screen.build_bar.cancel_button.visible)
+	screen.build_bar.cancel_button.pressed.emit()
+	assert_false(screen.view.is_relocating())
+	assert_eq(screen.view.build_kind, "")
+	assert_eq(screen.view.selected_id, relay.id)
+
+
+func test_far_core_spot_sends_the_soldier_walking() -> void:
+	var screen := _landed_scout()
+	var state := screen.battle.state
+	var distance := GameConfig.CORE_DEPLOY_RANGE + GameConfig.CELL * 4.0
+	var far := Vector2.INF
+	for direction in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+		var point: Vector2 = state.scout.position + direction * distance
+		if state.map.contains(point, GameConfig.CELL * 2.0):
+			far = point
+			break
+	assert_ne(far, Vector2.INF)
+	watch_signals(screen.view)
+	screen.choose_kind(GameConfig.CORE)
+	screen.view.begin(far)
+	screen.view.tap(far)
+	assert_null(state.core())
+	assert_signal_emitted(screen.view, "notice_shown")
+	assert_signal_not_emitted(screen.view, "action_failed")
+	assert_true(state.scout.is_walking())
+	assert_eq(screen.view.build_kind, GameConfig.CORE)
+	_frames(screen, 1)
+	assert_eq(screen.hud._toast_label.text, Texts.t("TOAST_SCOUT_WALKS"))
+	_frames(screen, 30)
+	assert_lt(state.scout.position.distance_to(far), distance - 100.0)
+
+
+func test_lamp_panel_slider_sets_the_light_radius() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var lamp := BattleFixtures.add(screen.battle, GameConfig.LAMP, state.core().position + Vector2(0, -168))
+	screen.view.select(lamp.id)
+	_frames(screen, 1)
+	var panel := screen.panel
+	assert_true(panel._light_box.visible)
+	assert_false(panel._fuel.visible)
+	assert_eq(panel.light_slider.value, GameConfig.LAMP_RADIUS)
+	var steps := screen.battle.history.size()
+	panel.light_slider.drag_started.emit()
+	panel.light_slider.value = 5.0
+	panel.light_slider.value = 6.0
+	panel.light_slider.drag_ended.emit(true)
+	assert_eq(lamp.light_radius, 6.0)
+	assert_eq(screen.battle.history.size(), steps + 1)
+	assert_eq(panel._light_value.text, Texts.format("PANEL_LIGHT_VALUE", [6.0, Formulas.lamp_draw(lamp)]))
+	lamp.light_radius = 2.0
+	panel.refresh()
+	assert_eq(panel.light_slider.value, 2.0)
+	assert_true(screen.battle.undo())
+	assert_eq(lamp.light_radius, GameConfig.LAMP_RADIUS)
+	screen.view.select(state.core_id)
+	_frames(screen, 1)
+	assert_false(panel._light_box.visible)
+
+
+func test_fire_pit_marks_trees_through_the_panel() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var fire := BattleFixtures.add(screen.battle, GameConfig.FIRE, state.core().position + Vector2(-168, 0))
+	var tree := state.map.cell_of(fire.position) + Vector2i(0, -2)
+	state.map.set_tile(tree, LevelMap.Tile.TREE)
+	state.nav.terrain_changed(tree)
+	screen.view.select(fire.id)
+	_frames(screen, 1)
+	var panel := screen.panel
+	assert_true(panel._fuel.visible)
+	assert_false(panel._light_box.visible)
+	assert_true(panel._fuel.text.contains(Texts.format("PANEL_FUEL", [0])))
+	panel._fuel.pressed.emit()
+	assert_eq(screen.view.pick, BattleView.Pick.FUEL)
+	assert_eq(panel.active_pick, "fuel")
+	assert_true(panel.minimized)
+	assert_true(screen.battle.fuel.candidates(fire).has(tree))
+	_frames(screen, 2)
+	await wait_process_frames(1)
+	screen.view.begin(state.map.center_of(tree))
+	screen.view.tap(state.map.center_of(tree))
+	assert_eq(fire.fuel, [tree] as Array[Vector2i])
+	assert_eq(screen.view.pick, BattleView.Pick.FUEL)
+	_frames(screen, 4)
+	assert_true(panel._fuel.text.contains(Texts.format("PANEL_FUEL", [1])))
+	var far := state.map.cell_of(fire.position) + Vector2i(0, -6)
+	state.map.set_tile(far, LevelMap.Tile.TREE)
+	state.nav.terrain_changed(far)
+	watch_signals(screen.view)
+	screen.view.begin(state.map.center_of(far))
+	screen.view.tap(state.map.center_of(far))
+	assert_signal_emitted_with_parameters(screen.view, "action_failed", [Texts.reason("fuel_" + FuelControl.RANGE), state.map.center_of(far)])
+	assert_eq(fire.fuel.size(), 1)
+	screen.view.begin(state.map.center_of(tree))
+	screen.view.tap(state.map.center_of(tree))
+	assert_true(fire.fuel.is_empty())
+	var ground := fire.position + Vector2(0, 300)
+	screen.view.begin(ground)
+	screen.view.tap(ground)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+	assert_eq(panel.active_pick, "")
+	screen.start_fuel_pick(fire.id)
+	assert_eq(screen.view.pick, BattleView.Pick.FUEL)
+	screen.start_fuel_pick(fire.id)
+	assert_eq(screen.view.pick, BattleView.Pick.NONE)
+
+
+func test_night_view_paints_lights_and_burning_trees() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var state := battle.state
+	var core := state.core()
+	var lamp := BattleFixtures.add(battle, GameConfig.LAMP, core.position + Vector2(0, -168))
+	lamp.energy = Formulas.capacity(lamp)
+	var fire := BattleFixtures.add(battle, GameConfig.FIRE, core.position + Vector2(-168, 0))
+	var tree := state.map.cell_of(fire.position) + Vector2i(0, -2)
+	state.map.set_tile(tree, LevelMap.Tile.TREE)
+	state.nav.terrain_changed(tree)
+	assert_eq(battle.toggle_fuel(fire.id, tree), FuelControl.OK)
+	assert_eq(screen.view.paint_fill(lamp), 0.0)
+	assert_eq(screen.view.paint_fill(fire), 1.0)
+	battle.start_round()
+	state.round_time = float(state.level.day) + 5.0
+	battle.tick(GameConfig.TICK)
+	assert_true(lamp.lit)
+	assert_eq(fire.burn_cell, tree)
+	screen.view.select(lamp.id)
+	_frames(screen, 2)
+	await wait_process_frames(1)
+	assert_eq(screen.view._night_shade.material.get_shader_parameter("light_count"), 2)
+	assert_eq(screen.view._night_shade.strength, 1.0)
+	assert_eq(screen.view.paint_fill(lamp), 1.0)
+	screen.start_fuel_pick(fire.id)
+	_frames(screen, 1)
+	await wait_process_frames(1)
+	assert_eq(screen.view.pick, BattleView.Pick.FUEL)
+
+
+func test_night_shade_passes_lights_to_the_shader() -> void:
+	var shade := NightShade.new()
+	assert_eq(shade.strength, 0.0)
+	assert_eq(shade.apply(PackedVector3Array([Vector3(1, 2, 3)]), 0.5), 1)
+	assert_eq(shade.material.get_shader_parameter("light_count"), 1)
+	assert_almost_eq(float(shade.material.get_shader_parameter("strength")), 0.5, 0.001)
+	assert_eq(shade.lights[0], Vector3(1, 2, 3))
+	assert_eq(shade.lights.size(), NightShade.MAX_LIGHTS)
+	var many := PackedVector3Array()
+	many.resize(NightShade.MAX_LIGHTS + 5)
+	assert_eq(shade.apply(many, 3.0), NightShade.MAX_LIGHTS)
+	assert_eq(shade.strength, 1.0)
+	assert_eq(shade.apply(PackedVector3Array(), -1.0), 0)
+	assert_eq(shade.lights[0], Vector3.ZERO)
+	assert_false(shade.refresh_glow())
+	assert_eq(shade.material.get_shader_parameter("tint"), Color(AppTheme.FOG, 1.0))
+
+
+func test_night_shade_uploads_the_building_glow() -> void:
+	var battle := BattleFixtures.battle(0, false)
+	var core := battle.state.core()
+	var shade := NightShade.new()
+	shade.bind(battle.lighting)
+	var map := battle.state.map
+	assert_eq(shade.glow_image.get_width(), map.width)
+	assert_eq(shade.glow_image.get_height(), map.height)
+	assert_eq(shade.material.get_shader_parameter("world_size"), map.size)
+	assert_eq(shade.material.get_shader_parameter("glow_mask"), shade.glow_texture)
+	assert_false(shade.refresh_glow())
+	core.energy = 10.0
+	assert_true(battle.lighting.refresh_glow())
+	assert_true(shade.refresh_glow())
+	assert_eq(shade.glow_image.get_pixelv(core.origin).r8, Lighting.GLOW_ON)
+	assert_false(shade.refresh_glow())
+
+
+func test_darkness_hides_enemies_outside_the_light() -> void:
+	var screen := _deployed()
+	var battle := screen.battle
+	var state := battle.state
+	var core := state.core()
+	state.fog.cells.fill(FogOfWar.VISIBLE)
+	var near := BattleFixtures.enemy(battle, "crawler", core.position + Vector2(0, -120))
+	var far := BattleFixtures.enemy(battle, "crawler", core.position + Vector2(0, -600))
+	assert_true(screen.view.shows_enemy(far))
+	battle.start_round()
+	state.round_time = float(state.level.day) + 2.0
+	assert_true(state.is_night())
+	assert_true(screen.view.shows_enemy(near))
+	assert_false(screen.view.shows_enemy(far))
+	assert_false(screen.view.reveals(far))
+	screen.view.focus(far.position)
+	_frames(screen, 1)
+	await wait_process_frames(1)
+	assert_eq(screen.view._night_shade.strength, 1.0)
+
+
+func test_defeat_after_a_start_offers_a_retry_from_that_start() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	var core := state.core()
+	screen.battle.place(GameConfig.RELAY, core.position + Vector2(0, -150))
+	var tree := state.map.cell_of(core.position) + Vector2i(4, 0)
+	state.map.set_tile(tree, LevelMap.Tile.TREE)
+	state.nav.terrain_changed(tree)
+	_frames(screen, 10)
+	screen.start_round()
+	var checkpoint := screen.battle.checkpoint
+	assert_not_null(checkpoint)
+	assert_almost_eq(checkpoint.elapsed, screen.elapsed, 0.001)
+	state.clear_obstacle(tree)
+	screen.battle.combat.destroy(core)
+	_frames(screen, int(BattleScreen.DEFEAT_DELAY * 30) + 5)
+	var result := screen.overlay as ResultOverlay
+	assert_true(screen.can_resume())
+	assert_true(result.can_resume)
+	watch_signals(screen)
+	result.checkpoint_pressed.emit()
+	assert_signal_emitted_with_parameters(screen, "checkpoint_requested", [checkpoint])
+	var resumed := BattleScreen.new().setup(0, progress, settings, sfx, 0.0, null, checkpoint)
+	add_child_autofree(resumed)
+	var again := resumed.battle.state
+	assert_true(again.is_planning())
+	assert_eq(again.count_kind(GameConfig.RELAY), 1)
+	assert_eq(again.map.tile(tree), LevelMap.Tile.TREE)
+	assert_not_null(again.core())
+	assert_false(resumed.tutorial.is_active())
+	assert_eq(resumed.view.mode, BattleView.Mode.CONNECT)
+	assert_true(resumed.build_bar.collapsible)
+	assert_almost_eq(resumed.elapsed, checkpoint.elapsed, 0.001)
+	_frames(resumed, 2)
+	assert_true(resumed.mode_button.visible)
+	assert_false(resumed.scout_button.visible)
+
+
+func test_result_overlay_offers_the_checkpoint_only_after_defeat() -> void:
+	var report := BattleReport.new()
+	var lost := ResultOverlay.new().setup(report, [] as Array[Array], true)
+	assert_true(lost.can_resume)
+	add_child_autofree(lost)
+	report = BattleReport.new()
+	report.won = true
+	var won := ResultOverlay.new().setup(report, [] as Array[Array], true)
+	assert_false(won.can_resume)
+	add_child_autofree(won)
+
+
+func test_every_buildable_kind_has_an_icon() -> void:
+	var row := HBoxContainer.new()
+	add_child_autofree(row)
+	for kind in GameConfig.BUILD_ORDER:
+		var icon := BuildingIcon.new().setup(kind, 48.0)
+		icon.fill = 1.0
+		row.add_child(icon)
+		assert_ne(Texts.t("BUILDING_%s_SHORT" % kind.to_upper()), "BUILDING_%s_SHORT" % kind.to_upper())
+	await wait_process_frames(2)
+	assert_eq(row.get_child_count(), GameConfig.BUILD_ORDER.size())

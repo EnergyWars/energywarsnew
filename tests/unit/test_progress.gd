@@ -232,3 +232,27 @@ func test_corrupt_file_is_ignored() -> void:
 
 func test_save_fails_for_invalid_path() -> void:
 	assert_false(Progress.new("user://missing_dir/sub/progress.json").save())
+
+
+func test_reset_all_clears_state_and_file() -> void:
+	var progress := Progress.new(PATH)
+	progress.record(_report(0, false, true, [Challenges.CONQUER] as Array[String]))
+	progress.techs.append("laser")
+	progress.location = 2
+	progress.total_kills = 40
+	progress.best_combo = 9
+	assert_true(progress.save())
+	progress.reset_all()
+	assert_true(progress.regions.is_empty())
+	assert_true(progress.techs.is_empty())
+	assert_eq(progress.location, 0)
+	assert_eq(progress.total_kills, 0)
+	assert_eq(progress.best_combo, 0)
+	assert_false(FileAccess.file_exists(PATH))
+	assert_eq(Progress.new(PATH).load_progress().total_stars(), 0)
+
+
+func test_reset_all_without_file_is_safe() -> void:
+	var progress := Progress.new(PATH)
+	progress.reset_all()
+	assert_eq(progress.skill_points(), 0)

@@ -199,6 +199,16 @@ func reset_techs() -> int:
 	return refund
 
 
+func reset_all() -> void:
+	regions = {}
+	techs = []
+	location = 0
+	total_kills = 0
+	best_combo = 0
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+
+
 func arsenal() -> Arsenal:
 	return Arsenal.from_techs(techs)
 

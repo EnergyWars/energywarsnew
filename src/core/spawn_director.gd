@@ -31,6 +31,7 @@ func start_round() -> bool:
 	state.phase = BattleState.Phase.FIGHT
 	state.round_time = 0.0
 	state.waves_sent = 0
+	state.last_raid_wave = -GameConfig.AIR_RAID_GAP
 	state.night_over = false
 	for building in state.player_buildings():
 		building.plan_spent = 0
@@ -145,7 +146,7 @@ func burn(delta: float) -> int:
 func send_wave() -> int:
 	var night := DayCycle.is_night(state.round_time, state.level)
 	var progress := state.round_time / DayCycle.length(state.level)
-	var count := Formulas.wave_count(state.level.waves, state.round_number, progress, night)
+	var count := Formulas.wave_count(state.level.waves, state.round_number, progress, night) * GameConfig.GROUND_WAVE_BONUS
 	var total := 0
 	for spawner in state.enemy_buildings():
 		if not spawner.spawner:
@@ -158,6 +159,8 @@ func send_wave() -> int:
 		spawner.spawn_timer = 0.0
 		total += whole
 	state.waves_sent += 1
+	if raid_due():
+		total += air_raid(night)
 	events.emit("wave", {"index": state.waves_sent, "total": Formulas.wave_times(state.level), "night": night, "round": state.round_number, "count": total})
 	return total
 
@@ -182,11 +185,73 @@ func spawn(spawner: Building, angle: float = INF) -> Enemy:
 		if cell != Vector2i(-1, -1):
 			point = state.map.center_of(cell)
 	var round_number := state.round_number
-	var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number), Formulas.enemy_bounty_scale(round_number))
+	var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number) * _damage_bonus(kind), Formulas.enemy_bounty_scale(round_number))
 	enemy.approach = Vector2.from_angle(state.rng.randf() * TAU) * state.rng.randf()
 	state.enemies.append(enemy)
 	events.emit("spawn", {"position": enemy.position, "kind": kind, "boss": enemy.is_boss()})
 	return enemy
+
+
+func _damage_bonus(kind: String) -> float:
+	return 1.0 if GameConfig.enemy(kind).get("class", "") == GameConfig.CLASS_AIR else GameConfig.GROUND_DAMAGE_BONUS
+
+
+func raid_due() -> bool:
+	if state.round_number < GameConfig.AIR_RAID_FIRST_ROUND:
+		return false
+	if state.waves_sent - state.last_raid_wave < GameConfig.AIR_RAID_GAP:
+		return false
+	return state.rng.randf() < GameConfig.AIR_RAID_CHANCE
+
+
+func raid_kinds(night: bool) -> Array:
+	var kinds := []
+	for spawner in state.enemy_buildings():
+		if not spawner.spawner:
+			continue
+		for kind: String in GameConfig.SPAWNER_FACTIONS.get(spawner.kind, []):
+			var definition := GameConfig.enemy(kind)
+			if definition.get("class", "") == GameConfig.CLASS_AIR and GameConfig.is_nocturnal(kind) == night and not kinds.has(kind):
+				kinds.append(kind)
+	return kinds
+
+
+func raid_size() -> int:
+	var growth := (state.round_number - GameConfig.AIR_RAID_FIRST_ROUND) / 2
+	return mini(state.rng.randi_range(GameConfig.AIR_RAID_MIN, GameConfig.AIR_RAID_MAX) + growth, GameConfig.AIR_RAID_CAP)
+
+
+func raid_origin() -> Vector2:
+	var extent := Vector2(state.map.width, state.map.height) * GameConfig.CELL
+	var margin := GameConfig.AIR_RAID_MARGIN
+	var along := state.rng.randf()
+	match state.rng.randi_range(0, 3):
+		0:
+			return Vector2(lerpf(margin, extent.x - margin, along), margin)
+		1:
+			return Vector2(lerpf(margin, extent.x - margin, along), extent.y - margin)
+		2:
+			return Vector2(margin, lerpf(margin, extent.y - margin, along))
+	return Vector2(extent.x - margin, lerpf(margin, extent.y - margin, along))
+
+
+func air_raid(night: bool) -> int:
+	var kinds := raid_kinds(night)
+	if kinds.is_empty():
+		return 0
+	state.last_raid_wave = state.waves_sent
+	var origin := raid_origin()
+	var size := raid_size()
+	var round_number := state.round_number
+	for index in size:
+		var kind: String = kinds[state.rng.randi_range(0, kinds.size() - 1)]
+		var point := origin + Vector2.from_angle(state.rng.randf() * TAU) * state.rng.randf() * GameConfig.AIR_RAID_SPREAD
+		var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number), Formulas.enemy_bounty_scale(round_number))
+		enemy.approach = Vector2.from_angle(state.rng.randf() * TAU) * state.rng.randf()
+		state.enemies.append(enemy)
+		events.emit("spawn", {"position": enemy.position, "kind": kind, "boss": false})
+	events.emit("air_raid", {"position": origin, "count": size, "night": night, "round": round_number})
+	return size
 
 
 func candidates(spawner_kind: String) -> Array:

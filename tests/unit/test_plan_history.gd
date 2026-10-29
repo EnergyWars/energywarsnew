@@ -174,29 +174,63 @@ func test_failed_actions_record_nothing() -> void:
 	assert_eq(battle.history.size(), 0)
 
 
-func test_wall_stroke_is_one_step() -> void:
+func test_bulwarks_in_one_stroke_are_separate_steps() -> void:
 	battle.begin_stroke()
 	for i in 3:
 		_place(GameConfig.BULWARK, Vector2(56 * i, -168))
 	battle.end_stroke()
-	assert_eq(battle.history.size(), 1)
-	_place(GameConfig.BULWARK, Vector2(0, -280))
-	_place(GameConfig.BULWARK, Vector2(56, -280))
 	assert_eq(battle.history.size(), 3)
 	assert_true(battle.undo())
-	assert_true(battle.undo())
-	assert_eq(state.count_kind(GameConfig.BULWARK), 3)
-	assert_true(battle.undo())
-	assert_eq(state.count_kind(GameConfig.BULWARK), 0)
+	assert_eq(state.count_kind(GameConfig.BULWARK), 2)
 
 
-func test_other_actions_split_a_stroke() -> void:
+func test_light_slider_stroke_is_one_step() -> void:
+	var lamp := _place(GameConfig.LAMP, Vector2(0, -168))
+	var steps := battle.history.size()
 	battle.begin_stroke()
-	_place(GameConfig.BULWARK, Vector2(0, -168))
-	_place(GameConfig.RELAY, Vector2(150, 0))
-	_place(GameConfig.BULWARK, Vector2(56, -168))
+	assert_true(battle.set_light_radius(lamp.id, 4.0))
+	assert_true(battle.set_light_radius(lamp.id, 5.0))
+	assert_true(battle.set_light_radius(lamp.id, 6.0))
+	assert_false(battle.set_light_radius(lamp.id, 6.1))
 	battle.end_stroke()
-	assert_eq(battle.history.size(), 3)
+	assert_eq(battle.history.size(), steps + 1)
+	assert_true(battle.set_light_radius(lamp.id, 99.0))
+	assert_eq(lamp.light_radius, GameConfig.LAMP_RADIUS_MAX)
+	assert_eq(battle.history.size(), steps + 2)
+	assert_true(battle.undo())
+	assert_eq(lamp.light_radius, 6.0)
+	assert_true(battle.undo())
+	assert_eq(lamp.light_radius, GameConfig.LAMP_RADIUS)
+	assert_false(battle.set_light_radius(core.id, 4.0))
+	assert_false(battle.set_light_radius(-5, 4.0))
+
+
+func test_other_actions_split_a_light_stroke() -> void:
+	var lamp := _place(GameConfig.LAMP, Vector2(0, -168))
+	var steps := battle.history.size()
+	battle.begin_stroke()
+	battle.set_light_radius(lamp.id, 4.0)
+	_place(GameConfig.RELAY, Vector2(150, 0))
+	battle.set_light_radius(lamp.id, 5.0)
+	battle.end_stroke()
+	assert_eq(battle.history.size(), steps + 3)
+
+
+func test_marking_fuel_is_undoable() -> void:
+	var fire := BattleFixtures.add(battle, GameConfig.FIRE, core.position + Vector2(-168, 0))
+	var tree := state.map.cell_of(fire.position) + Vector2i(0, -2)
+	state.map.set_tile(tree, LevelMap.Tile.TREE)
+	state.nav.terrain_changed(tree)
+	assert_eq(battle.toggle_fuel(fire.id, tree), FuelControl.OK)
+	assert_eq(battle.history.size(), 1)
+	assert_eq(battle.toggle_fuel(fire.id, tree + Vector2i(0, 1)), FuelControl.NOT_TREE)
+	assert_eq(battle.history.size(), 1)
+	assert_eq(battle.toggle_fuel(fire.id, tree), FuelControl.OK)
+	assert_true(fire.fuel.is_empty())
+	assert_true(battle.undo())
+	assert_eq(fire.fuel, [tree] as Array[Vector2i])
+	assert_true(battle.undo())
+	assert_true(fire.fuel.is_empty())
 
 
 func test_cut_stroke_is_one_step() -> void:
@@ -265,3 +299,50 @@ func test_snapshot_captures_player_state_only() -> void:
 	snapshot.restore(state)
 	assert_eq(state.building(nest.id), nest)
 	assert_eq(state.player_buildings().size(), 2)
+
+
+func test_cut_links_one_by_one_and_all_at_once_are_undoable() -> void:
+	var first := _place(GameConfig.RELAY, Vector2(150, 0))
+	var second := _place(GameConfig.RELAY, Vector2(0, 150))
+	assert_eq(battle.connect_buildings(core.id, first.id), EnergyNetwork.OK)
+	assert_eq(battle.connect_buildings(core.id, second.id), EnergyNetwork.OK)
+	assert_eq(battle.connect_buildings(first.id, second.id), EnergyNetwork.OK)
+	assert_false(battle.cut_link(second.id, first.id))
+	assert_true(battle.cut_link(first.id, second.id))
+	assert_null(state.find_link(first.id, second.id))
+	assert_true(battle.undo())
+	assert_not_null(state.find_link(first.id, second.id))
+	assert_eq(battle.cut_links_of(second.id, true), 2)
+	assert_eq(state.links.size(), 1)
+	assert_eq(battle.cut_links_of(second.id, true), 0)
+	assert_eq(battle.cut_links_of(core.id, false), 1)
+	assert_true(state.links.is_empty())
+	assert_true(battle.undo())
+	assert_eq(state.links.size(), 1)
+	assert_true(battle.undo())
+	assert_eq(state.links.size(), 3)
+
+
+func test_cut_links_ignore_unknown_and_foreign_buildings() -> void:
+	assert_eq(battle.cut_links_of(9999, true), 0)
+	for enemy in state.enemy_buildings():
+		assert_eq(battle.cut_links_of(enemy.id, false), 0)
+	state.phase = BattleState.Phase.LOST
+	assert_false(battle.cut_link(core.id, core.id))
+	assert_eq(battle.cut_links_of(core.id, false), 0)
+
+
+func test_rename_trims_limits_and_survives_undo() -> void:
+	var relay := _place(GameConfig.RELAY, Vector2(150, 0))
+	assert_true(battle.rename(relay.id, "  North relay  "))
+	assert_eq(relay.label, "North relay")
+	assert_true(battle.rename(relay.id, "x".repeat(Building.LABEL_MAX + 10)))
+	assert_eq(relay.label.length(), Building.LABEL_MAX)
+	assert_true(battle.rename(relay.id, "Keep"))
+	assert_eq(battle.upgrade(relay.id, relay.definition().tracks[0]), true)
+	assert_true(battle.rename(relay.id, "Changed"))
+	assert_true(battle.undo())
+	assert_eq(relay.label, "Keep")
+	assert_false(battle.rename(9999, "x"))
+	for enemy in state.enemy_buildings():
+		assert_false(battle.rename(enemy.id, "x"))

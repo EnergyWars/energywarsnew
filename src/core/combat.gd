@@ -11,6 +11,7 @@ var state: BattleState
 var events: BattleEvents
 var economy: Economy
 var network: EnergyNetwork
+var lighting: Lighting
 
 
 func _init(p_state: BattleState, p_events: BattleEvents, p_economy: Economy, p_network: EnergyNetwork) -> void:
@@ -84,7 +85,7 @@ func _laser_target(tower: Building, groups: Dictionary) -> Object:
 		tower.laser_target = focus
 		return focus
 	var current: Object = tower.laser_target
-	var valid: bool = current != null and current.is_alive() and tower.position.distance_to(current.position) <= Formulas.attack_range(tower) + current.radius()
+	var valid: bool = current != null and current.is_alive() and tower.position.distance_to(current.position) <= Formulas.attack_range(tower) + current.radius() and can_see(current)
 	if tower.scan_timer > 0.0 and (valid or current == null):
 		return current if valid else null
 	tower.scan_timer = GameConfig.TARGET_SCAN
@@ -223,7 +224,7 @@ func _garrison(delta: float, groups: Dictionary) -> void:
 	for unit_class in GameConfig.CLASSES:
 		for enemy: Enemy in groups[unit_class]:
 			var distance := core.position.distance_to(enemy.position)
-			if enemy.is_alive() and distance <= reach + enemy.radius() and distance < best:
+			if enemy.is_alive() and distance <= reach + enemy.radius() and distance < best and can_see(enemy):
 				target = enemy
 				best = distance
 	if target == null:
@@ -282,7 +283,11 @@ func focused(tower: Building) -> Object:
 
 func focus_in_range(tower: Building) -> Object:
 	var focus := focused(tower)
-	return focus if focus != null and in_attack_range(tower, focus) else null
+	return focus if focus != null and in_attack_range(tower, focus) and can_see(focus) else null
+
+
+func can_see(target: Object) -> bool:
+	return lighting == null or lighting.sees(target.position, float(target.radius()))
 
 
 func in_attack_range(tower: Building, target: Object) -> bool:
@@ -309,7 +314,7 @@ func find_target(tower: Building, groups: Dictionary = {}) -> Object:
 			if not enemy.is_alive():
 				continue
 			var distance := tower.position.distance_to(enemy.position)
-			if distance >= minimum and distance <= reach + enemy.radius() and distance < best_distance:
+			if distance >= minimum and distance <= reach + enemy.radius() and distance < best_distance and can_see(enemy):
 				best = enemy
 				best_distance = distance
 		if best != null:
@@ -322,7 +327,7 @@ func find_target(tower: Building, groups: Dictionary = {}) -> Object:
 		if not building.is_alive() or building.immune:
 			continue
 		var distance := tower.position.distance_to(building.position)
-		if distance >= minimum and distance <= reach + building.radius() and distance < structure_distance:
+		if distance >= minimum and distance <= reach + building.radius() and distance < structure_distance and can_see(building):
 			structure = building
 			structure_distance = distance
 	return structure
@@ -335,7 +340,7 @@ func _nearest_enemy(origin: Vector2, reach: float, exclude: Dictionary, tower: B
 		if not enemy.is_alive() or exclude.has(enemy.id) or not tower.can_target(enemy.unit_class()):
 			continue
 		var distance := origin.distance_to(enemy.position)
-		if distance <= reach and distance < best_distance:
+		if distance <= reach and distance < best_distance and can_see(enemy):
 			best = enemy
 			best_distance = distance
 	return best

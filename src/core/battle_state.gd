@@ -17,6 +17,7 @@ var time := 0.0
 var round_number := 1
 var round_time := 0.0
 var waves_sent := 0
+var last_raid_wave := -GameConfig.AIR_RAID_GAP
 var night_over := false
 var days_survived := 0
 var setup := BattleSetup.new()
@@ -88,6 +89,14 @@ func spawn_structures(sites: Array[Dictionary]) -> Array[Building]:
 func next_id() -> int:
 	_next_id += 1
 	return _next_id - 1
+
+
+func id_counter() -> int:
+	return _next_id
+
+
+func raise_id_counter(value: int) -> void:
+	_next_id = maxi(_next_id, value)
 
 
 func add_building(kind: String, position: Vector2) -> Building:
@@ -165,6 +174,10 @@ func clear_obstacle(cell: Vector2i) -> void:
 		obstacles.erase(cell)
 	if map.clear(cell):
 		nav.terrain_changed(cell)
+	for fire in of_kind(GameConfig.FIRE):
+		if fire.fuel.has(cell):
+			fire.fuel.erase(cell)
+			mark_changed()
 
 
 func building(id: int) -> Building:
@@ -349,8 +362,7 @@ func generation() -> float:
 	var total := 0.0
 	var sun := light()
 	for item in producers():
-		var amount := Formulas.output(item)
-		total += amount * sun if item.definition().get("solar", false) else amount
+		total += Formulas.generation(item, sun)
 	return total
 
 

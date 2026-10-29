@@ -14,6 +14,7 @@ static func capture(state: BattleState) -> PlanSnapshot:
 	for building in state.player_buildings():
 		snapshot.entries.append({
 			"building": building,
+			"label": building.label,
 			"origin": building.origin,
 			"position": building.position,
 			"elevation": building.elevation,
@@ -25,6 +26,8 @@ static func capture(state: BattleState) -> PlanSnapshot:
 			"target_order": building.target_order.duplicate(),
 			"target_disabled": building.target_disabled.duplicate(),
 			"focus": building.focus,
+			"fuel": building.fuel.duplicate(),
+			"light_radius": building.light_radius,
 		})
 	for link in state.links:
 		snapshot.links.append(Vector2i(link.source, link.target))
@@ -36,6 +39,7 @@ func restore(state: BattleState) -> void:
 		state.remove_building(building.id)
 	for entry in entries:
 		var building: Building = entry.building
+		building.label = entry.label
 		building.origin = entry.origin
 		building.position = entry.position
 		building.elevation = entry.elevation
@@ -47,6 +51,8 @@ func restore(state: BattleState) -> void:
 		building.target_order.assign(entry.target_order)
 		building.target_disabled = (entry.target_disabled as Dictionary).duplicate()
 		building.focus = entry.focus
+		building.fuel.assign(entry.fuel)
+		building.light_radius = entry.light_radius
 		building.steer = Vector2.ZERO
 		state.reinstate(building)
 	var restored: Array[EnergyLink] = []

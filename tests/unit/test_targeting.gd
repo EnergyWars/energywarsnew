@@ -73,3 +73,17 @@ func test_best_ranked_skips_destroyed_buildings() -> void:
 	assert_eq(Targeting.best_ranked(Vector2.ZERO, ranked), tower)
 	tower.hp = 0.0
 	assert_eq(Targeting.best_ranked(Vector2.ZERO, ranked), relay)
+
+
+func test_lure_picks_nearest_living_bastion() -> void:
+	var far := _building(GameConfig.BASTION)
+	far.position = Vector2(500, 0)
+	var near := _building(GameConfig.BASTION)
+	near.position = Vector2(100, 0)
+	var zapper := _building(GameConfig.ZAPPER)
+	var candidates: Array[Building] = [far, zapper, near]
+	assert_eq(Targeting.lure(Vector2.ZERO, candidates), near)
+	near.hp = 0.0
+	assert_eq(Targeting.lure(Vector2.ZERO, candidates), far)
+	far.hp = 0.0
+	assert_null(Targeting.lure(Vector2.ZERO, candidates))

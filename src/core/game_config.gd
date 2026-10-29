@@ -23,13 +23,17 @@ const SHIELD := "shield"
 const EXPORTER := "exporter"
 const HEALER := "healer"
 const BULWARK := "bulwark"
+const BASTION := "bastion"
+const WATER := "water"
+const FIRE := "fire"
+const LAMP := "lamp"
 const ROVER := "rover"
 const NEST := "nest"
 const CAMP := "camp"
 const TURRET := "turret"
 
-const BUILD_ORDER: Array[String] = [BULWARK, SOLAR, RELAY, BATTERY, EXPORTER, ZAPPER, LASER, HEALER, ROVER, TESLA, PLASMA, SHIELD]
-const STARTER_KINDS: Array[String] = [BULWARK, SOLAR, RELAY, BATTERY, EXPORTER, ZAPPER]
+const BUILD_ORDER: Array[String] = [BULWARK, SOLAR, WATER, FIRE, RELAY, BATTERY, EXPORTER, LAMP, ZAPPER, LASER, HEALER, BASTION, ROVER, TESLA, PLASMA, SHIELD]
+const STARTER_KINDS: Array[String] = [BULWARK, SOLAR, RELAY, BATTERY, EXPORTER, LAMP, ZAPPER]
 
 const MODE_BOLT := "bolt"
 const MODE_LASER := "laser"
@@ -77,6 +81,14 @@ const BUILDINGS := {
 	SOLAR: {"team": TEAM_PLAYER, "cost": 40, "hp": 70.0, "radius": 26.0, "capacity": 30.0, "output": 8.0, "solar": true,
 		"links": 1, "range": 240.0, "rate_from_output": true, "build_radius": 240.0, "receives": false,
 		"tracks": [TRACK_OUTPUT, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
+	WATER: {"team": TEAM_PLAYER, "cost": 50, "hp": 90.0, "radius": 26.0, "capacity": 30.0, "output": 3.0,
+		"links": 1, "range": 240.0, "rate_from_output": true, "build_radius": 240.0, "receives": false,
+		"tracks": [TRACK_OUTPUT, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
+	FIRE: {"team": TEAM_PLAYER, "cost": 15, "hp": 60.0, "radius": 24.0, "capacity": 40.0, "output": 30.0, "fuel": true,
+		"links": 1, "range": 240.0, "rate_from_output": true, "build_radius": 200.0, "receives": false,
+		"tracks": [TRACK_OUTPUT, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
+	LAMP: {"team": TEAM_PLAYER, "cost": 25, "hp": 60.0, "radius": 20.0, "capacity": 40.0, "links": 0, "build_radius": 160.0, "light": true,
+		"tracks": [TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_TRANSFER, TRACK_HULL]},
 	RELAY: {"team": TEAM_PLAYER, "cost": 30, "hp": 90.0, "radius": 24.0, "capacity": 20.0,
 		"links": 3, "range": 330.0, "rate": 30.0, "build_radius": 320.0, "vision": 320.0,
 		"tracks": [TRACK_RATE, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
@@ -107,6 +119,9 @@ const BUILDINGS := {
 		"mobile": {"speed": 85.0, "energy": 0.12},
 		"attack": {"mode": MODE_BOLT, "damage": 20.0, "cooldown": 0.5, "energy": 3.0, "range": 210.0, "ground": true, "air": true},
 		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_TRANSFER, TRACK_HULL]},
+	BASTION: {"team": TEAM_PLAYER, "cost": 130, "hp": 900.0, "radius": 28.0, "capacity": 60.0, "links": 0, "build_radius": 160.0, "lure": true,
+		"attack": {"mode": MODE_BOLT, "damage": 14.0, "cooldown": 0.5, "energy": 3.0, "range": 240.0, "ground": false, "air": true},
+		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_TRANSFER, TRACK_HULL]},
 	BULWARK: {"team": TEAM_PLAYER, "cost": 4, "cost_every": 6, "upgrade_base": 40, "hp": 2000.0, "radius": 27.0, "capacity": 0.0, "links": 0,
 		"build_radius": 0.0, "vision": 120.0, "wall": true,
 		"tracks": [TRACK_HULL]},
@@ -145,6 +160,16 @@ const BURN_MAX := 2.4
 const WAVE_FIRST := 3.0
 const WAVE_TRICKLE := 0.3
 const WAVE_MAX := 30
+const GROUND_WAVE_BONUS := 1.35
+const GROUND_DAMAGE_BONUS := 1.3
+const AIR_RAID_FIRST_ROUND := 4
+const AIR_RAID_CHANCE := 0.14
+const AIR_RAID_GAP := 4
+const AIR_RAID_MIN := 3
+const AIR_RAID_MAX := 5
+const AIR_RAID_CAP := 9
+const AIR_RAID_SPREAD := 90.0
+const AIR_RAID_MARGIN := 40.0
 const PACK_SPREAD := 0.5
 const HEAL_RECENT := 2.5
 const HEAL_UNDER_FIRE := 0.5
@@ -211,13 +236,26 @@ const DROP_TIME := 2.6
 const CORE_DEPLOY_RANGE := 420.0
 const CORE_ENEMY_CLEAR := 900.0
 const CLEAR_TIME := {"tree": 0.0, "rock": 1.1}
-const CLEAR_REACH := 1.5
+const CLEAR_REACH := 2.9
+const SCOUT_WAYPOINT := 8.0
 const OBSTACLE_HP := {"tree": 140.0, "rock": 320.0}
 const SCOUT_GUN := {"damage": 9.0, "cooldown": 0.55, "range": 250.0}
 const STRUCTURE_FAR_SHARE := 0.6
 const STRUCTURE_SPACING := 14.0
 const STRUCTURE_MARGIN := 2
 const TURRET_POST_RING := Vector2(5.0, 9.0)
+const CORE_LIGHT := 3.0
+const LAMP_RADIUS := 3.0
+const LAMP_RADIUS_MIN := 1.5
+const LAMP_RADIUS_MAX := 7.0
+const LAMP_RADIUS_STEP := 0.5
+const LAMP_BASE_RADIUS := 2.0
+const LAMP_BASE_DRAW := 1.2
+const LAMP_EXPONENT := 2.5
+const GLOW_ENERGY := 0.5
+const GLOW_REACH := 0.5
+const FIRE_REACH := 3.5
+const FIRE_BURN_TIME := 15.0
 
 const LEVELS := [
 	{"id": "dawn", "cells": Vector2i(52, 64), "money": 320, "day": 80.0, "night": 60.0, "seed": 11,
@@ -225,57 +263,57 @@ const LEVELS := [
 		"terrain": {"plateaus": 3, "chasms": 1, "ponds": 3, "groves": 1, "forests": 11, "rocks": 12,
 			"spots": [[Vector2(0.36, 0.72), 6, [Vector2i(1, 0)]], [Vector2(0.72, 0.62), 5, [Vector2i(0, 1), Vector2i(-1, 0)]]]},
 		"waves": {"interval": 9.0, "base": 1.3, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["crawler", 0, 1.0], ["spitter", 1, 0.3], ["wasp", 2, 0.3]],
-			"night_roster": [["stalker", 0, 1.0], ["nightwing", 1, 0.4]]},
+			"roster": [["crawler", 0, 1.0], ["spitter", 1, 0.3]],
+			"night_roster": [["stalker", 0, 1.0]]},
 		"world": Vector2(0.5, 0.9), "challenges": [["core", 80], ["survive", 5]]},
 	{"id": "beetle_hill", "cells": Vector2i(56, 70), "money": 360, "day": 80.0, "night": 60.0, "seed": 23,
 		"drop": Vector2(0.5, 0.86), "structures": [[NEST, Vector2(0.25, 0.1)], [NEST, Vector2(0.75, 0.18)]],
 		"terrain": {"plateaus": 5, "chasms": 1, "ponds": 4, "groves": 1, "forests": 13, "rocks": 13, "spots": [[Vector2(0.5, 0.66), 6, [Vector2i(0, -1), Vector2i(1, 0)]]]},
 		"waves": {"interval": 9.0, "base": 1.0, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["crawler", 0, 1.0], ["beetle", 1, 0.5], ["spitter", 1, 0.4], ["wasp", 2, 0.3]],
-			"night_roster": [["stalker", 0, 1.0], ["nightwing", 0, 0.4], ["behemoth", 3, 0.05]]},
+			"roster": [["crawler", 0, 1.0], ["beetle", 1, 0.5], ["spitter", 1, 0.4]],
+			"night_roster": [["stalker", 0, 1.0], ["behemoth", 3, 0.05]]},
 		"world": Vector2(0.24, 0.74), "challenges": [["lost", 3], ["survive", 5]]},
 	{"id": "swarm_night", "cells": Vector2i(58, 74), "money": 400, "day": 75.0, "night": 70.0, "seed": 37,
 		"drop": Vector2(0.5, 0.86), "structures": [[NEST, Vector2(0.2, 0.12)], [NEST, Vector2(0.8, 0.1)]],
 		"terrain": {"plateaus": 5, "chasms": 2, "ponds": 4, "groves": 1, "forests": 14, "rocks": 13, "spots": []},
 		"waves": {"interval": 9.0, "base": 1.0, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["crawler", 0, 1.0], ["wasp", 0, 0.6], ["spitter", 1, 0.4]],
-			"night_roster": [["nightwing", 0, 1.0], ["stalker", 0, 0.6], ["behemoth", 3, 0.05]]},
+			"roster": [["crawler", 0, 1.0], ["spitter", 1, 0.4]],
+			"night_roster": [["stalker", 0, 0.6], ["behemoth", 3, 0.05]]},
 		"world": Vector2(0.76, 0.72), "challenges": [["combo", 20], ["survive", 5]]},
 	{"id": "outpost", "cells": Vector2i(60, 76), "money": 420, "day": 80.0, "night": 60.0, "seed": 41,
 		"drop": Vector2(0.5, 0.86), "structures": [[CAMP, Vector2(0.5, 0.08)], [TURRET, Vector2(0.38, 0.2)], [TURRET, Vector2(0.62, 0.2)]],
 		"terrain": {"plateaus": 6, "chasms": 2, "ponds": 4, "groves": 2, "forests": 13, "rocks": 15, "spots": []},
 		"waves": {"interval": 9.0, "base": 1.45, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["soldier", 0, 1.0], ["drone", 1, 0.4]],
-			"night_roster": [["raider", 0, 1.0], ["phantom", 1, 0.4]]},
+			"roster": [["soldier", 0, 1.0]],
+			"night_roster": [["raider", 0, 1.0]]},
 		"world": Vector2(0.42, 0.56), "challenges": [["core", 70], ["survive", 6]]},
 	{"id": "sabotage", "cells": Vector2i(64, 80), "money": 440, "day": 80.0, "night": 65.0, "seed": 53,
 		"drop": Vector2(0.5, 0.87), "structures": [[CAMP, Vector2(0.25, 0.08)], [CAMP, Vector2(0.75, 0.12)], [TURRET, Vector2(0.5, 0.22)]],
 		"terrain": {"plateaus": 6, "chasms": 3, "ponds": 5, "groves": 1, "forests": 15, "rocks": 16, "spots": []},
 		"waves": {"interval": 9.0, "base": 1.0, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["soldier", 0, 1.0], ["drone", 1, 0.4]],
-			"night_roster": [["raider", 0, 1.0], ["saboteur", 0, 0.8], ["phantom", 1, 0.4]]},
+			"roster": [["soldier", 0, 1.0]],
+			"night_roster": [["raider", 0, 1.0], ["saboteur", 0, 0.8]]},
 		"world": Vector2(0.8, 0.47), "challenges": [["lost", 4], ["survive", 6]]},
 	{"id": "tank_front", "cells": Vector2i(66, 84), "money": 580, "day": 85.0, "night": 65.0, "seed": 67,
 		"drop": Vector2(0.5, 0.88), "structures": [[CAMP, Vector2(0.3, 0.08)], [CAMP, Vector2(0.7, 0.08)], [TURRET, Vector2(0.2, 0.22)], [TURRET, Vector2(0.8, 0.22)], [TURRET, Vector2(0.5, 0.16)]],
 		"terrain": {"plateaus": 7, "chasms": 3, "ponds": 5, "groves": 2, "forests": 16, "rocks": 18, "spots": []},
 		"waves": {"interval": 9.0, "base": 1.0, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["soldier", 0, 1.0], ["drone", 0, 0.4]],
-			"night_roster": [["raider", 0, 1.0], ["saboteur", 1, 0.4], ["phantom", 1, 0.4], ["tank", 1, 0.2]]},
+			"roster": [["soldier", 0, 1.0]],
+			"night_roster": [["raider", 0, 1.0], ["saboteur", 1, 0.4], ["tank", 1, 0.2]]},
 		"world": Vector2(0.28, 0.36), "challenges": [["days", 8], ["survive", 7]]},
 	{"id": "colossus", "cells": Vector2i(70, 88), "money": 620, "day": 85.0, "night": 70.0, "seed": 79,
 		"drop": Vector2(0.5, 0.88), "structures": [[NEST, Vector2(0.2, 0.08)], [NEST, Vector2(0.5, 0.14)], [NEST, Vector2(0.8, 0.08)]],
 		"terrain": {"plateaus": 7, "chasms": 3, "ponds": 6, "groves": 2, "forests": 18, "rocks": 18, "spots": []},
 		"waves": {"interval": 9.0, "base": 0.55, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["crawler", 0, 1.0], ["wasp", 0, 0.6], ["spitter", 0, 0.4], ["beetle", 1, 0.4]],
-			"night_roster": [["stalker", 0, 1.0], ["nightwing", 0, 0.5], ["behemoth", 1, 0.1]]},
+			"roster": [["crawler", 0, 1.0], ["spitter", 0, 0.4], ["beetle", 1, 0.4]],
+			"night_roster": [["stalker", 0, 1.0], ["behemoth", 1, 0.1]]},
 		"world": Vector2(0.72, 0.25), "challenges": [["combo", 35], ["survive", 7]]},
 	{"id": "final_war", "cells": Vector2i(76, 96), "money": 720, "day": 90.0, "night": 75.0, "seed": 97,
 		"drop": Vector2(0.5, 0.9), "structures": [[NEST, Vector2(0.15, 0.08)], [CAMP, Vector2(0.5, 0.06)], [NEST, Vector2(0.85, 0.08)], [TURRET, Vector2(0.3, 0.2)], [TURRET, Vector2(0.7, 0.2)], [CAMP, Vector2(0.5, 0.24)]],
 		"terrain": {"plateaus": 8, "chasms": 4, "ponds": 6, "groves": 2, "forests": 20, "rocks": 20, "spots": []},
 		"waves": {"interval": 9.0, "base": 0.5, "ramp": 1.5, "night": 1.2, "growth": 0.4,
-			"roster": [["crawler", 0, 1.0], ["soldier", 0, 0.8], ["wasp", 1, 0.5], ["drone", 1, 0.4], ["spitter", 1, 0.4], ["beetle", 1, 0.5]],
-			"night_roster": [["stalker", 0, 1.0], ["raider", 0, 0.8], ["nightwing", 1, 0.4], ["phantom", 1, 0.4], ["saboteur", 1, 0.4], ["tank", 2, 0.2], ["behemoth", 2, 0.1]]},
+			"roster": [["crawler", 0, 1.0], ["soldier", 0, 0.8], ["spitter", 1, 0.4], ["beetle", 1, 0.5]],
+			"night_roster": [["stalker", 0, 1.0], ["raider", 0, 0.8], ["saboteur", 1, 0.4], ["tank", 2, 0.2], ["behemoth", 2, 0.1]]},
 		"world": Vector2(0.48, 0.1), "challenges": [["core", 60], ["survive", 8]]},
 ]
 
@@ -315,6 +353,7 @@ const TECHS := {
 	"healer": {"branch": BRANCH_DEFENSE, "cost": 2, "requires": [], "unlock": HEALER},
 	"healer_power": {"branch": BRANCH_DEFENSE, "cost": 2, "requires": ["healer"], "kind": HEALER, "boost": BOOST_HEAL, "value": 0.25},
 	"shield": {"branch": BRANCH_DEFENSE, "cost": 3, "requires": ["healer"], "unlock": SHIELD},
+	"bastion": {"branch": BRANCH_DEFENSE, "cost": 2, "requires": ["bulwark_hull"], "unlock": BASTION},
 	"plating_1": {"branch": BRANCH_DEFENSE, "cost": 2, "requires": ["bulwark_hull"], "kind": ALL_BUILDINGS, "boost": BOOST_HP, "value": 0.15},
 	"plating_2": {"branch": BRANCH_DEFENSE, "cost": 3, "requires": ["plating_1"], "kind": ALL_BUILDINGS, "boost": BOOST_HP, "value": 0.15},
 	"solar_output": {"branch": BRANCH_ECONOMY, "cost": 1, "requires": [], "kind": SOLAR, "boost": BOOST_OUTPUT, "value": 0.15},
@@ -322,6 +361,8 @@ const TECHS := {
 	"battery_capacity": {"branch": BRANCH_ECONOMY, "cost": 1, "requires": [], "kind": BATTERY, "boost": BOOST_CAPACITY, "value": 0.3},
 	"exporter_rate": {"branch": BRANCH_ECONOMY, "cost": 2, "requires": ["battery_capacity"], "kind": EXPORTER, "boost": BOOST_EXPORT, "value": 0.25},
 	"superconductor": {"branch": BRANCH_ECONOMY, "cost": 2, "requires": ["solar_output"], "kind": ALL_BUILDINGS, "boost": BOOST_TRANSFER, "value": 0.25},
+	"water": {"branch": BRANCH_ECONOMY, "cost": 1, "requires": [], "unlock": WATER},
+	"fire": {"branch": BRANCH_ECONOMY, "cost": 1, "requires": [], "unlock": FIRE},
 	"funding_1": {"branch": BRANCH_ECONOMY, "cost": 1, "requires": [], "money": 60},
 	"funding_2": {"branch": BRANCH_ECONOMY, "cost": 2, "requires": ["funding_1"], "money": 120},
 }
@@ -370,7 +411,7 @@ static func is_tower(kind: String) -> bool:
 
 static func uses_energy_actively(kind: String) -> bool:
 	var definition := building(kind)
-	return has_attack(kind) or definition.has("heal") or definition.has("shield")
+	return has_attack(kind) or definition.has("heal") or definition.has("shield") or definition.has("light")
 
 
 static func cells(kind: String) -> int:
@@ -383,6 +424,14 @@ static func is_mobile(kind: String) -> bool:
 
 static func is_wall(kind: String) -> bool:
 	return bool(building(kind).get("wall", false))
+
+
+static func is_burner(kind: String) -> bool:
+	return bool(building(kind).get("fuel", false))
+
+
+static func is_lamp(kind: String) -> bool:
+	return bool(building(kind).get("light", false))
 
 
 static func is_nocturnal(kind: String) -> bool:

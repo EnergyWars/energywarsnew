@@ -3,12 +3,13 @@ extends Node
 
 signal menu_requested
 signal retry_requested
+signal checkpoint_requested(checkpoint: BattleCheckpoint)
 
 const VICTORY_DELAY := 1.8
 const DEFEAT_DELAY := 2.0
 const PANEL_REFRESH := 0.1
 const MODE_MARGIN := 16.0
-const PULSE_EVENTS: Array[String] = ["placed", "upgraded", "sold", "relocated", "link", "unlink", "plan_restored", "round_cleared"]
+const PULSE_EVENTS: Array[String] = ["placed", "upgraded", "sold", "relocated", "link", "unlink", "plan_restored", "round_cleared", "fuel_marked", "fuel_unmarked"]
 
 var level_index := 0
 var rules: BattleSetup
@@ -17,6 +18,7 @@ var progress: Progress
 var settings: AppSettings
 var sfx: SfxPlayer
 var safe_top := 0.0
+var resume: BattleCheckpoint
 var battle: Battle
 var tutorial: Tutorial
 var view: BattleView
@@ -39,8 +41,9 @@ var _panel_timer := 0.0
 var _steered_id := -1
 
 
-func setup(p_level: int, p_progress: Progress, p_settings: AppSettings, p_sfx: SfxPlayer, p_safe_top: float = 0.0, p_rules: BattleSetup = null) -> BattleScreen:
+func setup(p_level: int, p_progress: Progress, p_settings: AppSettings, p_sfx: SfxPlayer, p_safe_top: float = 0.0, p_rules: BattleSetup = null, p_resume: BattleCheckpoint = null) -> BattleScreen:
 	level_index = p_level
+	resume = p_resume
 	progress = p_progress
 	rules = p_rules if p_rules != null else BattleSetup.campaign(progress.arsenal())
 	settings = p_settings
@@ -50,8 +53,9 @@ func setup(p_level: int, p_progress: Progress, p_settings: AppSettings, p_sfx: S
 
 
 func _ready() -> void:
-	battle = Battle.start(level_index, 0, rules)
-	tutorial = Tutorial.new(level_index == 0 and not rules.is_survival() and not progress.is_conquered(0))
+	battle = resume.restore() if resume != null else Battle.start(level_index, 0, rules)
+	elapsed = resume.elapsed if resume != null else 0.0
+	tutorial = Tutorial.new(resume == null and level_index == 0 and not rules.is_survival() and not progress.is_conquered(0))
 	view = BattleView.new().setup(battle)
 	add_child(view)
 	var layer := CanvasLayer.new()
@@ -63,15 +67,13 @@ func _ready() -> void:
 	layer.add_child(root)
 	hud = BattleHud.new().setup(safe_top, MapPanel.new().setup(battle.state))
 	root.add_child(hud)
-	build_bar = BuildBar.new().setup(bar_kinds())
+	build_bar = BuildBar.new().setup(bar_kinds(), not battle.state.is_scouting())
 	root.add_child(build_bar)
-	build_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	build_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	UiKit.dock_bottom(build_bar)
 	panel = BuildingPanel.new().setup(battle)
 	panel.visible = false
 	root.add_child(panel)
-	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	UiKit.dock_bottom(panel)
 	mode_button = UiKit.button("", "Button", toggle_mode)
 	mode_button.custom_minimum_size = Vector2(0, 64)
 	root.add_child(mode_button)
@@ -98,6 +100,8 @@ func _ready() -> void:
 	hud.status_pressed.connect(toggle_status)
 	hud.map_focus_requested.connect(func(world: Vector2) -> void: view.focus(world))
 	build_bar.kind_pressed.connect(choose_kind)
+	build_bar.cancel_pressed.connect(cancel_build)
+	build_bar.repeat_changed.connect(func(repeat: bool) -> void: view.build_repeat = repeat)
 	panel.closed.connect(func() -> void: view.select(-1))
 	panel.upgrade_pressed.connect(upgrade)
 	panel.sell_pressed.connect(sell)
@@ -110,6 +114,14 @@ func _ready() -> void:
 	panel.link_pressed.connect(start_link_pick)
 	panel.focus_pressed.connect(toggle_focus)
 	panel.relocate_pressed.connect(start_relocate)
+	panel.rename_submitted.connect(func(id: int, text: String) -> void: battle.rename(id, text))
+	panel.cut_all_pressed.connect(cut_all_links)
+	panel.cut_pressed.connect(cut_link)
+	panel.building_picked.connect(pick_building)
+	panel.light_changed.connect(set_light)
+	panel.light_drag_started.connect(func(_id: int) -> void: battle.begin_stroke())
+	panel.light_drag_ended.connect(func(_id: int) -> void: battle.end_stroke())
+	panel.fuel_pressed.connect(start_fuel_pick)
 	view.building_selected.connect(_on_selected)
 	view.action_failed.connect(_on_failed)
 	view.camera_moved.connect(func() -> void: tutorial.handle({"type": "camera"}))
@@ -117,6 +129,9 @@ func _ready() -> void:
 	view.scout_selected.connect(func(active: bool) -> void: scout_chip.visible = active)
 	view.pick_changed.connect(_on_pick_changed)
 	view.status_mode_changed.connect(_on_status_changed)
+	view.notice_shown.connect(func(message: String) -> void: hud.toast(message, AppTheme.ENERGY))
+	if not battle.state.is_scouting():
+		view.set_mode(BattleView.Mode.CONNECT, false)
 	_show_mode(view.mode)
 
 
@@ -178,6 +193,7 @@ func _refresh_ui(delta: float) -> void:
 	build_bar.visible = view.selected_id < 0 and not state.is_over()
 	build_bar.refresh(state, view.build_kind)
 	view.top_inset = hud.top_height()
+	panel.fit(root.size.y - hud.top_height() - AppTheme.SPACING_SM)
 	view.bottom_inset = panel.size.y if panel.visible else (build_bar.size.y if build_bar.visible else 0.0)
 	mode_button.visible = not state.is_over() and not state.is_scouting()
 	mode_button.reset_size()
@@ -209,6 +225,9 @@ func _on_event(event: Dictionary) -> void:
 			view.set_build_kind("")
 			view.set_scout_active(false)
 			build_bar.set_kinds(bar_kinds())
+			build_bar.set_collapsible(true)
+			view.set_mode(BattleView.Mode.CONNECT, false)
+			_show_mode(view.mode)
 		"cleared":
 			view.terrain_changed(event.cell)
 
@@ -259,8 +278,9 @@ func show_result() -> void:
 		["RESULT_LOST", str(state.lost)],
 		["RESULT_TIME", NumberFormat.clock(elapsed)],
 	]
-	var result := ResultOverlay.new().setup(report, stats)
+	var result := ResultOverlay.new().setup(report, stats, can_resume())
 	result.retry_pressed.connect(func() -> void: retry_requested.emit())
+	result.checkpoint_pressed.connect(func() -> void: checkpoint_requested.emit(battle.checkpoint))
 	result.menu_pressed.connect(func() -> void: menu_requested.emit())
 	result.star_shown.connect(func(index: int) -> void:
 		if sfx != null:
@@ -327,9 +347,14 @@ func _on_status_changed(active: bool) -> void:
 		sfx.play(SoundBank.CLICK)
 
 
+func can_resume() -> bool:
+	return battle.checkpoint != null and battle.state.phase == BattleState.Phase.LOST
+
+
 func start_round() -> void:
 	if not battle.start_round():
 		return
+	battle.checkpoint.elapsed = elapsed
 	view.set_build_kind("")
 	view.cancel_pick()
 
@@ -377,6 +402,27 @@ func choose_kind(kind: String) -> void:
 	hud.toast(Texts.format("TOAST_PLACE", [Texts.building_name(kind)]), AppTheme.ENERGY)
 
 
+func cancel_build() -> void:
+	var relocated := view.relocate_id
+	view.set_build_kind("")
+	if relocated >= 0 and battle.state.building(relocated) != null:
+		view.select(relocated)
+
+
+func start_fuel_pick(id: int) -> void:
+	if view.pick == BattleView.Pick.FUEL:
+		view.cancel_pick()
+		return
+	panel.set_minimized(true)
+	view.start_pick(BattleView.Pick.FUEL, id)
+	hud.toast(Texts.t("TOAST_PICK_FUEL"), AppTheme.FLAME)
+
+
+func set_light(id: int, radius: float) -> void:
+	if battle.set_light_radius(id, radius):
+		panel.refresh()
+
+
 func start_link_pick(id: int) -> void:
 	if view.pick == BattleView.Pick.LINK:
 		view.cancel_pick()
@@ -385,6 +431,7 @@ func start_link_pick(id: int) -> void:
 	if building != null and battle.state.outgoing(id).size() >= Formulas.max_links(building):
 		_on_failed(Texts.reason("link_" + EnergyNetwork.FULL), Vector2.INF)
 		return
+	panel.set_minimized(true)
 	view.start_pick(BattleView.Pick.LINK, id)
 	hud.toast(Texts.t("TOAST_PICK_LINK"), AppTheme.ENERGY)
 
@@ -410,6 +457,7 @@ func start_relocate(id: int) -> void:
 	if battle.state.money < Formulas.relocate_cost(building, battle.state.is_planning()):
 		_on_failed(Texts.reason("build_money"), Vector2.INF)
 		return
+	panel.set_minimized(true)
 	view.start_relocate(id)
 	hud.toast(Texts.format("TOAST_RELOCATE", [Texts.building_name(building.kind)]), AppTheme.ENERGY)
 
@@ -420,6 +468,8 @@ func _on_pick_changed(pick: BattleView.Pick) -> void:
 			panel.active_pick = "link"
 		BattleView.Pick.FOCUS:
 			panel.active_pick = "focus"
+		BattleView.Pick.FUEL:
+			panel.active_pick = "fuel"
 		_:
 			panel.active_pick = ""
 	if panel.visible:
@@ -432,6 +482,28 @@ func upgrade(id: int, track: String) -> void:
 		return
 	panel.pulse_changes()
 	panel.refresh()
+
+
+func cut_all_links(id: int, incoming: bool) -> void:
+	if battle.cut_links_of(id, incoming) > 0:
+		panel.refresh()
+		if sfx != null:
+			sfx.play(SoundBank.CLICK)
+
+
+func cut_link(from_id: int, to_id: int) -> void:
+	if battle.cut_link(from_id, to_id):
+		panel.refresh()
+		if sfx != null:
+			sfx.play(SoundBank.CLICK)
+
+
+func pick_building(id: int) -> void:
+	var building := battle.state.building(id)
+	if building == null:
+		return
+	view.select(id)
+	view.focus(building.position)
 
 
 func sell(id: int) -> void:
@@ -465,14 +537,14 @@ func handle_back() -> void:
 		view.set_build_kind("")
 	elif view.selected_id >= 0:
 		view.select(-1)
+	elif build_bar.expanded and build_bar.collapsible:
+		build_bar.collapse()
 	elif hud.stats_panel.visible:
 		hud.hide_stats()
 	elif hud.map_visible():
 		hud.hide_map()
 	elif view.status_mode:
 		view.set_status_mode(false)
-	elif view.mode == BattleView.Mode.CONNECT and not battle.state.is_over():
-		view.set_mode(BattleView.Mode.MOVE)
 	elif battle.state.is_over():
 		menu_requested.emit()
 	else:

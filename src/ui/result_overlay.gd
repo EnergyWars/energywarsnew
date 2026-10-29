@@ -2,6 +2,7 @@ class_name ResultOverlay
 extends Control
 
 signal retry_pressed
+signal checkpoint_pressed
 signal menu_pressed
 signal star_shown(index: int)
 
@@ -10,13 +11,15 @@ const STAR_DELAY := 0.45
 var report: BattleReport
 var stats: Array[Array] = []
 var won := false
+var can_resume := false
 var _stars_row: HBoxContainer
 
 
-func setup(p_report: BattleReport, p_stats: Array[Array]) -> ResultOverlay:
+func setup(p_report: BattleReport, p_stats: Array[Array], p_can_resume: bool = false) -> ResultOverlay:
 	report = p_report
 	stats = p_stats
 	won = report.won
+	can_resume = p_can_resume and not won
 	return self
 
 
@@ -86,7 +89,9 @@ func _ready() -> void:
 	column.add_child(grid)
 	column.add_child(UiKit.spacer(AppTheme.SPACING_SM))
 	column.add_child(UiKit.button("%s  %s" % [Icons.MAP, Texts.t("RESULT_MENU")], "PrimaryButton" if won else "Button", func() -> void: menu_pressed.emit()))
-	column.add_child(UiKit.button(Texts.t("RESULT_RETRY"), "GoldButton" if not won else "Button", func() -> void: retry_pressed.emit()))
+	if can_resume:
+		column.add_child(UiKit.button("%s  %s" % [Icons.HISTORY, Texts.t("RESULT_CHECKPOINT")], "GoldButton", func() -> void: checkpoint_pressed.emit()))
+	column.add_child(UiKit.button(Texts.t("RESULT_RETRY"), "GoldButton" if not won and not can_resume else "Button", func() -> void: retry_pressed.emit()))
 	Juice.pop_in(card)
 	if shows_stars():
 		for i in report.stars:

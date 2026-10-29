@@ -114,3 +114,21 @@ func test_drain_time() -> void:
 	assert_true(is_inf(EnergyStats.drain_time(100.0, 0.0)))
 	assert_true(is_inf(EnergyStats.drain_time(100.0, -2.0)))
 	assert_eq(EnergyStats.drain_time(0.0, 3.0), 0.0)
+
+
+func test_water_counts_day_and_night_and_lamps_add_draw() -> void:
+	var water := _add(GameConfig.WATER, Vector2(168, 0))
+	var lamp := _add(GameConfig.LAMP, Vector2(-168, 0))
+	var stats := EnergyStats.measure(state)
+	assert_almost_eq(stats.value(EnergyStats.Metric.GENERATION_DAY), 3.0 + Formulas.output(water), 0.001)
+	assert_almost_eq(stats.value(EnergyStats.Metric.GENERATION_NIGHT), 3.0 + Formulas.output(water), 0.001)
+	assert_almost_eq(stats.value(EnergyStats.Metric.FIRE_DRAW), _core_draw() + Formulas.lamp_draw(lamp), 0.001)
+
+
+func test_fire_pit_only_counts_with_fuel() -> void:
+	var fire := _add(GameConfig.FIRE, Vector2(168, 0))
+	assert_almost_eq(EnergyStats.measure(state).value(EnergyStats.Metric.GENERATION_DAY), 3.0, 0.001)
+	fire.fuel.append(state.map.cell_of(fire.position) + Vector2i(0, -2))
+	var stats := EnergyStats.measure(state)
+	assert_almost_eq(stats.value(EnergyStats.Metric.GENERATION_DAY), 3.0 + Formulas.output(fire), 0.001)
+	assert_almost_eq(stats.value(EnergyStats.Metric.GENERATION_NIGHT), 3.0 + Formulas.output(fire), 0.001)

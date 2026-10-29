@@ -222,7 +222,7 @@ func test_pick_kind_respects_round_night_and_faction() -> void:
 		assert_true(GameConfig.is_nocturnal(entry[0]), entry[0])
 	battle.state.round_time = 0.0
 	battle.state.round_number = 10
-	assert_eq(battle.spawns.candidates(GameConfig.NEST).size(), 4)
+	assert_eq(battle.spawns.candidates(GameConfig.NEST).size(), 3)
 	for i in 50:
 		assert_true(GameConfig.SPAWNER_FACTIONS[GameConfig.CAMP].has(battle.spawns.pick_kind(GameConfig.CAMP)))
 
@@ -256,3 +256,124 @@ func test_enemy_scales() -> void:
 	assert_eq(strong.damage(), float(GameConfig.enemy("crawler").damage) * 2.0)
 	assert_eq(strong.bounty, int(GameConfig.enemy("crawler").bounty) * 2)
 	assert_eq(Enemy.new(3, "crawler", Vector2.ZERO, 1.0, 1.0, 0.0).bounty, 1)
+
+
+func test_rosters_contain_no_flyers() -> void:
+	for level: Dictionary in GameConfig.LEVELS:
+		for key in ["roster", "night_roster"]:
+			for entry: Array in level.waves[key]:
+				assert_ne(GameConfig.enemy(entry[0]).get("class", ""), GameConfig.CLASS_AIR, "%s %s" % [level.id, entry[0]])
+
+
+func test_ground_enemies_deal_bonus_damage_and_flyers_do_not() -> void:
+	var crawler := battle.spawns.spawn(_nest())
+	assert_almost_eq(crawler.damage_scale, GameConfig.GROUND_DAMAGE_BONUS, 0.0001)
+	assert_eq(battle.spawns._damage_bonus("wasp"), 1.0)
+
+
+func test_waves_are_larger_by_ground_bonus() -> void:
+	battle.spawns.start_round()
+	var expected := Formulas.wave_count(battle.state.level.waves, 1, 0.0, false) * GameConfig.GROUND_WAVE_BONUS
+	var nest := _nest()
+	battle.spawns.send_wave()
+	assert_almost_eq(nest.spawn_progress + float(nest.spawn_queue), expected, 0.0001)
+
+
+func test_no_raids_in_early_rounds() -> void:
+	battle.state.round_number = GameConfig.AIR_RAID_FIRST_ROUND - 1
+	battle.state.waves_sent = 20
+	for i in 200:
+		assert_false(battle.spawns.raid_due())
+
+
+func test_raid_respects_gap() -> void:
+	battle.state.round_number = GameConfig.AIR_RAID_FIRST_ROUND
+	battle.state.waves_sent = 5
+	battle.state.last_raid_wave = 5 - GameConfig.AIR_RAID_GAP + 1
+	for i in 200:
+		assert_false(battle.spawns.raid_due())
+
+
+func test_raids_are_rare_but_possible() -> void:
+	battle.state.round_number = GameConfig.AIR_RAID_FIRST_ROUND
+	battle.state.waves_sent = 50
+	var hits := 0
+	for i in 1000:
+		if battle.spawns.raid_due():
+			hits += 1
+	assert_gt(hits, 0)
+	assert_lt(hits, 300)
+
+
+func test_raid_kinds_follow_faction_and_daytime() -> void:
+	assert_eq(battle.spawns.raid_kinds(false), ["wasp"])
+	assert_eq(battle.spawns.raid_kinds(true), ["nightwing"])
+	battle = BattleFixtures.battle(3)
+	assert_eq(battle.spawns.raid_kinds(false), ["drone"])
+	assert_eq(battle.spawns.raid_kinds(true), ["phantom"])
+
+
+func test_raid_size_grows_and_is_capped() -> void:
+	battle.state.round_number = GameConfig.AIR_RAID_FIRST_ROUND
+	for i in 50:
+		assert_between(battle.spawns.raid_size(), GameConfig.AIR_RAID_MIN, GameConfig.AIR_RAID_MAX)
+	battle.state.round_number = 400
+	assert_eq(battle.spawns.raid_size(), GameConfig.AIR_RAID_CAP)
+
+
+func test_raid_origin_lies_on_the_map_border_from_every_side() -> void:
+	var extent := Vector2(battle.state.map.width, battle.state.map.height) * GameConfig.CELL
+	var sides := {}
+	for i in 200:
+		var origin := battle.spawns.raid_origin()
+		assert_between(origin.x, GameConfig.AIR_RAID_MARGIN, extent.x - GameConfig.AIR_RAID_MARGIN)
+		assert_between(origin.y, GameConfig.AIR_RAID_MARGIN, extent.y - GameConfig.AIR_RAID_MARGIN)
+		if is_equal_approx(origin.y, GameConfig.AIR_RAID_MARGIN):
+			sides["top"] = true
+		elif is_equal_approx(origin.y, extent.y - GameConfig.AIR_RAID_MARGIN):
+			sides["bottom"] = true
+		elif is_equal_approx(origin.x, GameConfig.AIR_RAID_MARGIN):
+			sides["left"] = true
+		else:
+			sides["right"] = true
+	assert_eq(sides.size(), 4)
+
+
+func test_air_raid_spawns_a_group_of_flyers() -> void:
+	battle.state.round_number = GameConfig.AIR_RAID_FIRST_ROUND
+	battle.state.waves_sent = 3
+	var spawned := battle.spawns.air_raid(false)
+	assert_between(spawned, GameConfig.AIR_RAID_MIN, GameConfig.AIR_RAID_MAX + 1)
+	assert_eq(battle.state.enemies.size(), spawned)
+	for enemy in battle.state.enemies:
+		assert_true(enemy.is_air())
+	assert_eq(battle.state.last_raid_wave, 3)
+	var raids := BattleFixtures.of_type(battle.events.drain(), "air_raid")
+	assert_eq(raids.size(), 1)
+	assert_eq(raids[0].count, spawned)
+
+
+func test_air_raid_without_flying_kinds_does_nothing() -> void:
+	for spawner in battle.state.enemy_buildings():
+		spawner.kind = "unknown"
+	assert_eq(battle.spawns.air_raid(false), 0)
+	assert_true(battle.state.enemies.is_empty())
+
+
+func test_start_round_resets_raid_gap() -> void:
+	battle.state.last_raid_wave = 9
+	battle.spawns.start_round()
+	assert_eq(battle.state.last_raid_wave, -GameConfig.AIR_RAID_GAP)
+
+
+func test_send_wave_triggers_raid_when_due() -> void:
+	battle.spawns.start_round()
+	battle.state.round_number = GameConfig.AIR_RAID_FIRST_ROUND
+	var raided := false
+	for i in 400:
+		battle.state.last_raid_wave = -GameConfig.AIR_RAID_GAP
+		battle.spawns.send_wave()
+		if battle.state.enemies.any(func(enemy: Enemy) -> bool: return enemy.is_air()):
+			raided = true
+			break
+	assert_true(raided)
