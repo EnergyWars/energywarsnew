@@ -4,7 +4,7 @@
 :root {
   --bg: #0b1020; --surface: #141b2e; --variant: #1d2640; --high: #28334f; --outline: #3a4770;
   --text: #eef3ff; --muted: #a9b4d0; --energy: #3ee8ff; --gold: #ffc83d; --on-accent: #08111f;
-  --primary-container: #0f3352; --primary-outline: #1d5f8a; --series-cost: #ffc83d; --series-spent: #ff8a3d; --series-effect: #3ee8ff; --series-level: #4be38a; --series-total: #c58bff; --danger: #ff4d6d; --ok: #4be38a;
+  --primary-container: #0f3352; --primary-outline: #1d5f8a; --series-cost: #ffc83d; --series-cost-factor: #ff6b6b; --series-spent: #ff8a3d; --series-spent-factor: #ff8fd0; --series-gain: #5aa9ff; --series-effect: #3ee8ff; --series-level: #4be38a; --series-total: #c58bff; --series-benefit: #b6e35a; --danger: #ff4d6d; --ok: #4be38a;
   --card: 22px; --button: 18px; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -66,7 +66,7 @@ button.link { background: none; border: 0; padding: 0; color: var(--text); }
 .chart-tip dt { color: var(--muted); }
 .chart-tip dd { margin: 0; font-variant-numeric: tabular-nums; }
 .chart .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
-.chart .point.active { opacity: 1; r: 5; }
+.chart .point.active { opacity: 1; r: 6; stroke: var(--text); stroke-width: 1.5; }
 .legend-item { display: inline-flex; align-items: center; background: transparent; border: 2px solid var(--outline); border-radius: 14px; padding: 2px 10px; color: var(--text); font-size: 12px; cursor: pointer; }
 .legend-item.off { opacity: 0.5; text-decoration: line-through; }
 .value-heading { margin: 12px 0 4px; color: var(--muted); font-weight: 600; font-size: 15px; }
@@ -74,11 +74,11 @@ button.link { background: none; border: 0; padding: 0; color: var(--text); }
 .value-table tr.changed td { background: rgba(62,232,255,.08); }
 .field.inline { flex-direction: row; align-items: center; gap: 8px; }
 .field.inline select { width: auto; }
-.chart { width: 100%; height: auto; max-height: 220px; }
-.chart .series { fill: none; stroke-width: 2; }
+.chart { display: block; width: 100%; height: auto; touch-action: pan-y; cursor: crosshair; }
+.chart .series { fill: none; stroke-width: 2.5; }
 .chart .axis { stroke: var(--outline); stroke-width: 1; }
-.chart .tick { fill: var(--muted); font-size: 10px; }
-.chart .point { opacity: 0.85; }
+.chart .tick { fill: var(--muted); font-size: 12px; }
+.chart .point { opacity: 0.85; transition: r .08s; }
 .legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0; padding: 0; font-size: 12px; color: var(--muted); }
 .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .add { margin-top: 12px; }
@@ -113,3 +113,15 @@ td.clip { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-spa
 .section-toggle { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
 .section-toggle .chevron { color: var(--muted); width: 1em; }
 .track-text { cursor: pointer; }
+
+.chart .series.dim { opacity: 0.12; }
+.chart .point.dim { opacity: 0.08; }
+.chart .series.focus { stroke-width: 5; }
+.chart .point.focus { r: 6; opacity: 1; }
+.legend-item:hover, .legend-item:focus-visible { border-color: var(--energy); }
+
+[data-tip] { position: relative; }
+[data-tip]:hover::after, [data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; left: 0; top: calc(100% + 6px); z-index: 6; width: max-content; max-width: 280px; padding: 8px 12px; background: var(--high); color: var(--text); border: 2px solid var(--outline); border-radius: 14px; font-size: 12px; font-weight: 400; line-height: 1.35; text-align: left; white-space: normal; box-shadow: 0 4px 16px rgba(0,0,0,.4); pointer-events: none; }
+.table-edit tr:last-child [data-tip]:hover::after, .table-edit tr:nth-last-child(2) [data-tip]:hover::after { top: auto; bottom: calc(100% + 6px); }
+.table-edit td:nth-last-child(-n+3)[data-tip]:hover::after, .table-edit th:nth-last-child(-n+3)[data-tip]:hover::after, .legend li:nth-last-child(-n+2) [data-tip]:hover::after { left: auto; right: 0; }
+.levels td.base { color: var(--muted, inherit); opacity: 0.8; }

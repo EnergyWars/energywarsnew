@@ -1,82 +1,33 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { game, fresh, find } from "./data.js";
-import { effectAt, maxLevel, mode, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf } from "../../web/js/formulas.js";
-import { switchMode, applyFormula, defaultFormulas, describeError, rememberFormula, forgetFormula, formulaHistory, matchesFormula, resetToFormula, pendingPatch, applyPending, HISTORY_LIMIT } from "../../web/js/views/planEditor.js";
+import { effectAt, maxLevel, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf } from "../../web/js/formulas.js";
+import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, toolOf, rememberFormula, forgetFormula, formulaHistory, HISTORY_LIMIT } from "../../web/js/views/planEditor.js";
+import { draftKey, pendingLevels, applyLevels } from "../../web/js/views/valueTable.js";
 import { ExpressionError } from "../../web/js/expr.js";
 import { create } from "../../web/js/store.js";
 
-test("params mode is the default", () => {
+function context(doc = fresh()) {
+  const store = create(doc, game);
+  const ctx = { store, view: { drafts: {}, planErrors: {}, tools: {}, gainModes: {}, hidden: new Set() }, render() {}, toast() {} };
+  Object.defineProperty(ctx, "doc", { get: () => store.state.document });
+  return ctx;
+}
+
+test("tracks without a plan derive their table from the parameters", () => {
   const solar = find(game, "solar");
-  assert.equal(mode(solar, "output"), "params");
   assert.equal(planOf(solar, "output"), null);
   assert.equal(maxLevel(game, solar, "output"), 30);
   assert.ok(Math.abs(effectAt(solar, "output", 5, game) - 1.5) < 1e-9);
 });
 
-test("switching to a table keeps costs and effects", () => {
-  const doc = fresh();
-  const solar = find(doc, "solar");
-  const before = costs(doc, solar, "output");
-  const effect = effectAt(solar, "output", 7, doc);
-  switchMode(doc, solar, "output", "table");
-  assert.equal(mode(solar, "output"), "table");
-  assert.deepEqual(costs(doc, solar, "output"), before);
-  assert.ok(Math.abs(effectAt(solar, "output", 7, doc) - effect) < 1e-5);
-});
-
-test("switching to a formula keeps costs and effects", () => {
-  const doc = fresh();
-  const zapper = find(doc, "zapper");
-  const before = costs(doc, zapper, "power");
-  switchMode(doc, zapper, "power", "formula");
-  const plan = planOf(zapper, "power");
-  assert.equal(plan.mode, "formula");
-  applyFormula(doc, zapper, "power", {});
-  assert.deepEqual(costs(doc, zapper, "power"), before);
-  assert.ok(Math.abs(effectAt(zapper, "power", 10, doc) - 2) < 1e-5);
-});
-
-test("curve tracks convert to formulas too", () => {
-  const doc = fresh();
-  const wall = find(doc, "bulwark");
-  const before = costs(doc, wall, "hull");
-  const effect = effectAt(wall, "hull", 8, doc);
-  switchMode(doc, wall, "hull", "formula");
-  applyFormula(doc, wall, "hull", {});
-  assert.deepEqual(costs(doc, wall, "hull"), before);
-  assert.ok(Math.abs(effectAt(wall, "hull", 8, doc) - effect) < 1e-3);
-});
-
-test("switching back to params removes the plan", () => {
-  const doc = fresh();
-  const solar = find(doc, "solar");
-  switchMode(doc, solar, "output", "table");
-  switchMode(doc, solar, "output", "params");
-  assert.equal(solar.plans, undefined);
-  switchMode(doc, solar, "output", "params");
-  assert.equal(solar.plans, undefined);
-});
-
-test("switching between table and formula keeps formula text", () => {
-  const doc = fresh();
-  const solar = find(doc, "solar");
-  switchMode(doc, solar, "output", "formula");
-  applyFormula(doc, solar, "output", { cost: "base * level + 1", effect: "1 + level" });
-  switchMode(doc, solar, "output", "table");
-  switchMode(doc, solar, "output", "formula");
-  assert.equal(solar.plans.output.mode, "formula");
-});
-
 test("formula levels use variables and floor the cost at one", () => {
   const doc = fresh();
   const solar = find(doc, "solar");
-  solar.plans = { output: { mode: "formula", max: 3, cost: "base * (level + 1)", effect: "1 + 0.5 * level", levels: [] } };
-  const levels = buildFormulaLevels(doc, solar, solar.plans.output);
+  const levels = buildFormulaLevels(doc, solar, { max: 3, cost: "base * (level + 1)", effect: "1 + 0.5 * level" });
   assert.deepEqual(levels.map((level) => level.cost), [40, 80, 120]);
   assert.deepEqual(levels.map((level) => level.gain), [0.5, 0.5, 0.5]);
-  const cheap = buildFormulaLevels(doc, solar, { max: 1, cost: "0", effect: "level" });
-  assert.equal(cheap[0].cost, 1);
+  assert.equal(buildFormulaLevels(doc, solar, { max: 1, cost: "0", effect: "level" })[0].cost, 1);
 });
 
 test("an effect that does not start at one is normalised to a gain", () => {
@@ -87,20 +38,15 @@ test("an effect that does not start at one is normalised to a gain", () => {
   assert.equal(effectAt(solar, "output", 2, doc), 3);
 });
 
-test("formula errors are thrown before the document changes", () => {
-  const doc = fresh();
-  const solar = find(doc, "solar");
-  switchMode(doc, solar, "output", "formula");
-  const store = create(doc, game);
-  assert.throws(() => store.update((d) => applyFormula(d, find(d, "solar"), "output", { cost: "1 +" })), ExpressionError);
-  assert.equal(planOf(find(store.state.document, "solar"), "output").cost, planOf(solar, "output").cost);
-  assert.ok(!store.canUndo());
-  assert.throws(() => store.update((d) => applyFormula(d, find(d, "solar"), "output", { max: 0 })), (error) => error.code === "MAX");
-  assert.throws(() => store.update((d) => applyFormula(d, find(d, "solar"), "output", { max: 500 })), (error) => error.code === "MAX");
-});
-
-test("errors are described and unknown errors rethrown", () => {
+test("formula errors are thrown and described", () => {
+  const solar = find(fresh(), "solar");
+  assert.throws(() => buildFormulaLevels(game, solar, { max: 2, cost: "1 +", effect: "1" }), ExpressionError);
+  assert.throws(() => buildFormulaLevels(game, solar, { max: 0, cost: "1", effect: "1" }), (error) => error.code === "MAX");
+  assert.throws(() => buildFormulaLevels(game, solar, { max: 500, cost: "1", effect: "1" }), (error) => error.code === "MAX");
   assert.throws(() => describeError(new Error("boom")), /boom/);
+  assert.ok(describeError(new ExpressionError("EMPTY")));
+  assert.ok(describeError(Object.assign(new Error("MAX"), { code: "MAX" })));
+  assert.ok(describeError(Object.assign(new Error("PARAM"), { code: "PARAM" })));
 });
 
 test("table plans drive cost, benefit and totals", () => {
@@ -114,6 +60,7 @@ test("table plans drive cost, benefit and totals", () => {
   assert.equal(effectAt(solar, "output", 9, doc), 3);
   assert.equal(benefitTotal(doc, solar, "output"), 200 / 40 * 1000);
   assert.ok(benefitOfLevel(doc, solar, "output", 0) > benefitOfLevel(doc, solar, "output", 1));
+  assert.deepEqual(costs(doc, solar, "output"), [10, 30]);
 });
 
 test("snapshot covers every level and default formulas mirror the parameters", () => {
@@ -126,55 +73,118 @@ test("snapshot covers every level and default formulas mirror the parameters", (
   assert.match(defaultFormulas(doc, find(doc, "bulwark"), "hull").effect, /\(1\.85\^level - 1\)/);
 });
 
-function formulaSolar() {
+test("parameter levels reproduce the game curves for every upgrade", () => {
+  for (const entry of game.buildings) {
+    for (const track of entry.tracks) {
+      const derived = paramLevels(game, entry, paramDefaults(game, entry, track));
+      const snapshot = snapshotLevels(game, entry, track);
+      assert.equal(derived.length, snapshot.length, `${entry.id}.${track}`);
+      derived.forEach((level, index) => {
+        assert.equal(level.cost, snapshot[index].cost, `${entry.id}.${track}.${index}`);
+        assert.ok(Math.abs(level.gain - snapshot[index].gain) < 1e-5, `${entry.id}.${track}.${index}`);
+      });
+    }
+  }
+});
+
+test("default formulas reproduce the game curves too", () => {
+  const solar = find(game, "solar");
+  const defaults = formulaDefaults(game, solar, "output");
+  assert.deepEqual(buildFormulaLevels(game, solar, defaults).map((level) => level.cost), snapshotLevels(game, solar, "output").map((level) => level.cost));
+});
+
+test("parameter keys depend on the curve type and invalid parameters are rejected", () => {
+  const solar = find(game, "solar");
+  const bulwark = find(game, "bulwark");
+  assert.deepEqual(paramKeys(paramDefaults(game, solar, "output")), ["max", "step", "price", "growth"]);
+  assert.deepEqual(paramKeys(paramDefaults(game, bulwark, "hull")), ["max", "gain", "price", "gain_growth", "growth"]);
+  const base = paramDefaults(game, solar, "output");
+  for (const patch of [{ max: 0 }, { max: 201 }, { max: 1.5 }]) {
+    assert.throws(() => paramLevels(game, solar, { ...base, ...patch }), (error) => error.code === "MAX");
+  }
+  for (const patch of [{ price: 0 }, { growth: 1 }, { step: -1 }, { step: Number.NaN }]) {
+    assert.throws(() => paramLevels(game, solar, { ...base, ...patch }), (error) => error.code === "PARAM");
+  }
+  const curved = paramDefaults(game, bulwark, "hull");
+  assert.throws(() => paramLevels(game, bulwark, { ...curved, gain_growth: 1 }), (error) => error.code === "PARAM");
+  assert.throws(() => paramLevels(game, bulwark, { ...curved, gain: 0 }), (error) => error.code === "PARAM");
+});
+
+test("legacy formula plans provide their formulas as defaults", () => {
   const doc = fresh();
   const solar = find(doc, "solar");
-  switchMode(doc, solar, "output", "formula");
-  applyFormula(doc, solar, "output", { cost: "base * (level + 1)", effect: "1 + 0.5 * level" });
-  return { doc, solar };
-}
-
-test("a formula fills every level once and levels stay editable", () => {
-  const { doc, solar } = formulaSolar();
-  const plan = planOf(solar, "output");
-  assert.ok(matchesFormula(doc, solar, "output"));
-  plan.levels[1].cost = 999;
-  plan.levels[2].gain = 0.25;
-  assert.equal(levelCost(doc, solar, "output", 1), 999);
-  assert.ok(!matchesFormula(doc, solar, "output"));
-  assert.equal(plan.cost, "base * (level + 1)");
+  solar.plans = { output: { mode: "formula", max: 2, cost: "base", effect: "1 + level", levels: [{ cost: 40, gain: 1 }, { cost: 40, gain: 1 }] } };
+  assert.deepEqual(formulaDefaults(doc, solar, "output"), { max: 2, cost: "base", effect: "1 + level" });
 });
 
-test("reset restores all values from the stored formula", () => {
-  const { doc, solar } = formulaSolar();
-  const original = JSON.stringify(planOf(solar, "output").levels);
-  planOf(solar, "output").levels[0].cost = 5;
-  resetToFormula(doc, solar, "output");
-  assert.equal(JSON.stringify(planOf(solar, "output").levels), original);
-  assert.ok(matchesFormula(doc, solar, "output"));
+test("tools only fill the table draft and never change the applied values", () => {
+  const ctx = context();
+  const solar = find(ctx.doc, "solar");
+  const before = JSON.stringify(ctx.doc.buildings);
+  ctx.view.drafts["solar:output:f:cost"] = "base * 3";
+  ctx.view.drafts["solar:output:f:effect"] = "1 + level";
+  ctx.view.drafts["solar:output:f:max"] = 4;
+  fillFromFormula(ctx, solar, "output");
+  const draft = pendingLevels(ctx, solar, "output");
+  assert.deepEqual(draft.map((level) => level.cost), [120, 120, 120, 120].map((value) => value * 1));
+  assert.equal(JSON.stringify(ctx.doc.buildings), before);
+  assert.deepEqual(formulaHistory(ctx.doc, "cost"), ["base * 3"]);
+  assert.deepEqual(formulaHistory(ctx.doc, "effect"), ["1 + level"]);
+  applyLevels(ctx, find(ctx.doc, "solar"), "output");
+  assert.equal(planOf(find(ctx.doc, "solar"), "output").levels.length, 4);
+  assert.equal(planOf(find(ctx.doc, "solar"), "output").mode, "table");
 });
 
-test("a new formula recalculates all manual values", () => {
-  const { doc, solar } = formulaSolar();
-  planOf(solar, "output").levels[0].cost = 5;
-  applyFormula(doc, solar, "output", { cost: "base * 2" });
-  assert.equal(levelCost(doc, solar, "output", 0), solar.upgrade_base * 2);
+test("the parameter tool fills the table from its own inputs", () => {
+  const ctx = context();
+  const solar = find(ctx.doc, "solar");
+  ctx.view.drafts["solar:output:p:max"] = 3;
+  ctx.view.drafts["solar:output:p:step"] = 0.5;
+  ctx.view.drafts["solar:output:p:price"] = 1;
+  ctx.view.drafts["solar:output:p:growth"] = 2;
+  assert.equal(paramInputs(ctx, solar, "output").max, 3);
+  fillFromParams(ctx, solar, "output");
+  const draft = pendingLevels(ctx, solar, "output");
+  assert.deepEqual(draft.map((level) => level.cost), [40, 80, 160]);
+  assert.deepEqual(draft.map((level) => level.gain), [0.5, 0.5, 0.5]);
+  assert.equal(planOf(solar, "output"), null);
+  assert.equal(ctx.store.state.past.length, 0);
+});
+
+test("invalid tool inputs report an error and keep the table untouched", () => {
+  const ctx = context();
+  const solar = find(ctx.doc, "solar");
+  ctx.view.drafts["solar:output:f:effect"] = "1 +";
+  fillFromFormula(ctx, solar, "output");
+  assert.ok(ctx.view.planErrors["solar:output:fill"]);
+  assert.equal(ctx.view.drafts[draftKey(solar, "output")], undefined);
+  assert.deepEqual(formulaHistory(ctx.doc, "effect"), []);
+  ctx.view.drafts["solar:output:p:price"] = 0;
+  fillFromParams(ctx, solar, "output");
+  assert.ok(ctx.view.planErrors["solar:output:fill"]);
+  assert.equal(ctx.view.drafts[draftKey(solar, "output")], undefined);
+  delete ctx.view.drafts["solar:output:p:price"];
+  fillFromParams(ctx, solar, "output");
+  assert.equal(ctx.view.planErrors["solar:output:fill"], undefined);
+  assert.ok(pendingLevels(ctx, solar, "output"));
+});
+
+test("tool inputs fall back to the current values and the tool is remembered per track", () => {
+  const ctx = context();
+  const solar = find(ctx.doc, "solar");
+  assert.deepEqual(formulaInputs(ctx, solar, "output"), formulaDefaults(ctx.doc, solar, "output"));
+  assert.equal(toolOf(ctx.view, solar, "output"), "params");
+  ctx.view.tools["solar:output:tool"] = "formula";
+  assert.equal(toolOf(ctx.view, solar, "output"), "formula");
+  assert.equal(toolOf(ctx.view, solar, "capacity"), "params");
 });
 
 test("applied formulas are remembered, newest first, without duplicates", () => {
-  const { doc } = formulaSolar();
-  assert.deepEqual(formulaHistory(doc, "cost"), ["base * (level + 1)"]);
-  assert.deepEqual(formulaHistory(doc, "effect"), ["1 + 0.5 * level"]);
-  const solar = find(doc, "solar");
-  applyFormula(doc, solar, "output", { cost: "base * 2" });
-  applyFormula(doc, solar, "output", { cost: "base * (level + 1)" });
-  assert.deepEqual(formulaHistory(doc, "cost"), ["base * (level + 1)", "base * 2"]);
-});
-
-test("invalid formulas are not remembered", () => {
-  const { doc, solar } = formulaSolar();
-  assert.throws(() => applyFormula(doc, solar, "output", { cost: "base *" }));
-  assert.ok(!formulaHistory(doc, "cost").includes("base *"));
+  const doc = fresh();
+  rememberFormula(doc, "cost", "base * 2");
+  rememberFormula(doc, "cost", "base * 3");
+  rememberFormula(doc, "cost", "base * 2");
+  assert.deepEqual(formulaHistory(doc, "cost"), ["base * 2", "base * 3"]);
 });
 
 test("history entries can be deleted and the list is capped", () => {
@@ -189,85 +199,4 @@ test("history entries can be deleted and the list is capped", () => {
   for (let index = 0; index < HISTORY_LIMIT + 5; index += 1) rememberFormula(doc, "effect", `1 + ${index}`);
   assert.equal(formulaHistory(doc, "effect").length, HISTORY_LIMIT);
   assert.equal(formulaHistory(doc, "effect")[0], `1 + ${HISTORY_LIMIT + 4}`);
-});
-
-test("matchesFormula is false for broken formulas", () => {
-  const { doc, solar } = formulaSolar();
-  planOf(solar, "output").cost = "base *";
-  assert.ok(!matchesFormula(doc, solar, "output"));
-});
-
-function context(doc) {
-  const store = create(doc, doc);
-  return { doc: store.state.document, store, view: { drafts: {}, planErrors: {} }, render() {}, toast() {} };
-}
-
-test("typed formulas only apply after pressing apply", () => {
-  const { doc, solar } = formulaSolar();
-  const ctx = context(doc);
-  const entry = find(ctx.doc, "solar");
-  const before = JSON.stringify(planOf(entry, "output").levels);
-  ctx.view.drafts["solar:output:cost"] = "base * 3";
-  ctx.view.drafts["solar:output:max"] = planOf(entry, "output").max;
-  assert.deepEqual(pendingPatch(ctx.view.drafts, entry, "output"), { cost: "base * 3" });
-  assert.equal(JSON.stringify(planOf(entry, "output").levels), before);
-  assert.deepEqual(formulaHistory(ctx.doc, "cost"), ["base * (level + 1)"]);
-  applyPending(ctx, entry, "output");
-  const applied = find(ctx.store.state.document, "solar");
-  assert.equal(planOf(applied, "output").cost, "base * 3");
-  assert.equal(levelCost(ctx.store.state.document, applied, "output", 0), applied.upgrade_base * 3);
-  assert.deepEqual(ctx.view.drafts, {});
-  assert.equal(formulaHistory(ctx.store.state.document, "cost")[0], "base * 3");
-  assert.ok(solar);
-});
-
-test("an invalid draft reports an error and keeps the old values", () => {
-  const { doc } = formulaSolar();
-  const ctx = context(doc);
-  const entry = find(ctx.doc, "solar");
-  ctx.view.drafts["solar:output:effect"] = "1 +";
-  applyPending(ctx, entry, "output");
-  assert.ok(ctx.view.planErrors["solar:output:apply"]);
-  assert.equal(planOf(find(ctx.store.state.document, "solar"), "output").effect, "1 + 0.5 * level");
-  assert.equal(ctx.view.drafts["solar:output:effect"], "1 +");
-});
-
-test("applying without pending changes does nothing", () => {
-  const { doc } = formulaSolar();
-  const ctx = context(doc);
-  applyPending(ctx, find(ctx.doc, "solar"), "output");
-  assert.equal(ctx.store.state.past.length, 0);
-});
-
-test("switching tabs restores the applied formula and its values", () => {
-  const { doc, solar } = formulaSolar();
-  const memory = {};
-  const applied = JSON.stringify(planOf(solar, "output"));
-  switchMode(doc, solar, "output", "table", memory);
-  planOf(solar, "output").levels[0].cost = 777;
-  switchMode(doc, solar, "output", "params", memory);
-  assert.equal(solar.plans, undefined);
-  switchMode(doc, solar, "output", "formula", memory);
-  assert.equal(JSON.stringify(planOf(solar, "output")), applied);
-  switchMode(doc, solar, "output", "table", memory);
-  assert.equal(planOf(solar, "output").levels[0].cost, 777);
-});
-
-test("an empty memory behaves like before and memories are per track", () => {
-  const doc = fresh();
-  const solar = find(doc, "solar");
-  const memory = {};
-  switchMode(doc, solar, "output", "formula", memory);
-  switchMode(doc, solar, "output", "params", memory);
-  switchMode(doc, solar, "capacity", "table", memory);
-  assert.equal(planOf(solar, "capacity").mode, "table");
-  assert.equal(planOf(solar, "output"), null);
-  switchMode(doc, solar, "output", "table", memory);
-  assert.equal(planOf(solar, "output").mode, "table");
-  const stored = memory["solar:output:formula"];
-  stored.cost = "changed";
-  switchMode(doc, solar, "output", "formula", memory);
-  assert.equal(planOf(solar, "output").cost, "changed");
-  planOf(solar, "output").cost = "again";
-  assert.equal(memory["solar:output:formula"].cost, "changed");
 });

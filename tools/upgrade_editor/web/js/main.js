@@ -9,7 +9,7 @@ import { overviewView } from "./views/overviewView.js";
 import { changesView, computeChanges } from "./views/changesView.js";
 
 const TABS = ["buildings", "overview", "tracks", "changes"];
-const view = { tab: "buildings", building: null, category: "all", open: new Set(), drafts: {}, memory: {}, hidden: new Set(), collapsed: new Set(), gainModes: {}, planErrors: {}, sort: { key: "benefit", direction: "desc" }, errors: [] };
+const view = { tab: "buildings", building: null, category: "all", open: new Set(), drafts: {}, tools: {}, hidden: new Set(), collapsed: new Set(), gainModes: {}, planErrors: {}, sort: { key: "benefit", direction: "desc" }, errors: [] };
 let store;
 let names = {};
 
@@ -31,7 +31,7 @@ function writePreference(key, value) {
 
 function context() {
   const doc = store.state.document;
-  return { doc, original: store.state.original, names, store, view, render, toast, usage: (track) => doc.buildings.filter((entry) => entry.tracks.includes(track)).map((entry) => entry.id) };
+  return { doc, original: store.state.original, names, store, view, render, toast };
 }
 
 async function save() {
@@ -51,7 +51,7 @@ async function reset() {
   await api.reset();
   const loaded = await api.document();
   store.state.original = loaded.original;
-  view.memory = {};
+  view.tools = {};
   view.drafts = {};
   view.planErrors = {};
   store.replace(loaded.document);

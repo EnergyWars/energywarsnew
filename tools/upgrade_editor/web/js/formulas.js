@@ -13,10 +13,6 @@ export function planOf(entry, track) {
   return entry.plans?.[track] ?? null;
 }
 
-export function mode(entry, track) {
-  return planOf(entry, track)?.mode ?? "params";
-}
-
 export function multiplier(config, level) {
   if (config.gain !== undefined) {
     const growth = config.gain_growth;
@@ -105,28 +101,35 @@ export function snapshotLevels(doc, entry, track) {
   }));
 }
 
+export function purchasePrice(entry) {
+  return Number.isFinite(entry.cost) && entry.cost > 0 ? entry.cost : 0;
+}
+
 export function referenceCost(entry) {
   return entry.cost > 0 ? entry.cost : entry.upgrade_base;
 }
 
 export function deriveRows(entry, levels) {
   const build = referenceCost(entry);
-  let spent = 0;
+  const purchase = purchasePrice(entry);
+  let upgrades = 0;
   let effect = 1;
   return levels.map((level, index) => {
     const before = effect;
-    spent += level.cost;
+    upgrades += level.cost;
     effect += level.gain;
     const known = build > 0;
     return {
       level: index + 1,
       cost: level.cost,
-      spent,
+      costFactor: known ? level.cost / build : null,
+      spent: purchase + upgrades,
+      spentFactor: known ? (purchase + upgrades) / build : null,
       gain: level.gain,
       effect,
       benefit: before > 0 ? ((level.gain / before) * 100) / level.cost * 1000 : null,
       single: known ? (level.gain / (level.cost / build)) * 100 : null,
-      total: known ? (effect / (1 + spent / build)) * 100 : null,
+      total: known ? (effect / (1 + upgrades / build)) * 100 : null,
     };
   });
 }
@@ -135,36 +138,60 @@ export function levelFactors(doc, entry, track) {
   return deriveRows(entry, snapshotLevels(doc, entry, track)).map(({ single, total }) => ({ single, total }));
 }
 
-export const EDITABLE_FIELDS = ["cost", "spent", "gain", "effect", "single", "total"];
+export function baseRow(entry) {
+  const build = referenceCost(entry);
+  const purchase = purchasePrice(entry);
+  return {
+    level: 0,
+    cost: null,
+    costFactor: null,
+    spent: purchase,
+    spentFactor: build > 0 ? purchase / build : null,
+    gain: null,
+    effect: 1,
+    benefit: null,
+    single: null,
+    total: build > 0 ? 100 : null,
+  };
+}
+
+export function deriveRowsFromBase(entry, levels) {
+  return [baseRow(entry), ...deriveRows(entry, levels)];
+}
+
+export const EDITABLE_FIELDS = ["cost", "costFactor", "spent", "spentFactor", "gain", "effect", "single", "total", "benefit"];
 
 export function editLevel(entry, levels, index, field, value) {
   const next = levels.map((level) => ({ ...level }));
-  if (!Number.isFinite(value) || !next[index]) return next;
+  if (!Number.isFinite(value) || !next[index] || !EDITABLE_FIELDS.includes(field)) return next;
   const build = referenceCost(entry);
-  const spentBefore = next.slice(0, index).reduce((sum, level) => sum + level.cost, 0);
+  const purchase = purchasePrice(entry);
+  const upgradesBefore = next.slice(0, index).reduce((sum, level) => sum + level.cost, 0);
   const effectBefore = 1 + next.slice(0, index).reduce((sum, level) => sum + level.gain, 0);
   const level = next[index];
   const costOf = (amount) => Math.max(Math.round(amount), 1);
-  if (field === "cost") level.cost = costOf(value);
-  else if (field === "gain") level.gain = roundTo(value);
-  else if (field === "spent") level.cost = costOf(value - spentBefore);
+  const effectAfter = effectBefore + level.gain;
+  const setters = {
+    cost: () => costOf(value),
+    costFactor: () => (build > 0 ? costOf(value * build) : null),
+    spent: () => costOf(value - purchase - upgradesBefore),
+    spentFactor: () => (build > 0 ? costOf(value * build - purchase - upgradesBefore) : null),
+    single: () => (value > 0 && level.gain > 0 && build > 0 ? costOf((level.gain * build) / (value / 100)) : null),
+    total: () => (value > 0 && build > 0 && effectAfter > 0 ? costOf(build * (effectAfter / (value / 100) - 1) - upgradesBefore) : null),
+    benefit: () => (value > 0 && level.gain > 0 && effectBefore > 0 ? costOf((((level.gain / effectBefore) * 100) / value) * 1000) : null),
+  };
+  if (field === "gain") level.gain = roundTo(value);
   else if (field === "effect") level.gain = roundTo(value - effectBefore);
-  else if (field === "single" && value > 0 && level.gain > 0 && build > 0) level.cost = costOf((level.gain * build) / (value / 100));
-  else if (field === "total" && value > 0 && build > 0 && effectBefore + level.gain > 0) {
-    level.cost = costOf(build * ((effectBefore + level.gain) / (value / 100) - 1) - spentBefore);
+  else {
+    const cost = setters[field]();
+    if (cost !== null) level.cost = cost;
   }
   return next;
 }
 
 export function writeLevels(entry, track, levels) {
   entry.plans = entry.plans ?? {};
-  const plan = entry.plans[track];
-  if (!plan) {
-    entry.plans[track] = { mode: "table", levels };
-    return;
-  }
-  plan.levels = levels;
-  if (plan.mode === "formula") plan.max = levels.length;
+  entry.plans[track] = { mode: "table", levels };
 }
 
 const GAIN_BASES = {

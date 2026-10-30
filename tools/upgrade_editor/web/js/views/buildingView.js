@@ -1,10 +1,11 @@
 import { h } from "../dom.js";
 import { t, gameName } from "../i18n.js";
 import { number, compact, LENGTH_STATS, cellSize, toCells, fromCells } from "../format.js";
-import { trackConfig, effectAt, maxLevel, mode, costs, levelCost, totalCost, benefitTotal, snapshotLevels, deriveRows } from "../formulas.js";
+import { effectAt, maxLevel, costs, levelCost, totalCost, benefitTotal, snapshotLevels, deriveRowsFromBase } from "../formulas.js";
 import { planEditor } from "./planEditor.js";
-import { numberField, chart, percent, sectionHeading, isCollapsed, toggleKey } from "./components.js";
+import { numberField, chart, sectionHeading, isCollapsed, toggleKey } from "./components.js";
 import { valueTable } from "./valueTable.js";
+import { METRICS } from "./metrics.js";
 import { buildingIcon } from "./icon.js";
 
 export function trackName(names, track, kind) {
@@ -85,66 +86,38 @@ export function toggleSeries(ctx, key) {
   ctx.render();
 }
 
-export function detailPairs(row) {
-  return [
-    [t("table.cost"), number(row.cost, 0)],
-    [t("table.spent"), number(row.spent, 0)],
-    [t("values.col.gain"), `+${number(row.gain, 4)}`],
-    [t("table.effect"), `×${number(row.effect, 3)}`],
-    [t("table.benefit"), number(row.benefit, 2)],
-    [t("table.factorLevel"), percent(row.single)],
-    [t("table.factorTotal"), percent(row.total)],
-  ];
+export function detailPairs(row, hidden = new Set()) {
+  return METRICS.filter((metric) => !hidden.has(metric.key)).map((metric) => [t(`values.col.${metric.key}`), row[metric.key] === null || row[metric.key] === undefined ? "–" : metric.format(row[metric.key])]);
 }
 
 export function chartSeries(rows) {
-  const decimals = (digits) => (value) => number(value, digits);
-  return [
-    { key: "cost", label: t("table.cost"), color: "var(--series-cost)", values: rows.map((row) => row.cost), format: decimals(0) },
-    { key: "spent", label: t("table.spent"), color: "var(--series-spent)", values: rows.map((row) => row.spent), format: decimals(0) },
-    { key: "effect", label: t("table.effect"), color: "var(--series-effect)", values: rows.map((row) => row.effect), format: (value) => `×${number(value, 2)}` },
-    { key: "factorLevel", label: t("table.factorLevel"), color: "var(--series-level)", values: rows.map((row) => row.single ?? NaN), format: percent },
-    { key: "factorTotal", label: t("table.factorTotal"), color: "var(--series-total)", values: rows.map((row) => row.total ?? NaN), format: percent },
-  ];
+  return METRICS.map((metric) => ({
+    key: metric.key,
+    label: t(`values.col.${metric.key}`),
+    desc: t(`values.desc.${metric.key}`),
+    color: metric.color,
+    values: rows.map((row) => row[metric.key] ?? NaN),
+    format: metric.format,
+  }));
 }
 
 function trackDetail(ctx, entry, track, index) {
   const { doc, store } = ctx;
-  const active = mode(entry, track);
   const max = maxLevel(doc, entry, track);
-  const rows = deriveRows(entry, snapshotLevels(doc, entry, track));
+  const rows = deriveRowsFromBase(entry, snapshotLevels(doc, entry, track));
   return h("div", { class: "track-detail" },
-    chart(chartSeries(rows), { hidden: ctx.view.hidden, onToggle: (key) => toggleSeries(ctx, key), detail: (index) => detailPairs(rows[index]) }),
+    chart(chartSeries(rows), { hidden: ctx.view.hidden, onToggle: (key) => toggleSeries(ctx, key), detail: (index) => detailPairs(rows[index], ctx.view.hidden) }),
     h("dl", { class: "stats" },
       h("div", {}, h("dt", {}, t("stat.first")), h("dd", {}, levelCost(doc, entry, track, 0))),
       h("div", {}, h("dt", {}, t("stat.total")), h("dd", {}, compact(totalCost(doc, entry, track)))),
       h("div", {}, h("dt", {}, t("stat.max")), h("dd", {}, `×${number(effectAt(entry, track, max, doc), 2)}`)),
       h("div", {}, h("dt", {}, t("stat.benefit")), h("dd", {}, number(benefitTotal(doc, entry, track), 2)))),
     planEditor(ctx, entry, track),
-    active === "params" ? paramFields(ctx, entry, track) : null,
     valueTable(ctx, entry, track),
     h("div", { class: "actions" },
       h("button", { class: "icon", title: t("action.up"), disabled: index === 0, onclick: () => store.update((d) => swap(d, entry.id, index, index - 1)) }, "↑"),
       h("button", { class: "icon", title: t("action.down"), disabled: index === entry.tracks.length - 1, onclick: () => store.update((d) => swap(d, entry.id, index, index + 1)) }, "↓"),
       h("button", { class: "icon danger", title: t("action.remove"), onclick: () => store.update((d) => removeTrack(d, entry.id, track)) }, "✕")));
-}
-
-function paramFields(ctx, entry, track) {
-  const { doc, store } = ctx;
-  const config = trackConfig(doc, entry, track);
-  const own = Boolean(entry.curves?.[track]);
-  const base = own ? `buildings.${entry.id}.curves.${track}` : `tracks.${track}`;
-  const growthKey = own && config.gain !== undefined ? "gain_growth" : "growth";
-  const shared = !own && ctx.usage(track).length > 1;
-  return h("div", {},
-    shared ? h("p", { class: "note" }, t("note.shared", { count: ctx.usage(track).length })) : null,
-    h("div", { class: "grid" },
-      numberField(t("field.max"), config.max, (v) => store.set(`${base}.max`, v), { integer: true, min: 1, desc: t("desc.max") }),
-      config.gain !== undefined
-        ? numberField(t("field.gain"), config.gain, (v) => store.set(`${base}.gain`, v), { min: 0, desc: t("desc.gain") })
-        : numberField(t("field.step"), config.step, (v) => store.set(`${base}.step`, v), { min: 0, desc: t("desc.step") }),
-      numberField(t("field.price"), config.price, (v) => store.set(`${base}.price`, v), { min: 0, desc: t("desc.price") }),
-      numberField(t(config.gain !== undefined ? "field.gainGrowth" : "field.growth"), config[growthKey] ?? doc.system.track_growth, (v) => store.set(`${base}.${growthKey}`, v), { min: 1, desc: t(config.gain !== undefined ? "desc.gainGrowth" : "desc.growth") })));
 }
 
 function trackRow(ctx, entry, track, index) {
@@ -160,7 +133,7 @@ function trackRow(ctx, entry, track, index) {
     h("div", { class: "track-head" },
       h("div", { class: "track-text", onclick: toggle },
         h("div", { class: "body" }, trackName(names, track, entry.id)),
-        h("div", { class: "caption" }, `${t("level.short")} 0/${max}  ×1 → ×${number(effectAt(entry, track, 1, doc), 2)}  ·  ${t(`plan.${mode(entry, track)}`)}`)),
+        h("div", { class: "caption" }, `${t("level.short")} 0/${max}  ×1 → ×${number(effectAt(entry, track, 1, doc), 2)}`)),
       h("button", { class: "icon", "aria-expanded": String(open), title: t(open ? "action.collapse" : "action.expand"), onclick: toggle }, open ? "▴" : "▾"),
       h("span", { class: "gold-button" }, `▲ ${levelCost(doc, entry, track, 0)}`)),
     open ? trackDetail(ctx, entry, track, index) : null);

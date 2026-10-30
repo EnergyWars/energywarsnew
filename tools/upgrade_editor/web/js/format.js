@@ -23,3 +23,7 @@ export function toCells(pixels, cell) {
 export function fromCells(cells, cell) {
   return Math.round(cells * cell * 1000) / 1000;
 }
+
+export function percent(value) {
+  return value === null || value === undefined ? "–" : `${number(value, 0)} %`;
+}

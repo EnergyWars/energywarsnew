@@ -7,7 +7,7 @@ export function h(tag, attributes = {}, ...children) {
     else if (key in element && key !== "list") element[key] = value;
     else element.setAttribute(key, value === true ? "" : value);
   }
-  for (const child of children.flat()) {
+  for (const child of children.flat(Infinity)) {
     if (child === null || child === undefined || child === false) continue;
     element.append(child.nodeType ? child : document.createTextNode(String(child)));
   }

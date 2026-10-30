@@ -1,19 +1,15 @@
 import { h } from "../dom.js";
 import { t } from "../i18n.js";
 import { number } from "../format.js";
+import { METRICS } from "./metrics.js";
 import { sectionHeading, isCollapsed } from "./components.js";
-import { snapshotLevels, deriveRows, editLevel, writeLevels, gainBase, roundTo, MAX_LEVELS } from "../formulas.js";
+import { snapshotLevels, deriveRowsFromBase, editLevel, writeLevels, gainBase, referenceCost, roundTo, MAX_LEVELS } from "../formulas.js";
 
-const COLUMNS = [
-  { key: "level" },
-  { key: "cost", edit: true, digits: 0 },
-  { key: "spent", edit: true, digits: 0 },
-  { key: "gain", edit: true, digits: 4 },
-  { key: "effect", edit: true, digits: 4 },
-  { key: "single", edit: true, digits: 2 },
-  { key: "total", edit: true, digits: 2 },
-  { key: "benefit", digits: 2 },
-];
+export const COLUMNS = [{ key: "level" }, ...METRICS];
+
+export function visibleColumns(hidden) {
+  return COLUMNS.filter((column) => column.key === "level" || !hidden.has(column.key));
+}
 
 export function draftKey(entry, track) {
   return `${entry.id}:${track}:rows`;
@@ -32,6 +28,11 @@ export function pendingLevels(ctx, entry, track) {
     return null;
   }
   return draft.levels;
+}
+
+export function setDraftLevels(ctx, entry, track, levels) {
+  const base = JSON.stringify(snapshotLevels(ctx.doc, entry, track));
+  ctx.view.drafts[draftKey(entry, track)] = { base, levels: levels.map((level) => ({ ...level })) };
 }
 
 function changeDraft(ctx, entry, track, change) {
@@ -56,54 +57,73 @@ export function discardLevels(ctx, entry, track) {
 export function gainView(base, mode) {
   const absolute = mode === "absolute" && base !== null;
   return {
-    absolute,
+    converted: absolute,
+    label: absolute ? "values.col.gainAbsolute" : "values.col.gain",
     show: (gain) => (absolute ? roundTo(gain * base, 4) : gain),
     parse: (value) => (absolute ? value / base : value),
   };
 }
 
-function gainSelect(ctx, entry, track, base, mode) {
-  const select = h("select", { "aria-label": t("values.gainMode") },
-    h("option", { value: "factor", selected: mode === "factor" }, t("values.gainFactor")),
-    h("option", { value: "absolute", selected: mode === "absolute", disabled: base === null }, t("values.gainAbsolute")));
-  select.addEventListener("change", () => {
-    ctx.view.gainModes[gainModeKey(entry, track)] = select.value;
-    ctx.render();
-  });
-  return h("label", { class: "field inline" }, h("span", {}, t("values.gainMode")), select);
+export function gainModeValue(view, entry, track, base) {
+  return base === null ? "factor" : view.gainModes[gainModeKey(entry, track)] ?? "factor";
 }
 
-function cell(ctx, entry, track, column, row, index, view) {
-  if (!column.edit) return h("td", {}, column.key === "level" ? row.level : number(row[column.key], column.digits));
-  const shown = column.key === "gain" ? view.show(row.gain) : row[column.key];
-  if (shown === null) return h("td", {}, "–");
-  const input = h("input", { type: "number", step: "any", value: number(shown, column.digits === 0 ? 0 : 6), "aria-label": `${t(`values.col.${column.key}`)} ${row.level}` });
+function modeSelect(ctx, store, entry, track, label, options) {
+  const select = h("select", { "aria-label": t(label) },
+    options.map(({ value, text, selected, disabled }) => h("option", { value, selected, disabled }, t(text))));
+  select.addEventListener("change", () => {
+    store[gainModeKey(entry, track)] = select.value;
+    ctx.render();
+  });
+  return h("label", { class: "field inline" }, h("span", {}, t(label)), select);
+}
+
+function readonlyCell(column, row, tip) {
+  const value = row[column.key];
+  if (value === null || value === undefined) return h("td", { "data-tip": tip });
+  return h("td", { class: "base", "data-tip": tip }, column.key === "level" ? String(value) : column.format(value));
+}
+
+function cell(ctx, entry, track, column, row, index, views) {
+  const tip = t(`values.desc.${column.key}`);
+  if (row.level === 0) return readonlyCell(column, row, tip);
+  if (column.key === "level") return h("td", { "data-tip": tip }, row.level);
+  const converter = column.key === "gain" ? views.gain : null;
+  const shown = converter ? converter.show(row.gain) : row[column.key];
+  if (shown === null || shown === undefined) return h("td", { "data-tip": tip }, "–");
+  const digits = column.digits === 0 ? 0 : 6;
+  const input = h("input", { type: "number", step: "any", value: number(shown, digits), "aria-label": `${t(`values.col.${column.key}`)} ${row.level}` });
   input.addEventListener("change", () => {
     const parsed = Number(input.value);
     if (!Number.isFinite(parsed)) return;
-    changeDraft(ctx, entry, track, (levels) => editLevel(entry, levels, index, column.key, column.key === "gain" ? view.parse(parsed) : parsed));
+    changeDraft(ctx, entry, track, (levels) => editLevel(entry, levels, index, column.key, converter ? converter.parse(parsed) : parsed));
   });
-  return h("td", {}, input);
+  return h("td", { "data-tip": tip }, input);
 }
 
 export function valueTable(ctx, entry, track) {
   const current = snapshotLevels(ctx.doc, entry, track);
   const draft = pendingLevels(ctx, entry, track);
   const levels = draft ?? current;
-  const rows = deriveRows(entry, levels);
+  const rows = deriveRowsFromBase(entry, levels);
   const base = gainBase(ctx.doc, entry, track);
-  const mode = base === null ? "factor" : ctx.view.gainModes[gainModeKey(entry, track)] ?? "factor";
-  const view = gainView(base, mode);
-  const changed = (index) => !current[index] || current[index].cost !== levels[index].cost || current[index].gain !== levels[index].gain;
-  const head = COLUMNS.map((column) => h("th", { title: t(`values.desc.${column.key}`) }, column.key === "gain" && view.absolute ? t("values.col.gainAbsolute") : t(`values.col.${column.key}`)));
-  const body = rows.map((row, index) => h("tr", { class: changed(index) ? "changed" : "" }, COLUMNS.map((column) => cell(ctx, entry, track, column, row, index, view))));
+  const reference = referenceCost(entry);
+  const mode = gainModeValue(ctx.view, entry, track, base);
+  const views = { gain: gainView(base, mode) };
+  const changed = (index) => index > 0 && (!current[index - 1] || current[index - 1].cost !== levels[index - 1].cost || current[index - 1].gain !== levels[index - 1].gain);
+  const columns = visibleColumns(ctx.view.hidden);
+  const head = columns.map((column) => h("th", { "data-tip": t(`values.desc.${column.key}`), tabindex: "0" }, t(column.key === "gain" ? views.gain.label : `values.col.${column.key}`)));
+  const body = rows.map((row, index) => h("tr", { class: changed(index) ? "changed" : "" }, columns.map((column) => cell(ctx, entry, track, column, row, index - 1, views))));
   const key = `values:${entry.id}:${track}`;
   if (isCollapsed(ctx, key)) return h("section", { class: "value-table" }, sectionHeading(ctx, key, t("values.title"), "h4", "value-heading"));
   return h("section", { class: "value-table" },
     sectionHeading(ctx, key, t("values.title"), "h4", "value-heading"),
     h("p", { class: "note" }, t("values.hint")),
     h("div", { class: "actions" },
-      gainSelect(ctx, entry, track, base, mode),
+      modeSelect(ctx, ctx.view.gainModes, entry, track, "values.gainMode", [
+        { value: "factor", text: "values.gainFactor", selected: mode === "factor" },
+        { value: "absolute", text: "values.gainAbsolute", selected: mode === "absolute", disabled: base === null }]),
+      h("span", { class: "note" }, t("values.referenceCost", { value: number(reference, 2) })),
       base !== null ? h("span", { class: "note" }, t("values.base", { value: number(base, 2) })) : h("span", { class: "note" }, t("values.noBase"))),
     h("div", { class: "table-edit" }, h("table", { class: "levels" }, h("thead", {}, h("tr", {}, head)), h("tbody", {}, body))),
     h("div", { class: "actions" },
