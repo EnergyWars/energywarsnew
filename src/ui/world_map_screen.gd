@@ -14,8 +14,12 @@ var map: WorldMapView
 var panel: RegionPanel
 var tech: TechOverlay
 var tech_button: Button
+var bestiary: BestiaryOverlay
+var bestiary_button: Button
 var reset_button: Button
 var reset_dialog: ConfirmOverlay
+var about: AboutOverlay
+var about_button: Button
 var _top: VBoxContainer
 var _bottom: VBoxContainer
 var _stars: Label
@@ -94,16 +98,22 @@ func _build_bottom() -> void:
 	panel.survival_pressed.connect(func(index: int, days: int) -> void: survival_chosen.emit(index, days))
 	panel.creative_pressed.connect(func(index: int, day: int) -> void: creative_chosen.emit(index, day))
 	_bottom.add_child(panel)
-	var row := UiKit.hbox(AppTheme.SPACING_SM)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var actions := UiKit.hbox(AppTheme.SPACING_SM)
 	tech_button = UiKit.button("", "GoldButton", open_tech)
 	tech_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(tech_button)
+	actions.add_child(tech_button)
+	bestiary_button = UiKit.button("", "Button", open_bestiary)
+	bestiary_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(bestiary_button)
+	_bottom.add_child(actions)
+	var row := UiKit.hbox(AppTheme.SPACING_SM)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_sound = UiKit.button("", "Button", _toggle_sound)
 	_haptics = UiKit.button("", "Button", _toggle_haptics)
 	_language = UiKit.button("", "Button", _cycle_language)
 	reset_button = UiKit.button(Icons.RESET, "Button", confirm_reset_progress)
-	for button in [_sound, _haptics, _language, reset_button]:
+	about_button = UiKit.button(Icons.INFO, "Button", open_about)
+	for button in [_sound, _haptics, _language, reset_button, about_button]:
 		row.add_child(button)
 	_bottom.add_child(row)
 	_bottom.add_child(UiKit.label(Texts.t("MENU_CREDITS"), "Tiny", HORIZONTAL_ALIGNMENT_CENTER))
@@ -121,6 +131,7 @@ func refresh() -> void:
 	_stars.text = "%d / %d" % [progress.total_stars(), GameConfig.level_count() * Progress.MAX_STARS]
 	_points.text = Texts.format("SKILL_POINTS", [progress.skill_points()])
 	tech_button.text = "%s  %s" % [Icons.SCIENCE, Texts.format("WORLD_TECH", [progress.skill_points()])]
+	bestiary_button.text = "%s  %s" % [Icons.BUG, Texts.format("BESTIARY_OPEN", [progress.seen_count(), GameConfig.enemy_kinds().size()])]
 	_sound.text = Icons.VOLUME_ON if settings.sound else Icons.VOLUME_OFF
 	_haptics.text = Icons.VIBRATION if settings.haptics else "%s %s" % [Icons.VIBRATION, Texts.t("SETTINGS_OFF")]
 	_language.text = "%s %s" % [Icons.LANGUAGE, Texts.t("LANGUAGE_" + (settings.locale.to_upper() if not settings.locale.is_empty() else "AUTO"))]
@@ -169,8 +180,15 @@ func open_tech() -> void:
 	add_child(tech)
 
 
+func open_bestiary(focus_kind: String = "") -> void:
+	if is_instance_valid(bestiary) and not bestiary.is_queued_for_deletion():
+		return
+	bestiary = BestiaryOverlay.new().setup(progress, safe_top, focus_kind)
+	add_child(bestiary)
+
+
 func confirm_reset_progress() -> void:
-	if is_instance_valid(reset_dialog):
+	if is_instance_valid(reset_dialog) and not reset_dialog.is_queued_for_deletion():
 		return
 	reset_dialog = ConfirmOverlay.new().setup(Texts.t("PROGRESS_RESET_TITLE"), Texts.t("PROGRESS_RESET_TEXT"), Texts.t("PROGRESS_RESET_CONFIRM"))
 	reset_dialog.cancelled.connect(reset_dialog.queue_free)
@@ -192,7 +210,24 @@ func handle_back() -> bool:
 	if is_instance_valid(tech) and not tech.is_queued_for_deletion():
 		tech.handle_back()
 		return true
+	if is_instance_valid(bestiary) and not bestiary.is_queued_for_deletion():
+		bestiary.handle_back()
+		return true
+	if is_about_open():
+		about.handle_back()
+		return true
 	return false
+
+
+func open_about() -> void:
+	if is_about_open():
+		return
+	about = AboutOverlay.new().setup(safe_top)
+	add_child(about)
+
+
+func is_about_open() -> bool:
+	return is_instance_valid(about) and not about.is_queued_for_deletion()
 
 
 func _toggle_sound() -> void:

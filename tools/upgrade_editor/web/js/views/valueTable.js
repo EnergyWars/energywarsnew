@@ -2,13 +2,17 @@ import { h } from "../dom.js";
 import { t } from "../i18n.js";
 import { number } from "../format.js";
 import { METRICS } from "./metrics.js";
-import { sectionHeading, isCollapsed } from "./components.js";
+import { sectionHeading, isCollapsed, toggleKey } from "./components.js";
 import { snapshotLevels, deriveRowsFromBase, editLevel, writeLevels, gainBase, referenceCost, roundTo, MAX_LEVELS } from "../formulas.js";
 
 export const COLUMNS = [{ key: "level" }, ...METRICS];
 
+export const PINNED_COLUMNS = ["level", "cost", "gain"];
+
+export const OPTIONAL_COLUMNS = METRICS.filter((metric) => metric.chart === false).map((metric) => metric.key);
+
 export function visibleColumns(hidden) {
-  return COLUMNS.filter((column) => column.key === "level" || !hidden.has(column.key));
+  return COLUMNS.filter((column) => PINNED_COLUMNS.includes(column.key) || !hidden.has(column.key));
 }
 
 export function draftKey(entry, track) {
@@ -28,11 +32,6 @@ export function pendingLevels(ctx, entry, track) {
     return null;
   }
   return draft.levels;
-}
-
-export function setDraftLevels(ctx, entry, track, levels) {
-  const base = JSON.stringify(snapshotLevels(ctx.doc, entry, track));
-  ctx.view.drafts[draftKey(entry, track)] = { base, levels: levels.map((level) => ({ ...level })) };
 }
 
 function changeDraft(ctx, entry, track, change) {
@@ -76,6 +75,19 @@ function modeSelect(ctx, store, entry, track, label, options) {
     ctx.render();
   });
   return h("label", { class: "field inline" }, h("span", {}, t(label)), select);
+}
+
+function columnToggles(ctx) {
+  return h("div", { class: "actions" },
+    h("span", { class: "note" }, t("values.columns")),
+    OPTIONAL_COLUMNS.map((key) => {
+      const input = h("input", { type: "checkbox", checked: !ctx.view.hidden.has(key), "aria-label": t(`values.col.${key}`) });
+      input.addEventListener("change", () => {
+        toggleKey(ctx.view.hidden, key);
+        ctx.render();
+      });
+      return h("label", { class: "field inline", "data-tip": t(`values.desc.${key}`) }, input, h("span", {}, t(`values.col.${key}`)));
+    }));
 }
 
 function readonlyCell(column, row, tip) {
@@ -125,6 +137,7 @@ export function valueTable(ctx, entry, track) {
         { value: "absolute", text: "values.gainAbsolute", selected: mode === "absolute", disabled: base === null }]),
       h("span", { class: "note" }, t("values.referenceCost", { value: number(reference, 2) })),
       base !== null ? h("span", { class: "note" }, t("values.base", { value: number(base, 2) })) : h("span", { class: "note" }, t("values.noBase"))),
+    columnToggles(ctx),
     h("div", { class: "table-edit" }, h("table", { class: "levels" }, h("thead", {}, h("tr", {}, head)), h("tbody", {}, body))),
     h("div", { class: "actions" },
       h("button", { class: "primary", disabled: !draft, onclick: () => { applyLevels(ctx, entry, track); } }, t("values.apply")),

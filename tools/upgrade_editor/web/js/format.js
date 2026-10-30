@@ -1,7 +1,9 @@
 export function number(value, digits = 2) {
   if (value === undefined || value === null) return "–";
   if (typeof value !== "number") return String(value);
-  return Number.isInteger(value) ? String(value) : value.toFixed(digits).replace(/\.?0+$/, "");
+  if (Number.isInteger(value)) return String(value);
+  const fixed = value.toFixed(digits);
+  return fixed.includes(".") ? fixed.replace(/\.?0+$/, "") : fixed;
 }
 
 export function compact(value) {
@@ -24,6 +26,18 @@ export function fromCells(cells, cell) {
   return Math.round(cells * cell * 1000) / 1000;
 }
 
+export function percentDigits(value) {
+  const size = Math.abs(value);
+  if (size >= 100) return 0;
+  if (size >= 10) return 1;
+  return 2;
+}
+
 export function percent(value) {
-  return value === null || value === undefined ? "–" : `${number(value, 0)} %`;
+  return value === null || value === undefined ? "–" : `${number(value, percentDigits(value))} %`;
+}
+
+export function signedPercent(value) {
+  if (value === null || value === undefined) return "–";
+  return `${value > 0 ? "+" : ""}${percent(value)}`;
 }

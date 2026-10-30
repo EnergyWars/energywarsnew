@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 from upgrade_editor.changes import diff
@@ -25,3 +26,43 @@ class ChangesTest(unittest.TestCase):
         paths = {change["path"] for change in diff(load_game(), document)}
         self.assertIn("buildings.solar.tracks", paths)
         self.assertIn("buildings.bulwark.curves.hull.gain", paths)
+
+
+class ContentChangesTest(unittest.TestCase):
+    def paths(self, mutator):
+        return {change["path"]: change for change in diff(load_game(), edited(mutator))}
+
+    def test_armor_and_building_armor(self):
+        paths = self.paths(lambda d: (d["armor"].update(constant=50.0), building(d, "solar").update(armor=9.0)))
+        self.assertEqual(paths["armor.constant"]["before"], 100.0)
+        self.assertEqual(paths["buildings.solar.armor"]["after"], 9.0)
+
+    def test_enemy_fields_including_buffs(self):
+        paths = self.paths(lambda d: (d["enemies"]["wasp"].update(hp=1.0), d["enemies"]["wasp"]["buffs"]["night"].update(hp=0.9)))
+        self.assertEqual(paths["enemies.wasp.hp"]["after"], 1.0)
+        self.assertEqual(paths["enemies.wasp.buffs.night.hp"]["after"], 0.9)
+
+    def test_level_changes_are_keyed_by_id(self):
+        first = load_game()["levels"][0]["id"]
+        paths = self.paths(lambda d: d["levels"][0].update(money=7))
+        self.assertEqual(paths[f"levels.{first}.money"]["after"], 7)
+
+    def test_added_and_removed_levels(self):
+        def grow(d):
+            created = copy.deepcopy(d["levels"][0])
+            created["id"] = "fresh"
+            d["levels"].append(created)
+        added = self.paths(grow)
+        self.assertIsNone(added["levels.fresh.money"]["before"])
+        self.assertIn("levels.order", added)
+        removed = self.paths(lambda d: d["levels"].pop())
+        last = load_game()["levels"][-1]["id"]
+        self.assertIsNone(removed[f"levels.{last}.money"]["after"])
+
+    def test_level_order_and_routes(self):
+        paths = self.paths(lambda d: (d["levels"].reverse(), d.update(routes=[[0, 1]])))
+        self.assertIn("levels.order", paths)
+        self.assertIn("routes", paths)
+
+    def test_route_direction_is_not_a_change(self):
+        self.assertEqual(self.paths(lambda d: d.update(routes=[[b, a] for a, b in d["routes"]])), {})

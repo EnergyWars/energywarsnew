@@ -4,11 +4,11 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from .server import create_server, lan_addresses
+from .server import create_server, is_loopback_host, lan_addresses
 from .store import DocumentStore, MissingFile, ValidationFailed
 
 DEFAULT_PORT = 48731
-DEFAULT_HOST = "0.0.0.0"
+DEFAULT_HOST = "127.0.0.1"
 PACKAGE_DIR = Path(__file__).resolve().parent
 TOOL_DIR = PACKAGE_DIR.parent
 ROOT = TOOL_DIR.parent.parent
@@ -27,7 +27,7 @@ def serve(arguments):
     port = server.server_address[1]
     url = f"http://127.0.0.1:{port}/"
     print(url, flush=True)
-    if arguments.host not in ("127.0.0.1", "localhost"):
+    if not is_loopback_host(arguments.host):
         for address in lan_addresses():
             print(f"http://{address}:{port}/", flush=True)
     if not arguments.no_browser:

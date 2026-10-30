@@ -18,3 +18,11 @@ def edited(mutator):
 
 def building(document, kind):
     return next(entry for entry in document["buildings"] if entry["id"] == kind)
+
+
+def enemy(document, kind):
+    return document["enemies"][kind]
+
+
+def level(document, index=0):
+    return document["levels"][index]

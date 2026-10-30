@@ -35,6 +35,7 @@ func _replace(next: Node) -> void:
 
 
 func show_menu() -> void:
+	var request := (screen as BattleScreen).bestiary_request if is_instance_valid(screen) and screen is BattleScreen else ""
 	var layer := CanvasLayer.new()
 	menu = WorldMapScreen.new().setup(progress, settings, safe_top())
 	menu.campaign_chosen.connect(start_campaign)
@@ -44,6 +45,8 @@ func show_menu() -> void:
 	menu.progress_reset.connect(show_menu)
 	layer.add_child(menu)
 	_replace(layer)
+	if not request.is_empty():
+		menu.open_bestiary(request)
 
 
 func start_campaign(index: int) -> void:
@@ -91,5 +94,5 @@ func _notification(what: int) -> void:
 		else:
 			get_tree().quit()
 	elif what == NOTIFICATION_APPLICATION_PAUSED:
-		if screen is BattleScreen and not (screen as BattleScreen).paused:
-			(screen as BattleScreen).toggle_pause()
+		if screen is BattleScreen:
+			(screen as BattleScreen).suspend()

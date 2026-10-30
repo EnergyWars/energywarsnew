@@ -32,6 +32,9 @@ var _icon: BuildingIcon
 var _title: Label
 var _name: LineEdit
 var _info: Label
+var _desc_toggle: Button
+var _desc: Label
+var desc_open := false
 var _header: HBoxContainer
 var _scroll: ScrollContainer
 var _links: VBoxContainer
@@ -130,6 +133,13 @@ func _ready() -> void:
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_body)
 	column.add_child(_scroll)
+	_desc_toggle = UiKit.button("", "Button", toggle_description)
+	_body.add_child(_desc_toggle)
+	_desc = UiKit.label("", "Caption")
+	_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_desc.custom_minimum_size = Vector2(300, 0)
+	_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body.add_child(_desc)
 	_stats = _grid()
 	_body.add_child(_stats)
 	_status_grid = _grid()
@@ -156,6 +166,24 @@ func _ready() -> void:
 
 func toggle_minimized() -> void:
 	set_minimized(not minimized)
+
+
+func toggle_description() -> void:
+	desc_open = not desc_open
+	_refresh_description()
+
+
+func _refresh_description() -> void:
+	var text := Texts.building_desc(_kind())
+	_desc_toggle.visible = not text.is_empty()
+	_desc_toggle.text = "%s  %s" % [Icons.EXPAND_LESS if desc_open else Icons.EXPAND_MORE, Texts.t("PANEL_INFO")]
+	_desc.text = text
+	_desc.visible = desc_open and not text.is_empty()
+
+
+func _kind() -> String:
+	var building := battle.state.building(building_id) if battle != null else null
+	return building.kind if building != null else ""
 
 
 func set_minimized(value: bool) -> void:
@@ -383,6 +411,7 @@ func show_building(id: int) -> void:
 	_name.text = building.label
 	_name.visible = _name_shown and not minimized
 	_info.text = Texts.building_info(building.kind)
+	_refresh_description()
 	_rebuild(building)
 	refresh()
 

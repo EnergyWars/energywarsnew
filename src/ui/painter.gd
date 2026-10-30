@@ -366,88 +366,7 @@ static func _turret(ci: CanvasItem, center: Vector2, radius: float, aim: float) 
 
 
 static func enemy(ci: CanvasItem, kind: String, center: Vector2, radius: float, heading: Vector2, time: float, night: float) -> void:
-	var lift := 3.0 if GameConfig.enemy(kind).get("class", "") == GameConfig.CLASS_AIR else 1.0
-	shadow(ci, center, radius, lift)
-	ci.draw_set_transform(center, heading.angle(), Vector2.ONE)
-	match kind:
-		"crawler":
-			_bug(ci, radius, time, AppTheme.BUG_RED, AppTheme.BUG_DARK, 3)
-		"beetle":
-			_bug(ci, radius, time, AppTheme.BEETLE, AppTheme.BEETLE_SHELL, 3)
-			ci.draw_line(Vector2(-radius * 0.8, 0), Vector2(radius * 0.5, 0), Color(0, 0, 0, 0.5), 2.0)
-		"behemoth":
-			_bug(ci, radius, time, AppTheme.BEHEMOTH, Color("#8a3a2a"), 4)
-			for i in 5:
-				var spike := Vector2.from_angle(PI * 0.6 + PI * 0.8 * i / 4.0) * radius
-				ci.draw_colored_polygon(PackedVector2Array([spike * 0.8 + spike.orthogonal().normalized() * 5.0, spike * 1.35, spike * 0.8 - spike.orthogonal().normalized() * 5.0]), Color("#e8d8c0"))
-		"wasp":
-			_wasp(ci, radius, time)
-		"soldier":
-			_soldier(ci, radius, AppTheme.SOLDIER, AppTheme.SOLDIER_HELMET)
-		"saboteur":
-			_soldier(ci, radius, AppTheme.SABOTEUR, Color("#16161f"))
-			ci.draw_line(Vector2(radius * 0.2, -radius * 0.25), Vector2(radius * 0.5, -radius * 0.25), Color("#c070ff"), 3.0)
-		"tank":
-			_tank(ci, radius)
-		"spitter":
-			_bug(ci, radius, time, AppTheme.SPITTER, AppTheme.SPITTER.darkened(0.35), 3)
-			ci.draw_circle(Vector2(radius * 1.05, 0), radius * 0.3, Color("#d6ff7a"))
-		"drone":
-			_drone(ci, radius, time)
-		"stalker":
-			_bug(ci, radius, time, AppTheme.STALKER, AppTheme.STALKER_SHELL, 4)
-			for side in [-1.0, 1.0]:
-				ci.draw_line(Vector2(radius * 0.9, side * radius * 0.3), Vector2(radius * 1.5, side * radius * 0.55), Color("#e8d8f0"), 2.5)
-		"nightwing":
-			_nightwing(ci, radius, time)
-		"raider":
-			_soldier(ci, radius, AppTheme.RAIDER, AppTheme.RAIDER_HELMET)
-			ci.draw_line(Vector2(radius * 0.25, -radius * 0.3), Vector2(radius * 0.25, radius * 0.3), AppTheme.DANGER, 3.0)
-		"phantom":
-			_drone(ci, radius, time)
-			ci.draw_circle(Vector2.ZERO, radius * 0.35, Color(AppTheme.IMMUNE, 0.8))
-	var eyes := kind != "tank" and kind != "drone" and kind != "phantom"
-	if eyes:
-		var eye_color := Color(1.0, 0.85, 0.2).lerp(Color(1.0, 0.25, 0.2), night)
-		var eye_x := radius * (0.95 if kind in ["crawler", "beetle", "behemoth", "wasp", "spitter", "stalker", "nightwing"] else 0.35)
-		for side in [-1.0, 1.0]:
-			var eye := Vector2(eye_x, side * radius * 0.22)
-			if night > 0.2:
-				ci.draw_circle(eye, radius * 0.3, Color(eye_color, 0.25 * night))
-			ci.draw_circle(eye, maxf(radius * 0.1, 1.5), eye_color)
-	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
-
-
-static func _bug(ci: CanvasItem, radius: float, time: float, body: Color, shell: Color, legs: int) -> void:
-	var swing := sin(time * 18.0) * radius * 0.25
-	for i in legs:
-		var x := radius * (0.5 - float(i) / maxf(legs - 1, 1) * 1.0)
-		var phase := swing if i % 2 == 0 else -swing
-		ci.draw_line(Vector2(x, 0), Vector2(x + phase, radius * 1.15), body.darkened(0.4), 2.5)
-		ci.draw_line(Vector2(x, 0), Vector2(x - phase, -radius * 1.15), body.darkened(0.4), 2.5)
-	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.15, 0), Vector2(radius, radius * 0.8)), body)
-	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.2, 0), Vector2(radius * 0.75, radius * 0.6)), shell)
-	ci.draw_circle(Vector2(radius * 0.8, 0), radius * 0.45, body.darkened(0.35))
-
-
-static func _wasp(ci: CanvasItem, radius: float, time: float) -> void:
-	var flap := 0.5 + 0.5 * absf(sin(time * 40.0))
-	for side in [-1.0, 1.0]:
-		ci.draw_colored_polygon(ellipse(Vector2(0, side * radius * 0.9), Vector2(radius * 0.7, radius * 0.9 * flap)), Color(0.9, 0.95, 1.0, 0.45))
-	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.3, 0), Vector2(radius * 1.1, radius * 0.55)), AppTheme.WASP)
-	for i in 2:
-		var x := -radius * (0.1 + i * 0.5)
-		ci.draw_line(Vector2(x, -radius * 0.5), Vector2(x, radius * 0.5), AppTheme.WASP_DARK, 3.0)
-	ci.draw_circle(Vector2(radius * 0.75, 0), radius * 0.45, AppTheme.WASP_DARK)
-
-
-static func _nightwing(ci: CanvasItem, radius: float, time: float) -> void:
-	var flap := 0.6 + 0.4 * sin(time * 16.0)
-	for side in [-1.0, 1.0]:
-		var tip := Vector2(-radius * 0.2, side * radius * 1.9 * flap)
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(radius * 0.3, side * radius * 0.2), tip, Vector2(-radius * 0.9, side * radius * 0.9 * flap), Vector2(-radius * 0.5, side * radius * 0.2)]), AppTheme.NIGHTWING_WING)
-	ci.draw_colored_polygon(ellipse(Vector2(-radius * 0.1, 0), Vector2(radius * 0.8, radius * 0.45)), AppTheme.NIGHTWING)
-	ci.draw_circle(Vector2(radius * 0.7, 0), radius * 0.4, AppTheme.NIGHTWING.darkened(0.3))
+	EnemyPainter.paint(ci, kind, center, radius, heading, time, night)
 
 
 static func flames(ci: CanvasItem, center: Vector2, radius: float, time: float, strength: float = 1.0) -> void:
@@ -468,32 +387,6 @@ static func guard(ci: CanvasItem, center: Vector2, radius: float, time: float) -
 		ci.draw_arc(center, ring, from, from + TAU / 7.0, 6, Color(AppTheme.WARNING, 0.75), 2.5, true)
 	var tip := center + Vector2(0, -ring - 7.0)
 	ci.draw_colored_polygon(PackedVector2Array([tip + Vector2(-5, -4), tip + Vector2(5, -4), tip + Vector2(0, 3)]), AppTheme.WARNING)
-
-
-static func _soldier(ci: CanvasItem, radius: float, body: Color, helmet: Color) -> void:
-	ci.draw_colored_polygon(ellipse(Vector2.ZERO, Vector2(radius * 0.7, radius * 1.1)), body)
-	ci.draw_line(Vector2(radius * 0.2, radius * 0.45), Vector2(radius * 1.5, radius * 0.45), Color("#1b1b1b"), 3.5)
-	ci.draw_circle(Vector2.ZERO, radius * 0.6, helmet)
-	ci.draw_circle(Vector2(-radius * 0.1, -radius * 0.1), radius * 0.2, helmet.lightened(0.2))
-
-
-static func _tank(ci: CanvasItem, radius: float) -> void:
-	var hull := Vector2(radius * 1.25, radius * 0.95)
-	ci.draw_rect(Rect2(-hull.x, -hull.y - 4.0, hull.x * 2.0, 8.0), AppTheme.TANK_DARK)
-	ci.draw_rect(Rect2(-hull.x, hull.y - 4.0, hull.x * 2.0, 8.0), AppTheme.TANK_DARK)
-	ci.draw_rect(Rect2(-hull.x * 0.95, -hull.y * 0.8, hull.x * 1.9, hull.y * 1.6), AppTheme.TANK)
-	ci.draw_line(Vector2.ZERO, Vector2(radius * 1.7, 0), Color("#22261a"), 6.0)
-	ci.draw_circle(Vector2.ZERO, radius * 0.55, AppTheme.TANK.lightened(0.15))
-	ci.draw_circle(Vector2(-radius * 0.1, 0), radius * 0.2, Color("#ff4d6d"))
-
-
-static func _drone(ci: CanvasItem, radius: float, time: float) -> void:
-	for corner in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
-		var arm: Vector2 = corner * radius * 0.85
-		ci.draw_line(Vector2.ZERO, arm, AppTheme.DRONE.darkened(0.4), 3.0)
-		ci.draw_circle(arm, radius * 0.5, Color(0.85, 0.9, 1.0, 0.25 + 0.15 * absf(sin(time * 50.0 + corner.x))))
-	ci.draw_rect(Rect2(-radius * 0.55, -radius * 0.45, radius * 1.1, radius * 0.9), AppTheme.DRONE)
-	ci.draw_circle(Vector2(radius * 0.35, 0), radius * 0.2, Color("#ff4d6d"))
 
 
 static func scout(ci: CanvasItem, center: Vector2, heading: Vector2, time: float, drop: float, working: bool) -> void:

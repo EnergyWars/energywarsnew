@@ -37,10 +37,10 @@ test("every base value and input has a description in both languages", () => {
     }
   }
   const keys = [...paths].map((path) => `desc.stat.${path}`);
-  keys.push("desc.cost", "desc.upgradeBase", "desc.hp", "desc.max", "desc.step", "desc.gain", "desc.price", "desc.growth", "desc.gainGrowth", "desc.costFormula", "desc.effectFormula", "desc.cell.cost", "desc.cell.gain", "desc.tracksTable", "plan.history", "plan.historyPick", "plan.historyDelete", "plan.tool", "plan.tools", "plan.toolsHint", "plan.fill", "plan.fillHint", "error.PARAM", "plan.tableModeNote", "chart.hide", "chart.show", "action.expand", "action.collapse");
+  keys.push("desc.cost", "desc.upgradeBase", "desc.hp", "desc.max", "desc.step", "desc.gain", "desc.price", "desc.growth", "desc.gainGrowth", "desc.costFormula", "desc.effectFormula", "desc.cell.cost", "desc.cell.gain", "desc.tracksTable", "plan.history", "plan.historyPick", "plan.historyDelete", "plan.tool", "plan.tools", "plan.toolsHint", "plan.fill", "plan.fillHint", "error.PARAM", "plan.tableModeNote", "chart.hide", "chart.show", "chart.last", "stat.totalEffect", "action.expand", "action.collapse");
   for (const key of ["max", "step", "price", "growth", "energy"]) keys.push(`desc.track.${key}`);
-  for (const key of ["level", "cost", "costFactor", "spent", "spentFactor", "gain", "effect", "single", "total", "benefit"]) keys.push(`values.col.${key}`, `values.desc.${key}`);
-  keys.push("values.referenceCost", "values.col.gainAbsolute", "values.title", "values.hint", "values.gainMode", "values.gainFactor", "values.gainAbsolute", "values.base", "values.noBase", "values.apply", "values.discard", "values.add", "values.remove", "values.pending", "values.applied");
+  for (const key of ["level", "cost", "costFactor", "spent", "spentFactor", "gain", "effect", "totalEffect", "single", "total", "unitCost"]) keys.push(`values.col.${key}`, `values.desc.${key}`);
+  keys.push("values.referenceCost", "values.col.gainAbsolute", "values.title", "values.hint", "values.columns", "values.gainMode", "values.gainFactor", "values.gainAbsolute", "values.base", "values.noBase", "values.apply", "values.discard", "values.add", "values.remove", "values.pending", "values.applied");
   for (const key of keys) {
     assert.ok(dictionary.de[key], `de ${key}`);
     assert.ok(dictionary.en[key], `en ${key}`);

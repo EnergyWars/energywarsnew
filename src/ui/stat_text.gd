@@ -34,6 +34,8 @@ static func track_value(building: Building, track: String) -> String:
 			return str(int(round(Formulas.damage(building))))
 		GameConfig.TRACK_HULL:
 			return NumberFormat.grouped(int(round(building.max_hp())))
+		GameConfig.TRACK_ARMOR:
+			return armor_value(Formulas.armor(building))
 		GameConfig.TRACK_SPEED:
 			if building.definition().has("heal"):
 				return "%.2f/s" % (1.0 / maxf(Formulas.heal_cooldown(building), 0.001))
@@ -51,6 +53,10 @@ static func track_value(building: Building, track: String) -> String:
 		GameConfig.TRACK_TRANSFER:
 			return Texts.format("STAT_TRANSFER_VALUE", [loss_per_cell(building) * 100.0])
 	return ""
+
+
+static func armor_value(armor: float) -> String:
+	return "%d (−%d%%)" % [int(round(armor)), int(round(Formulas.armor_reduction(armor) * 100.0))]
 
 
 static func light_state(building: Building) -> String:
@@ -111,6 +117,9 @@ static func level_text(building: Building, track: String) -> String:
 static func stats(building: Building, state: BattleState) -> Array[Array]:
 	var rows: Array[Array] = []
 	rows.append(["STAT_HP", "%s / %s" % [NumberFormat.grouped(int(ceil(building.hp))), NumberFormat.grouped(int(building.max_hp()))]])
+	var armor := Formulas.armor(building)
+	if armor > 0.0:
+		rows.append(["STAT_ARMOR", armor_value(armor)])
 	if not building.is_player():
 		if building.definition().has("attack"):
 			rows.append(["STAT_DAMAGE", str(int(Formulas.damage(building)))])

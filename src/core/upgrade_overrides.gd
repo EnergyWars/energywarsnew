@@ -2,6 +2,9 @@ class_name UpgradeOverrides
 extends RefCounted
 
 const PATH := "res://data/upgrade_overrides.json"
+const MAX_BYTES := 4194304
+const MAX_LEVELS := 200
+const MAX_COST := 1000000000000
 
 static var _plans := {}
 static var _loaded := false
@@ -26,29 +29,37 @@ static func _ensure_loaded() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	if not FileAccess.file_exists(PATH):
-		return
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(PATH))
+	var parsed: Variant = SafeFile.read_json(PATH, MAX_BYTES)
 	if parsed is Dictionary:
-		_plans = _build(parsed.get("plans", GameConfig.EMPTY))
+		_plans = _build(parsed.get("plans"))
 
 
-static func _build(plans: Dictionary) -> Dictionary:
+static func _build(plans: Variant) -> Dictionary:
 	var result := {}
-	for kind: String in plans:
+	if not plans is Dictionary:
+		return result
+	for kind: Variant in plans:
+		if not plans[kind] is Dictionary:
+			continue
 		var tracks := {}
-		for track: String in plans[kind]:
+		for track: Variant in plans[kind]:
 			var levels := _levels(plans[kind][track])
 			if not levels.is_empty():
-				tracks[track] = {"levels": levels, "max": levels.size()}
+				tracks[str(track)] = {"levels": levels, "max": levels.size()}
 		if not tracks.is_empty():
-			result[kind] = tracks
+			result[str(kind)] = tracks
 	return result
 
 
-static func _levels(plan: Dictionary) -> Array:
+static func _levels(plan: Variant) -> Array:
 	var result := []
-	for entry: Variant in plan.get("levels", GameConfig.EMPTY_LIST):
-		if entry is Dictionary and entry.has("cost") and entry.has("effect"):
-			result.append({"cost": maxi(int(entry.cost), 1), "effect": float(entry.effect)})
+	if not plan is Dictionary or not plan.get("levels") is Array:
+		return result
+	for entry: Variant in plan.levels.slice(0, MAX_LEVELS):
+		if entry is Dictionary and _is_number(entry.get("cost")) and _is_number(entry.get("effect")):
+			result.append({"cost": int(clampf(float(entry.cost), 1.0, MAX_COST)), "effect": float(entry.effect)})
 	return result
+
+
+static func _is_number(value: Variant) -> bool:
+	return (value is float or value is int) and is_finite(float(value))

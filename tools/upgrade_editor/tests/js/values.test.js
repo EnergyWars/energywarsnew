@@ -5,9 +5,9 @@ import { game, fresh, find } from "./data.js";
 import { deriveRows, deriveRowsFromBase, baseRow, editLevel, writeLevels, EDITABLE_FIELDS, gainBase, referenceCost, snapshotLevels, planOf } from "../../web/js/formulas.js";
 import { pendingLevels, applyLevels, discardLevels, draftKey, gainView, gainModeKey, gainModeValue } from "../../web/js/views/valueTable.js";
 import { detailPairs, toggleSeries, chartSeries } from "../../web/js/views/buildingView.js";
-import { METRICS, METRIC_KEYS } from "../../web/js/views/metrics.js";
-import { COLUMNS, visibleColumns } from "../../web/js/views/valueTable.js";
-import { toggleKey, isCollapsed, nearestLevel, highlightState } from "../../web/js/views/components.js";
+import { METRICS, METRIC_KEYS, CHART_METRICS } from "../../web/js/views/metrics.js";
+import { COLUMNS, OPTIONAL_COLUMNS, PINNED_COLUMNS, visibleColumns } from "../../web/js/views/valueTable.js";
+import { toggleKey, flipSeries, isCollapsed, nearestLevel, highlightState } from "../../web/js/views/components.js";
 import { create } from "../../web/js/store.js";
 
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-6, `${message ?? ""} ${actual} vs ${expected}`);
@@ -24,7 +24,9 @@ test("derived rows contain every value of a level", () => {
   near(second.effect, 1.8);
   near(second.single, 25);
   near(second.total, (1.8 / 3.4) * 100);
-  near(second.benefit, ((0.4 / 1.4) * 100) / 16 * 1000);
+  near(second.unitCost, 16 / ((0.4 / 1.4) * 100));
+  near(first.totalEffect, 40);
+  near(second.totalEffect, 80);
 });
 
 test("rows fall back to the upgrade base and have no factors without any reference", () => {
@@ -47,7 +49,7 @@ test("editing cost, total cost and effect recalculates dependent values", () => 
   assert.equal(levels()[0].gain, 0.4);
 });
 
-test("editing a factor changes the cost and keeps the benefit", () => {
+test("editing a factor changes the cost and keeps the gain", () => {
   let next = editLevel(entry(), levels(), 0, "single", 100);
   assert.equal(next[0].cost, 4);
   near(deriveRows(entry(), next)[0].single, 100);
@@ -92,6 +94,8 @@ test("absolute gains use the base value of the track", () => {
   assert.equal(gainBase(game, find(game, "battery"), "capacity"), find(game, "battery").stats.capacity);
   assert.equal(gainBase(game, find(game, "zapper"), "crit"), null);
   assert.equal(gainBase(undefined, { hp: 10, stats: {} }, "hull"), 10);
+  assert.equal(gainBase(game, find(game, "bastion"), "armor"), find(game, "bastion").armor);
+  assert.equal(gainBase(undefined, { hp: 10, armor: 0, stats: {} }, "armor"), null);
 });
 
 test("gain view converts between factor and absolute values", () => {
@@ -158,7 +162,7 @@ test("tooltip lists every value of a level and series can be toggled", () => {
   toggleSeries(ctx, "cost");
   assert.ok(!ctx.view.hidden.has("cost"));
   const series = chartSeries(rows);
-  assert.deepEqual(series.map((item) => item.key), METRIC_KEYS);
+  assert.deepEqual(series.map((item) => item.key), CHART_METRICS.map((metric) => metric.key));
   assert.ok(series.every((item) => item.values.length === 2));
 });
 
@@ -203,12 +207,18 @@ test("total cost includes the original purchase price", () => {
 const SAMPLE = [{ cost: 20, gain: 0.5 }, { cost: 35, gain: 0.4 }, { cost: 60, gain: 0.3 }, { cost: 100, gain: 0.2 }];
 const OWNER = { id: "x", cost: 50, upgrade_base: 8 };
 
+test("the chart skips values whose line equals another one", () => {
+  const keys = CHART_METRICS.map((metric) => metric.key);
+  assert.deepEqual(METRIC_KEYS.filter((key) => !keys.includes(key)), ["costFactor", "spentFactor", "effect"]);
+  assert.ok(keys.includes("totalEffect") && keys.includes("unitCost"));
+});
+
 test("table columns, chart series and tooltip show exactly the same values", () => {
   const tableKeys = COLUMNS.map((column) => column.key).filter((key) => key !== "level");
   assert.deepEqual(tableKeys, METRIC_KEYS);
   const rows = deriveRows(OWNER, SAMPLE);
   const series = chartSeries(rows);
-  assert.deepEqual(series.map((item) => item.key), METRIC_KEYS);
+  assert.deepEqual(series.map((item) => item.key), CHART_METRICS.map((metric) => metric.key));
   assert.equal(detailPairs(rows[0]).length, METRIC_KEYS.length);
   for (const key of METRIC_KEYS) assert.ok(key in rows[0], key);
   for (const item of series) {
@@ -222,8 +232,8 @@ test("every table value can be edited", () => {
   assert.deepEqual([...EDITABLE_FIELDS].sort(), [...METRIC_KEYS].sort());
 });
 
-const COST_DRIVEN = ["cost", "costFactor", "spent", "spentFactor", "single", "total", "benefit"];
-const GAIN_DRIVEN = ["gain", "effect"];
+const COST_DRIVEN = ["cost", "costFactor", "spent", "spentFactor", "single", "total", "unitCost"];
+const GAIN_DRIVEN = ["gain", "effect", "totalEffect"];
 
 function expectRowsEqual(actual, expected, message) {
   assert.equal(actual.length, expected.length, message);
@@ -320,28 +330,45 @@ test("factors without a reference cost cannot be edited and leave the levels unc
   assert.equal(deriveRows(owner, SAMPLE)[0].spentFactor, null);
 });
 
-test("the benefit value needs a positive gain and value", () => {
-  assert.deepEqual(editLevel(OWNER, SAMPLE, 0, "benefit", 0), SAMPLE);
-  assert.deepEqual(editLevel(OWNER, [{ cost: 5, gain: 0 }], 0, "benefit", 10), [{ cost: 5, gain: 0 }]);
+test("the price per percent needs a positive gain and value", () => {
+  assert.deepEqual(editLevel(OWNER, SAMPLE, 0, "unitCost", 0), SAMPLE);
+  assert.deepEqual(editLevel(OWNER, [{ cost: 5, gain: 0 }], 0, "unitCost", 10), [{ cost: 5, gain: 0 }]);
+  assert.equal(deriveRows(OWNER, [{ cost: 5, gain: 0 }])[0].unitCost, null);
+});
+
+test("the total effect is the improvement over the start in percent", () => {
+  const rows = deriveRowsFromBase(OWNER, SAMPLE);
+  assert.deepEqual(rows.map((row) => Math.round(row.totalEffect)), [0, 50, 90, 120, 140]);
+  const edited = editLevel(OWNER, SAMPLE, 1, "totalEffect", 100);
+  near(edited[1].gain, 0.5);
+  assert.deepEqual(edited.map((level) => level.cost), SAMPLE.map((level) => level.cost));
 });
 
 test("hidden series disappear from the table columns and the tooltip", () => {
-  const hidden = new Set(["costFactor", "benefit"]);
+  const hidden = new Set(["costFactor", "unitCost"]);
   const columns = visibleColumns(hidden).map((column) => column.key);
   assert.equal(columns[0], "level");
-  assert.ok(!columns.includes("costFactor") && !columns.includes("benefit"));
+  assert.ok(!columns.includes("costFactor") && !columns.includes("unitCost"));
   assert.deepEqual(columns.slice(1), METRIC_KEYS.filter((key) => !hidden.has(key)));
   const rows = deriveRows(OWNER, SAMPLE);
   assert.equal(detailPairs(rows[0], hidden).length, METRIC_KEYS.length - 2);
   assert.equal(detailPairs(rows[0]).length, METRIC_KEYS.length);
   assert.deepEqual(visibleColumns(new Set()).map((column) => column.key), COLUMNS.map((column) => column.key));
-  assert.deepEqual(visibleColumns(new Set(METRIC_KEYS)).map((column) => column.key), ["level"]);
+  assert.deepEqual(visibleColumns(new Set(METRIC_KEYS)).map((column) => column.key), ["level", "cost", "gain"]);
+});
+
+test("cost and gain stay in the table whatever series are hidden", () => {
+  for (const hidden of [new Set(["cost"]), new Set(["gain"]), new Set(["cost", "gain"]), new Set(METRIC_KEYS)]) {
+    const columns = visibleColumns(hidden).map((column) => column.key);
+    assert.ok(columns.includes("level") && columns.includes("cost") && columns.includes("gain"));
+  }
+  assert.deepEqual(PINNED_COLUMNS, ["level", "cost", "gain"]);
 });
 
 test("table, tooltip and chart legend follow the same hidden set", () => {
   const hidden = new Set(["spent"]);
   const table = visibleColumns(hidden).map((column) => column.key).filter((key) => key !== "level");
-  const tooltip = METRIC_KEYS.filter((key) => detailPairs(deriveRows(OWNER, SAMPLE)[0], hidden).some(([label]) => label === chartSeries(deriveRows(OWNER, SAMPLE)).find((item) => item.key === key).label));
+  const tooltip = METRIC_KEYS.filter((key) => detailPairs(deriveRows(OWNER, SAMPLE)[0], hidden).some(([label]) => label === `values.col.${key}`));
   assert.deepEqual(table, tooltip);
 });
 
@@ -371,7 +398,11 @@ test("level zero is the purchased building with only meaningful values", () => {
   assert.equal(base.spentFactor, 1);
   assert.equal(base.effect, 1);
   assert.equal(base.total, 100);
-  for (const key of ["cost", "costFactor", "gain", "single", "benefit"]) assert.equal(base[key], null, key);
+  for (const key of ["cost", "costFactor", "gain", "unitCost"]) assert.equal(base[key], null, key);
+  assert.equal(base.single, 100);
+  assert.equal(baseRow({ id: "x", cost: 0, upgrade_base: 8 }).single, 100);
+  assert.equal(baseRow({ id: "x", cost: 0, upgrade_base: 0 }).single, null);
+  assert.equal(base.totalEffect, 0);
   assert.equal(baseRow({ id: "x", cost: 0, upgrade_base: 8 }).total, 100);
   assert.equal(baseRow({ id: "x", cost: 0, upgrade_base: 0 }).spentFactor, null);
   assert.equal(baseRow({ id: "x", cost: 0, upgrade_base: 0 }).total, null);
@@ -395,4 +426,41 @@ test("chart series and tooltip include level zero and skip values that do not ex
   const labels = Object.fromEntries(pairs);
   assert.equal(labels[chartSeries(rows).find((item) => item.key === "cost").label], "–");
   assert.equal(pairs.length, METRIC_KEYS.length);
+});
+
+test("shift click on a legend entry shows only that line and a second one shows all again", () => {
+  const keys = ["cost", "gain", "single", "total"];
+  const hidden = new Set();
+  assert.equal(flipSeries(hidden, "gain", keys), false);
+  assert.deepEqual([...hidden].sort(), ["cost", "single", "total"]);
+  assert.equal(flipSeries(hidden, "single", keys), false);
+  assert.deepEqual([...hidden].sort(), ["cost", "gain", "total"]);
+  assert.equal(flipSeries(hidden, "single", keys), false);
+  assert.equal(hidden.size, 0);
+  hidden.add("gain");
+  flipSeries(hidden, "gain", keys);
+  assert.deepEqual([...hidden].sort(), ["cost", "single", "total"]);
+});
+
+test("a plain click only toggles the clicked line", () => {
+  const hidden = new Set(["cost"]);
+  assert.equal(flipSeries(hidden, "gain"), true);
+  assert.deepEqual([...hidden].sort(), ["cost", "gain"]);
+  assert.equal(flipSeries(hidden, "cost"), false);
+  assert.deepEqual([...hidden], ["gain"]);
+});
+
+test("toggleSeries passes the solo keys on and keeps the other columns", () => {
+  const ctx = context(fresh());
+  toggleSeries(ctx, "gain", ["cost", "gain", "single"]);
+  assert.deepEqual([...ctx.view.hidden].sort(), ["cost", "single"]);
+  toggleSeries(ctx, "gain", ["cost", "gain", "single"]);
+  assert.equal(ctx.view.hidden.size, 0);
+});
+
+test("only cost factor, total cost factor and effect can be hidden from the table", () => {
+  assert.deepEqual(OPTIONAL_COLUMNS, ["costFactor", "spentFactor", "effect"]);
+  const columns = visibleColumns(new Set(OPTIONAL_COLUMNS)).map((column) => column.key);
+  for (const key of OPTIONAL_COLUMNS) assert.ok(!columns.includes(key));
+  assert.ok(["level", "cost", "gain"].every((key) => columns.includes(key)));
 });

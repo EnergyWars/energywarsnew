@@ -16,6 +16,10 @@ var _zoom := 0.0
 var _drop := false
 var _pick := ""
 var _conquered := 0
+var _bestiary := -1
+var _info := ""
+var _discover := ""
+var _day := 0
 var _main: Node
 
 
@@ -51,6 +55,14 @@ func _initialize() -> void:
 			_reveal = true
 		elif arg.begins_with("--zoom="):
 			_zoom = arg.trim_prefix("--zoom=").to_float()
+		elif arg.begins_with("--bestiary="):
+			_bestiary = arg.trim_prefix("--bestiary=").to_int()
+		elif arg.begins_with("--info="):
+			_info = arg.trim_prefix("--info=")
+		elif arg.begins_with("--discover="):
+			_discover = arg.trim_prefix("--discover=")
+		elif arg.begins_with("--day="):
+			_day = arg.trim_prefix("--day=").to_int()
 	_main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(_main)
 
@@ -69,7 +81,11 @@ func _process(_delta: float) -> bool:
 		else:
 			for i in _conquered:
 				_main.progress.mark_conquered(i)
+			for kind: String in GameConfig.enemy_kinds().slice(0, maxi(_bestiary, 0)):
+				_main.progress.mark_seen(kind)
 			_main.show_menu()
+			if _bestiary >= 0:
+				_main.menu.open_bestiary()
 	if _frames == 8 and _level >= 0:
 		_prepare(_main.screen as BattleScreen)
 	if _frames == _capture_frame():
@@ -84,6 +100,8 @@ func _prepare(screen: BattleScreen) -> void:
 	var battle := screen.battle
 	var state := battle.state
 	state.scout.drop_left = GameConfig.DROP_TIME * 0.6 if _drop else 0.0
+	if _day > 0:
+		state.round_number = _day
 	if _reveal:
 		state.fog.cells.fill(FogOfWar.VISIBLE)
 		state.fog.version += 1
@@ -155,6 +173,11 @@ func _prepare(screen: BattleScreen) -> void:
 			screen.start_link_pick(screen.view.selected_id)
 		elif _pick == "focus":
 			screen.toggle_focus(screen.view.selected_id)
+	if not _info.is_empty():
+		screen.build_bar.expand()
+		screen.build_bar.show_info(_info)
+	if not _discover.is_empty():
+		screen.hud.announce_discovery(_discover)
 	if _result == "win":
 		for building in state.enemy_buildings():
 			battle.combat.destroy(building)

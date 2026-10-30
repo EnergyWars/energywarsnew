@@ -8,6 +8,7 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 - Jeder Upgrade-Pfad wird für sich betrachtet, alle anderen Pfade stehen auf Stufe 0.
 - DPS sind Durchschnittswerte inklusive 12 % Grund-Kritchance (doppelter Schaden). Der Laser kann nicht kritisch treffen.
 - Reichweiten in Feldern (1 Feld = 56 px), Energie in E, Energieraten in E/s.
+- Leben (HP) und Panzerung sind getrennt: Leben ist die Trefferpunktzahl, Panzerung senkt jeden Treffer um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Den Pfad Panzerung haben alle Türme (Blitzturm, Laserturm, Tesla-Spule, Plasmawerfer, Bollwerk-Turm, Heilturm, Mobiler Turm).
 
 ## So liest du die Tabellen
 
@@ -35,14 +36,15 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 | Kapazität | Energiespeicher | +20 % des Grundwerts | 25 | 0,18 | ×1,18 |
 | Schaden | Schaden (Schild: Schildstärke, Heilturm: Heilkraft) | +10 % des Grundwerts | 40 | 0,22 | ×1,18 |
 | Feuerrate | Feuerrate bzw. Heiltempo (Abklingzeit ÷ Multiplikator) | +6 % Tempo | 25 | 0,25 | ×1,18 |
-| Panzerung | maximale HP | +15 % des Grundwerts | 30 | 0,18 | ×1,18 |
+| Leben | maximale HP (Lebenspunkte) | +15 % des Grundwerts | 30 | 0,18 | ×1,18 |
+| Panzerung | Panzerung (Schadensreduktion), nur Türme | +15 % des Grundwerts | 20 | 0,15 | ×1,18 |
 | Effizienz | Energie je Schuss/Heilung/Licht/Fahrt ÷ Multiplikator | +5 % Effizienz | 20 | 0,20 | ×1,18 |
 | Kritische Treffer | Krit-Chance (Grund 12 %, Schaden ×2) | +1 Prozentpunkt | 20 | 0,25 | ×1,18 |
 | Kettenziele | Kettenziele der Tesla-Spule | +1 Ziel | 5 | 0,70 | ×1,50 |
 | Explosionsradius | Explosionsradius des Plasmawerfers | +5 % des Grundwerts | 15 | 0,25 | ×1,18 |
 | Überladung | Schaden, aber auch Energie je Schuss | +20 % Schaden, ×1,25 Energie | 12 | 0,15 | ×1,18 |
 | Strahlübertragung | Strahlverlust | −10 % des Verlusts | 10 | 0,20 | ×1,18 |
-| Panzerung (Bollwerk) | maximale HP, eigene Kurve | ×3 bis ×37,5 | 8 | 0,125 | ×1,75 |
+| Leben (Bollwerk) | maximale HP, eigene Kurve | ×3 bis ×37,5 | 8 | 0,125 | ×1,75 |
 
 ## Gebäude im Überblick
 
@@ -55,16 +57,16 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 | [Verteiler](#verteiler) | Energie | von Anfang an | 30 | 30 | 6 | 110 | 9.449 |
 | [Energiespeicher](#energiespeicher) | Energie | von Anfang an | 80 | 80 | 6 | 110 | 25.199 |
 | [Energieexporteur](#energieexporteur) | Energie | von Anfang an | 120 | 120 | 4 | 90 | 34.084 |
-| [Blitzturm](#blitzturm) | Türme | von Anfang an | 70 | 70 | 9 | 197 | 90.992 |
-| [Laserturm](#laserturm) | Türme | Forschung „Laserturm“ (2 SP) | 120 | 120 | 6 | 140 | 140.657 |
-| [Tesla-Spule](#tesla-spule) | Türme | Forschung „Tesla-Spule“ (3 SP) | 160 | 160 | 10 | 202 | 209.453 |
-| [Plasmawerfer](#plasmawerfer) | Türme | Forschung „Plasmawerfer“ (3 SP) | 200 | 200 | 10 | 212 | 263.008 |
+| [Blitzturm](#blitzturm) | Türme | von Anfang an | 70 | 70 | 10 | 217 | 92.532 |
+| [Laserturm](#laserturm) | Türme | Forschung „Laserturm“ (2 SP) | 120 | 120 | 7 | 160 | 143.297 |
+| [Tesla-Spule](#tesla-spule) | Türme | Forschung „Tesla-Spule“ (3 SP) | 160 | 160 | 11 | 222 | 212.970 |
+| [Plasmawerfer](#plasmawerfer) | Türme | Forschung „Plasmawerfer“ (3 SP) | 200 | 200 | 11 | 232 | 267.406 |
 | [Bollwerk](#bollwerk) | Verteidigung | von Anfang an | 4 (+1 je 6 gebaute) | 40 | 1 | 8 | 580 |
-| [Bollwerk-Turm](#bollwerk-turm) | Verteidigung | Forschung „Bollwerk-Turm“ (2 SP) | 130 | 130 | 8 | 185 | 168.289 |
+| [Bollwerk-Turm](#bollwerk-turm) | Verteidigung | Forschung „Bollwerk-Turm“ (2 SP) | 130 | 130 | 9 | 205 | 171.149 |
 | [Schildgenerator](#schildgenerator) | Verteidigung | Forschung „Schildgenerator“ (3 SP) | 140 | 140 | 5 | 120 | 160.014 |
-| [Heilturm](#heilturm) | Verteidigung | Forschung „Heilturm“ (2 SP) | 110 | 110 | 7 | 165 | 138.369 |
+| [Heilturm](#heilturm) | Verteidigung | Forschung „Heilturm“ (2 SP) | 110 | 110 | 8 | 185 | 140.789 |
 | [Lampe](#lampe) | Extras | von Anfang an | 25 | 25 | 4 | 85 | 5.953 |
-| [Mobiler Turm](#mobiler-turm) | Extras | Forschung „Mobiler Turm“ (2 SP) | 150 | 150 | 9 | 197 | 194.975 |
+| [Mobiler Turm](#mobiler-turm) | Extras | Forschung „Mobiler Turm“ (2 SP) | 150 | 150 | 10 | 217 | 198.275 |
 
 ## Basis
 
@@ -72,7 +74,7 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 
 - **Freischaltung:** immer vorhanden (wird beim Landen gesetzt)
 - **Baukosten:** – · **Upgrade-Basis:** 120
-- **Grundwerte:** 1.500 HP · Kapazität 300 · Leistung 3 E/s · 3 Strahlen à 5,00 Felder · Transferrate 40 E/s · 12 Schaden alle 0,70 s, 3 Energie/Schuss, Reichweite 3,93 Felder · DPS 19,2 (Ø inkl. 12 % Krit)
+- **Grundwerte:** 1.500 HP · Panzerung 20 · Kapazität 300 · Leistung 3 E/s · 3 Strahlen à 5,00 Felder · Transferrate 40 E/s · 12 Schaden alle 0,70 s, 3 Energie/Schuss, Reichweite 3,93 Felder · DPS 19,2 (Ø inkl. 12 % Krit)
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -84,7 +86,7 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 | Feuerrate | 25 | 30 | 1.593 | 10.277 | +150 % | 5,00 → 648 |
 | Leistung | 30 | 30 | 3.645 | 23.727 | +300 % | 3,00 → 1.422 |
 | Kapazität | 25 | 22 | 1.147 | 7.398 | +500 % | 1,10 → 333 |
-| Panzerung | 30 | 22 | 2.624 | 17.082 | +450 % | 1,47 → 936 |
+| Leben | 30 | 22 | 2.624 | 17.082 | +450 % | 1,47 → 936 |
 
 #### Kern – Transferrate
 
@@ -317,7 +319,7 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 | 24 | 972 | 6.251 | 1.680,0 → 1.740,0 Energie | +3,57 % | 272 | 16,2 | +480,0 % |
 | 25 | 1.147 | 7.398 | 1.740,0 → 1.800,0 Energie | +3,45 % | 333 | 19,1 | +500,0 % |
 
-#### Kern – Panzerung
+#### Kern – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -360,7 +362,7 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 
 - **Freischaltung:** von Anfang an
 - **Baukosten:** 40 · **Upgrade-Basis:** 40
-- **Grundwerte:** 70 HP · Kapazität 30 · Leistung 8 E/s · 1 Strahl à 4,29 Felder
+- **Grundwerte:** 70 HP · Panzerung 0 · Kapazität 30 · Leistung 8 E/s · 1 Strahl à 4,29 Felder
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -369,7 +371,7 @@ Alle Spielergebäude mit allen Upgrade-Pfaden, Kosten je Stufe, Gesamtkosten der
 | Strahlen | 5 | 32 | 210 | 506 | ±0 % | – |
 | Strahlübertragung | 10 | 8 | 35 | 187 | +11 % | 7,20 → 34,6 |
 | Kapazität | 25 | 7 | 382 | 2.465 | +500 % | 0,35 → 111 |
-| Panzerung | 30 | 7 | 875 | 5.692 | +450 % | 0,47 → 312 |
+| Leben | 30 | 7 | 875 | 5.692 | +450 % | 0,47 → 312 |
 
 #### Solarpanel – Leistung
 
@@ -495,7 +497,7 @@ Neubau zum Vergleich: 1,33 Münzen je Energie.
 | 24 | 324 | 2.083 | 168,0 → 174,0 Energie | +3,57 % | 90,7 | 54,0 | +480,0 % |
 | 25 | 382 | 2.465 | 174,0 → 180,0 Energie | +3,45 % | 111 | 63,7 | +500,0 % |
 
-#### Solarpanel – Panzerung
+#### Solarpanel – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -538,7 +540,7 @@ Neubau zum Vergleich: 0,571 Münzen je HP.
 
 - **Freischaltung:** Forschung „Wasserrad“ (1 SP)
 - **Baukosten:** 50 · **Upgrade-Basis:** 50
-- **Grundwerte:** 90 HP · Kapazität 30 · Leistung 3 E/s · 1 Strahl à 4,29 Felder
+- **Grundwerte:** 90 HP · Panzerung 2 · Kapazität 30 · Leistung 3 E/s · 1 Strahl à 4,29 Felder
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -547,7 +549,7 @@ Neubau zum Vergleich: 0,571 Münzen je HP.
 | Strahlen | 5 | 40 | 262 | 632 | ±0 % | – |
 | Strahlübertragung | 10 | 10 | 44 | 235 | +11 % | 9,00 → 43,6 |
 | Kapazität | 25 | 9 | 478 | 3.085 | +500 % | 0,45 → 139 |
-| Panzerung | 30 | 9 | 1.094 | 7.121 | +450 % | 0,60 → 390 |
+| Leben | 30 | 9 | 1.094 | 7.121 | +450 % | 0,60 → 390 |
 
 #### Wasserrad – Leistung
 
@@ -673,7 +675,7 @@ Neubau zum Vergleich: 1,67 Münzen je Energie.
 | 24 | 405 | 2.607 | 168,0 → 174,0 Energie | +3,57 % | 113 | 67,5 | +480,0 % |
 | 25 | 478 | 3.085 | 174,0 → 180,0 Energie | +3,45 % | 139 | 79,7 | +500,0 % |
 
-#### Wasserrad – Panzerung
+#### Wasserrad – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -716,7 +718,7 @@ Neubau zum Vergleich: 0,556 Münzen je HP.
 
 - **Freischaltung:** Forschung „Feuerstelle“ (1 SP)
 - **Baukosten:** 15 · **Upgrade-Basis:** 15
-- **Grundwerte:** 60 HP · Kapazität 40 · Leistung 30 E/s · 1 Strahl à 4,29 Felder
+- **Grundwerte:** 60 HP · Panzerung 0 · Kapazität 40 · Leistung 30 E/s · 1 Strahl à 4,29 Felder
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -725,7 +727,7 @@ Neubau zum Vergleich: 0,556 Münzen je HP.
 | Strahlen | 5 | 12 | 79 | 190 | ±0 % | – |
 | Strahlübertragung | 10 | 3 | 13 | 71 | +11 % | 2,70 → 12,9 |
 | Kapazität | 25 | 3 | 143 | 924 | +500 % | 0,15 → 41,5 |
-| Panzerung | 30 | 3 | 328 | 2.135 | +450 % | 0,20 → 117 |
+| Leben | 30 | 3 | 328 | 2.135 | +450 % | 0,20 → 117 |
 
 #### Feuerstelle – Leistung
 
@@ -851,7 +853,7 @@ Neubau zum Vergleich: 0,38 Münzen je Energie.
 | 24 | 122 | 781 | 224,0 → 232,0 Energie | +3,57 % | 34,2 | 15,2 | +480,0 % |
 | 25 | 143 | 924 | 232,0 → 240,0 Energie | +3,45 % | 41,5 | 17,9 | +500,0 % |
 
-#### Feuerstelle – Panzerung
+#### Feuerstelle – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -894,7 +896,7 @@ Neubau zum Vergleich: 0,250 Münzen je HP.
 
 - **Freischaltung:** von Anfang an
 - **Baukosten:** 30 · **Upgrade-Basis:** 30
-- **Grundwerte:** 90 HP · Kapazität 20 · 3 Strahlen à 5,89 Felder · Transferrate 30 E/s
+- **Grundwerte:** 90 HP · Panzerung 4 · Kapazität 20 · 3 Strahlen à 5,89 Felder · Transferrate 30 E/s
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -903,7 +905,7 @@ Neubau zum Vergleich: 0,250 Münzen je HP.
 | Strahlen | 5 | 24 | 157 | 378 | +167 % | 0,72 → 11,0 |
 | Strahlübertragung | 10 | 6 | 27 | 142 | +11 % | 5,40 → 26,7 |
 | Kapazität | 25 | 5 | 287 | 1.848 | +500 % | 0,25 → 83,2 |
-| Panzerung | 30 | 5 | 656 | 4.268 | +450 % | 0,33 → 234 |
+| Leben | 30 | 5 | 656 | 4.268 | +450 % | 0,33 → 234 |
 
 #### Verteiler – Transferrate
 
@@ -1024,7 +1026,7 @@ Neubau zum Vergleich: 1,50 Münzen je Energie.
 | 24 | 243 | 1.561 | 112,0 → 116,0 Energie | +3,57 % | 68,0 | 60,8 | +480,0 % |
 | 25 | 287 | 1.848 | 116,0 → 120,0 Energie | +3,45 % | 83,2 | 71,8 | +500,0 % |
 
-#### Verteiler – Panzerung
+#### Verteiler – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -1067,7 +1069,7 @@ Neubau zum Vergleich: 0,333 Münzen je HP.
 
 - **Freischaltung:** von Anfang an
 - **Baukosten:** 80 · **Upgrade-Basis:** 80
-- **Grundwerte:** 140 HP · Kapazität 400 · 2 Strahlen à 3,93 Felder · Transferrate 30 E/s
+- **Grundwerte:** 140 HP · Panzerung 8 · Kapazität 400 · 2 Strahlen à 3,93 Felder · Transferrate 30 E/s
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -1076,7 +1078,7 @@ Neubau zum Vergleich: 0,333 Münzen je HP.
 | Reichweite | 15 | 24 | 244 | 1.462 | +60 % | 6,00 → 95,2 |
 | Strahlen | 5 | 64 | 419 | 1.011 | +250 % | 1,28 → 25,1 |
 | Strahlübertragung | 10 | 16 | 71 | 376 | +11 % | 14,4 → 70,3 |
-| Panzerung | 30 | 14 | 1.750 | 11.388 | +450 % | 0,93 → 624 |
+| Leben | 30 | 14 | 1.750 | 11.388 | +450 % | 0,93 → 624 |
 
 #### Energiespeicher – Kapazität
 
@@ -1197,7 +1199,7 @@ Neubau zum Vergleich: 2,67 Münzen je E/s.
 | 9 | 60 | 305 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 58,8 | +10,0 % |
 | 10 | 71 | 376 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 70,3 | +11,1 % |
 
-#### Energiespeicher – Panzerung
+#### Energiespeicher – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -1240,14 +1242,14 @@ Neubau zum Vergleich: 0,571 Münzen je HP.
 
 - **Freischaltung:** von Anfang an
 - **Baukosten:** 120 · **Upgrade-Basis:** 120
-- **Grundwerte:** 80 HP · Kapazität 80 · Export 8 E/s = 1,00 Münzen/s
+- **Grundwerte:** 80 HP · Panzerung 4 · Kapazität 80 · Export 8 E/s = 1,00 Münzen/s
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
 | Exportrate | 25 | 26 | 1.402 | 9.041 | +300 % | 2,17 → 453 |
 | Kapazität | 25 | 22 | 1.147 | 7.398 | +500 % | 1,10 → 333 |
 | Strahlübertragung | 10 | 24 | 106 | 563 | +11 % | 21,6 → 105 |
-| Panzerung | 30 | 22 | 2.624 | 17.082 | +450 % | 1,47 → 936 |
+| Leben | 30 | 22 | 2.624 | 17.082 | +450 % | 1,47 → 936 |
 
 #### Energieexporteur – Exportrate
 
@@ -1334,7 +1336,7 @@ Neubau zum Vergleich: 1,50 Münzen je Energie.
 | 9 | 90 | 457 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 88,2 | +10,0 % |
 | 10 | 106 | 563 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 105 | +11,1 % |
 
-#### Energieexporteur – Panzerung
+#### Energieexporteur – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -1379,7 +1381,7 @@ Neubau zum Vergleich: 1,500 Münzen je HP.
 
 - **Freischaltung:** von Anfang an
 - **Baukosten:** 70 · **Upgrade-Basis:** 70
-- **Grundwerte:** 90 HP · Kapazität 40 · 26 Schaden alle 0,45 s, 4 Energie/Schuss, Reichweite 4,11 Felder · DPS 64,7 (Ø inkl. 12 % Krit)
+- **Grundwerte:** 90 HP · Panzerung 6 · Kapazität 40 · 26 Schaden alle 0,45 s, 4 Energie/Schuss, Reichweite 4,11 Felder · DPS 64,7 (Ø inkl. 12 % Krit)
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -1391,7 +1393,8 @@ Neubau zum Vergleich: 1,500 Münzen je HP.
 | Effizienz | 20 | 14 | 325 | 2.052 | +100 % | 2,80 → 127 |
 | Kapazität | 25 | 13 | 669 | 4.318 | +500 % | 0,65 → 194 |
 | Strahlübertragung | 10 | 14 | 62 | 330 | +11 % | 12,6 → 61,4 |
-| Panzerung | 30 | 13 | 1.531 | 9.967 | +450 % | 0,87 → 546 |
+| Leben | 30 | 13 | 1.531 | 9.967 | +450 % | 0,87 → 546 |
+| Panzerung | 20 | 11 | 244 | 1.540 | +17 % | 13,0 → 334 |
 
 #### Blitzturm – Schaden
 
@@ -1626,7 +1629,7 @@ Neubau zum Vergleich: 1,75 Münzen je Energie.
 | 9 | 53 | 268 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 51,9 | +10,0 % |
 | 10 | 62 | 330 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 61,4 | +11,1 % |
 
-#### Blitzturm – Panzerung
+#### Blitzturm – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -1665,11 +1668,40 @@ Neubau zum Vergleich: 0,778 Münzen je HP.
 | 29 | 1.297 | 8.436 | 468,0 → 481,5 HP | +2,88 % | 450 | 96,074 | +435,0 % |
 | 30 | 1.531 | 9.967 | 481,5 → 495,0 HP | +2,80 % | 546 | 113,407 | +450,0 % |
 
+#### Blitzturm – Panzerung
+
+**Verändert:** Panzerung. Jeder erlittene Treffer sinkt um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Nutzen gemessen an den effektiven Lebenspunkten (Leben ÷ (1 − Reduktion)) mit Grund-Leben, ohne Mindestschaden. **Je Stufe:** +15 % des Grundwerts.
+
+Neubau zum Vergleich: 0,73 Münzen je eff. HP.
+
+| Stufe | Kosten | Summe | Veränderung | Nutzen | Münzen je % | Münzen je eff. HP | Nutzen gesamt |
+|---|---|---|---|---|---|---|---|
+| 1 | 11 | 11 | Panzerung 6,0 → 6,9 (−5,7 % → −6,5 %) | +0,85 % | 13,0 | 13,6 | +0,8 % |
+| 2 | 12 | 23 | Panzerung 6,9 → 7,8 (−6,5 % → −7,2 %) | +0,84 % | 14,3 | 14,8 | +1,7 % |
+| 3 | 15 | 38 | Panzerung 7,8 → 8,7 (−7,2 % → −8,0 %) | +0,83 % | 18,0 | 18,5 | +2,5 % |
+| 4 | 17 | 55 | Panzerung 8,7 → 9,6 (−8,0 % → −8,8 %) | +0,83 % | 20,5 | 21,0 | +3,4 % |
+| 5 | 20 | 75 | Panzerung 9,6 → 10,5 (−8,8 % → −9,5 %) | +0,82 % | 24,4 | 24,7 | +4,2 % |
+| 6 | 24 | 99 | Panzerung 10,5 → 11,4 (−9,5 % → −10,2 %) | +0,81 % | 29,5 | 29,6 | +5,1 % |
+| 7 | 28 | 127 | Panzerung 11,4 → 12,3 (−10,2 % → −11,0 %) | +0,81 % | 34,7 | 34,6 | +5,9 % |
+| 8 | 33 | 160 | Panzerung 12,3 → 13,2 (−11,0 % → −11,7 %) | +0,80 % | 41,2 | 40,7 | +6,8 % |
+| 9 | 39 | 199 | Panzerung 13,2 → 14,1 (−11,7 % → −12,4 %) | +0,80 % | 49,1 | 48,1 | +7,6 % |
+| 10 | 47 | 246 | Panzerung 14,1 → 15,0 (−12,4 % → −13,0 %) | +0,79 % | 59,6 | 58,0 | +8,5 % |
+| 11 | 55 | 301 | Panzerung 15,0 → 15,9 (−13,0 % → −13,7 %) | +0,78 % | 70,3 | 67,9 | +9,3 % |
+| 12 | 65 | 366 | Panzerung 15,9 → 16,8 (−13,7 % → −14,4 %) | +0,78 % | 83,7 | 80,2 | +10,2 % |
+| 13 | 77 | 443 | Panzerung 16,8 → 17,7 (−14,4 % → −15,0 %) | +0,77 % | 99,9 | 95,1 | +11,0 % |
+| 14 | 90 | 533 | Panzerung 17,7 → 18,6 (−15,0 % → −15,7 %) | +0,76 % | 118 | 111 | +11,9 % |
+| 15 | 107 | 640 | Panzerung 18,6 → 19,5 (−15,7 % → −16,3 %) | +0,76 % | 141 | 132 | +12,7 % |
+| 16 | 126 | 766 | Panzerung 19,5 → 20,4 (−16,3 % → −16,9 %) | +0,75 % | 167 | 156 | +13,6 % |
+| 17 | 148 | 914 | Panzerung 20,4 → 21,3 (−16,9 % → −17,6 %) | +0,75 % | 198 | 183 | +14,4 % |
+| 18 | 175 | 1.089 | Panzerung 21,3 → 22,2 (−17,6 % → −18,2 %) | +0,74 % | 236 | 216 | +15,3 % |
+| 19 | 207 | 1.296 | Panzerung 22,2 → 23,1 (−18,2 % → −18,8 %) | +0,74 % | 281 | 256 | +16,1 % |
+| 20 | 244 | 1.540 | Panzerung 23,1 → 24,0 (−18,8 % → −19,4 %) | +0,73 % | 334 | 301 | +17,0 % |
+
 ### Laserturm
 
 - **Freischaltung:** Forschung „Laserturm“ (2 SP)
 - **Baukosten:** 120 · **Upgrade-Basis:** 120
-- **Grundwerte:** 110 HP · Kapazität 60 · Laser 30 Schaden/s, 10 Energie/s, Reichweite 4,82 Felder · DPS 30,0
+- **Grundwerte:** 110 HP · Panzerung 8 · Kapazität 60 · Laser 30 Schaden/s, 10 Energie/s, Reichweite 4,82 Felder · DPS 30,0
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -1678,7 +1710,8 @@ Neubau zum Vergleich: 0,778 Münzen je HP.
 | Effizienz | 20 | 24 | 557 | 3.517 | +100 % | 4,80 → 217 |
 | Kapazität | 25 | 22 | 1.147 | 7.398 | +500 % | 1,10 → 333 |
 | Strahlübertragung | 10 | 24 | 106 | 563 | +11 % | 21,6 → 105 |
-| Panzerung | 30 | 22 | 2.624 | 17.082 | +450 % | 1,47 → 936 |
+| Leben | 30 | 22 | 2.624 | 17.082 | +450 % | 1,47 → 936 |
+| Panzerung | 20 | 18 | 418 | 2.640 | +22 % | 16,2 → 456 |
 
 #### Laserturm – Schaden
 
@@ -1829,7 +1862,7 @@ Neubau zum Vergleich: 2,00 Münzen je Energie.
 | 9 | 90 | 457 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 88,2 | +10,0 % |
 | 10 | 106 | 563 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 105 | +11,1 % |
 
-#### Laserturm – Panzerung
+#### Laserturm – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -1868,11 +1901,40 @@ Neubau zum Vergleich: 1,091 Münzen je HP.
 | 29 | 2.224 | 14.458 | 572,0 → 588,5 HP | +2,88 % | 771 | 134,788 | +435,0 % |
 | 30 | 2.624 | 17.082 | 588,5 → 605,0 HP | +2,80 % | 936 | 159,030 | +450,0 % |
 
+#### Laserturm – Panzerung
+
+**Verändert:** Panzerung. Jeder erlittene Treffer sinkt um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Nutzen gemessen an den effektiven Lebenspunkten (Leben ÷ (1 − Reduktion)) mit Grund-Leben, ohne Mindestschaden. **Je Stufe:** +15 % des Grundwerts.
+
+Neubau zum Vergleich: 1,01 Münzen je eff. HP.
+
+| Stufe | Kosten | Summe | Veränderung | Nutzen | Münzen je % | Münzen je eff. HP | Nutzen gesamt |
+|---|---|---|---|---|---|---|---|
+| 1 | 18 | 18 | Panzerung 8,0 → 9,2 (−7,4 % → −8,4 %) | +1,11 % | 16,2 | 13,6 | +1,1 % |
+| 2 | 21 | 39 | Panzerung 9,2 → 10,4 (−8,4 % → −9,4 %) | +1,10 % | 19,1 | 15,9 | +2,2 % |
+| 3 | 25 | 64 | Panzerung 10,4 → 11,6 (−9,4 % → −10,4 %) | +1,09 % | 23,0 | 18,9 | +3,3 % |
+| 4 | 30 | 94 | Panzerung 11,6 → 12,8 (−10,4 % → −11,3 %) | +1,08 % | 27,9 | 22,7 | +4,4 % |
+| 5 | 35 | 129 | Panzerung 12,8 → 14,0 (−11,3 % → −12,3 %) | +1,06 % | 32,9 | 26,5 | +5,6 % |
+| 6 | 41 | 170 | Panzerung 14,0 → 15,2 (−12,3 % → −13,2 %) | +1,05 % | 38,9 | 31,1 | +6,7 % |
+| 7 | 49 | 219 | Panzerung 15,2 → 16,4 (−13,2 % → −14,1 %) | +1,04 % | 47,0 | 37,1 | +7,8 % |
+| 8 | 57 | 276 | Panzerung 16,4 → 17,6 (−14,1 % → −15,0 %) | +1,03 % | 55,3 | 43,2 | +8,9 % |
+| 9 | 68 | 344 | Panzerung 17,6 → 18,8 (−15,0 % → −15,8 %) | +1,02 % | 66,6 | 51,5 | +10,0 % |
+| 10 | 80 | 424 | Panzerung 18,8 → 20,0 (−15,8 % → −16,7 %) | +1,01 % | 79,2 | 60,6 | +11,1 % |
+| 11 | 94 | 518 | Panzerung 20,0 → 21,2 (−16,7 % → −17,5 %) | +1,00 % | 94,0 | 71,2 | +12,2 % |
+| 12 | 111 | 629 | Panzerung 21,2 → 22,4 (−17,5 % → −18,3 %) | +0,99 % | 112 | 84,1 | +13,3 % |
+| 13 | 131 | 760 | Panzerung 22,4 → 23,6 (−18,3 % → −19,1 %) | +0,98 % | 134 | 99,2 | +14,4 % |
+| 14 | 155 | 915 | Panzerung 23,6 → 24,8 (−19,1 % → −19,9 %) | +0,97 % | 160 | 117 | +15,6 % |
+| 15 | 183 | 1.098 | Panzerung 24,8 → 26,0 (−19,9 % → −20,6 %) | +0,96 % | 190 | 139 | +16,7 % |
+| 16 | 216 | 1.314 | Panzerung 26,0 → 27,2 (−20,6 % → −21,4 %) | +0,95 % | 227 | 164 | +17,8 % |
+| 17 | 254 | 1.568 | Panzerung 27,2 → 28,4 (−21,4 % → −22,1 %) | +0,94 % | 269 | 192 | +18,9 % |
+| 18 | 300 | 1.868 | Panzerung 28,4 → 29,6 (−22,1 % → −22,8 %) | +0,93 % | 321 | 227 | +20,0 % |
+| 19 | 354 | 2.222 | Panzerung 29,6 → 30,8 (−22,8 % → −23,5 %) | +0,93 % | 382 | 268 | +21,1 % |
+| 20 | 418 | 2.640 | Panzerung 30,8 → 32,0 (−23,5 % → −24,2 %) | +0,92 % | 456 | 317 | +22,2 % |
+
 ### Tesla-Spule
 
 - **Freischaltung:** Forschung „Tesla-Spule“ (3 SP)
 - **Baukosten:** 160 · **Upgrade-Basis:** 160
-- **Grundwerte:** 120 HP · Kapazität 80 · 30 Schaden alle 1,00 s, 14 Energie/Schuss, Reichweite 3,93 Felder, Kette 5 Ziele · DPS (volle Kette) 112,9 (Ø inkl. 12 % Krit)
+- **Grundwerte:** 120 HP · Panzerung 8 · Kapazität 80 · 30 Schaden alle 1,00 s, 14 Energie/Schuss, Reichweite 3,93 Felder, Kette 5 Ziele · DPS (volle Kette) 112,9 (Ø inkl. 12 % Krit)
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -1885,7 +1947,8 @@ Neubau zum Vergleich: 1,091 Münzen je HP.
 | Effizienz | 20 | 32 | 743 | 4.693 | +100 % | 6,40 → 290 |
 | Kapazität | 25 | 29 | 1.530 | 9.869 | +500 % | 1,45 → 444 |
 | Strahlübertragung | 10 | 32 | 142 | 753 | +11 % | 28,8 → 141 |
-| Panzerung | 30 | 29 | 3.499 | 22.781 | +450 % | 1,93 → 1.248 |
+| Leben | 30 | 29 | 3.499 | 22.781 | +450 % | 1,93 → 1.248 |
+| Panzerung | 20 | 24 | 557 | 3.517 | +22 % | 21,6 → 607 |
 
 #### Tesla-Spule – Schaden
 
@@ -2134,7 +2197,7 @@ Neubau zum Vergleich: 2,00 Münzen je Energie.
 | 9 | 120 | 611 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 118 | +10,0 % |
 | 10 | 142 | 753 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 141 | +11,1 % |
 
-#### Tesla-Spule – Panzerung
+#### Tesla-Spule – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -2173,11 +2236,40 @@ Neubau zum Vergleich: 1,333 Münzen je HP.
 | 29 | 2.965 | 19.282 | 624,0 → 642,0 HP | +2,88 % | 1.028 | 164,722 | +435,0 % |
 | 30 | 3.499 | 22.781 | 642,0 → 660,0 HP | +2,80 % | 1.248 | 194,389 | +450,0 % |
 
+#### Tesla-Spule – Panzerung
+
+**Verändert:** Panzerung. Jeder erlittene Treffer sinkt um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Nutzen gemessen an den effektiven Lebenspunkten (Leben ÷ (1 − Reduktion)) mit Grund-Leben, ohne Mindestschaden. **Je Stufe:** +15 % des Grundwerts.
+
+Neubau zum Vergleich: 1,23 Münzen je eff. HP.
+
+| Stufe | Kosten | Summe | Veränderung | Nutzen | Münzen je % | Münzen je eff. HP | Nutzen gesamt |
+|---|---|---|---|---|---|---|---|
+| 1 | 24 | 24 | Panzerung 8,0 → 9,2 (−7,4 % → −8,4 %) | +1,11 % | 21,6 | 16,7 | +1,1 % |
+| 2 | 28 | 52 | Panzerung 9,2 → 10,4 (−8,4 % → −9,4 %) | +1,10 % | 25,5 | 19,4 | +2,2 % |
+| 3 | 33 | 85 | Panzerung 10,4 → 11,6 (−9,4 % → −10,4 %) | +1,09 % | 30,4 | 22,9 | +3,3 % |
+| 4 | 39 | 124 | Panzerung 11,6 → 12,8 (−10,4 % → −11,3 %) | +1,08 % | 36,3 | 27,1 | +4,4 % |
+| 5 | 47 | 171 | Panzerung 12,8 → 14,0 (−11,3 % → −12,3 %) | +1,06 % | 44,2 | 32,6 | +5,6 % |
+| 6 | 55 | 226 | Panzerung 14,0 → 15,2 (−12,3 % → −13,2 %) | +1,05 % | 52,2 | 38,2 | +6,7 % |
+| 7 | 65 | 291 | Panzerung 15,2 → 16,4 (−13,2 % → −14,1 %) | +1,04 % | 62,4 | 45,1 | +7,8 % |
+| 8 | 76 | 367 | Panzerung 16,4 → 17,6 (−14,1 % → −15,0 %) | +1,03 % | 73,7 | 52,8 | +8,9 % |
+| 9 | 90 | 457 | Panzerung 17,6 → 18,8 (−15,0 % → −15,8 %) | +1,02 % | 88,2 | 62,5 | +10,0 % |
+| 10 | 106 | 563 | Panzerung 18,8 → 20,0 (−15,8 % → −16,7 %) | +1,01 % | 105 | 73,6 | +11,1 % |
+| 11 | 126 | 689 | Panzerung 20,0 → 21,2 (−16,7 % → −17,5 %) | +1,00 % | 126 | 87,5 | +12,2 % |
+| 12 | 148 | 837 | Panzerung 21,2 → 22,4 (−17,5 % → −18,3 %) | +0,99 % | 149 | 103 | +13,3 % |
+| 13 | 175 | 1.012 | Panzerung 22,4 → 23,6 (−18,3 % → −19,1 %) | +0,98 % | 178 | 122 | +14,4 % |
+| 14 | 206 | 1.218 | Panzerung 23,6 → 24,8 (−19,1 % → −19,9 %) | +0,97 % | 212 | 143 | +15,6 % |
+| 15 | 244 | 1.462 | Panzerung 24,8 → 26,0 (−19,9 % → −20,6 %) | +0,96 % | 254 | 169 | +16,7 % |
+| 16 | 287 | 1.749 | Panzerung 26,0 → 27,2 (−20,6 % → −21,4 %) | +0,95 % | 301 | 199 | +17,8 % |
+| 17 | 339 | 2.088 | Panzerung 27,2 → 28,4 (−21,4 % → −22,1 %) | +0,94 % | 359 | 235 | +18,9 % |
+| 18 | 400 | 2.488 | Panzerung 28,4 → 29,6 (−22,1 % → −22,8 %) | +0,93 % | 428 | 278 | +20,0 % |
+| 19 | 472 | 2.960 | Panzerung 29,6 → 30,8 (−22,8 % → −23,5 %) | +0,93 % | 510 | 328 | +21,1 % |
+| 20 | 557 | 3.517 | Panzerung 30,8 → 32,0 (−23,5 % → −24,2 %) | +0,92 % | 607 | 387 | +22,2 % |
+
 ### Plasmawerfer
 
 - **Freischaltung:** Forschung „Plasmawerfer“ (3 SP)
 - **Baukosten:** 200 · **Upgrade-Basis:** 200
-- **Grundwerte:** 110 HP · Kapazität 100 · 65 Schaden alle 2,50 s, 28 Energie/Schuss, Reichweite 7,68 Felder, Explosionsradius 1,52 Felder · DPS je getroffenem Ziel 29,1 (Ø inkl. 12 % Krit)
+- **Grundwerte:** 110 HP · Panzerung 10 · Kapazität 100 · 65 Schaden alle 2,50 s, 28 Energie/Schuss, Reichweite 7,68 Felder, Explosionsradius 1,52 Felder · DPS je getroffenem Ziel 29,1 (Ø inkl. 12 % Krit)
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -2190,7 +2282,8 @@ Neubau zum Vergleich: 1,333 Münzen je HP.
 | Effizienz | 20 | 40 | 929 | 5.866 | +100 % | 8,00 → 362 |
 | Kapazität | 25 | 36 | 1.912 | 12.332 | +500 % | 1,80 → 554 |
 | Strahlübertragung | 10 | 40 | 177 | 941 | +11 % | 36,0 → 175 |
-| Panzerung | 30 | 36 | 4.374 | 28.472 | +450 % | 2,40 → 1.560 |
+| Leben | 30 | 36 | 4.374 | 28.472 | +450 % | 2,40 → 1.560 |
+| Panzerung | 20 | 30 | 696 | 4.398 | +27 % | 22,0 → 643 |
 
 #### Plasmawerfer – Schaden
 
@@ -2447,7 +2540,7 @@ Neubau zum Vergleich: 2,00 Münzen je Energie.
 | 9 | 150 | 764 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 147 | +10,0 % |
 | 10 | 177 | 941 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 175 | +11,1 % |
 
-#### Plasmawerfer – Panzerung
+#### Plasmawerfer – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -2486,19 +2579,48 @@ Neubau zum Vergleich: 1,818 Münzen je HP.
 | 29 | 3.707 | 24.098 | 572,0 → 588,5 HP | +2,88 % | 1.285 | 224,667 | +435,0 % |
 | 30 | 4.374 | 28.472 | 588,5 → 605,0 HP | +2,80 % | 1.560 | 265,091 | +450,0 % |
 
+#### Plasmawerfer – Panzerung
+
+**Verändert:** Panzerung. Jeder erlittene Treffer sinkt um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Nutzen gemessen an den effektiven Lebenspunkten (Leben ÷ (1 − Reduktion)) mit Grund-Leben, ohne Mindestschaden. **Je Stufe:** +15 % des Grundwerts.
+
+Neubau zum Vergleich: 1,65 Münzen je eff. HP.
+
+| Stufe | Kosten | Summe | Veränderung | Nutzen | Münzen je % | Münzen je eff. HP | Nutzen gesamt |
+|---|---|---|---|---|---|---|---|
+| 1 | 30 | 30 | Panzerung 10,0 → 11,5 (−9,1 % → −10,3 %) | +1,36 % | 22,0 | 18,2 | +1,4 % |
+| 2 | 35 | 65 | Panzerung 11,5 → 13,0 (−10,3 % → −11,5 %) | +1,35 % | 26,0 | 21,2 | +2,7 % |
+| 3 | 42 | 107 | Panzerung 13,0 → 14,5 (−11,5 % → −12,7 %) | +1,33 % | 31,6 | 25,5 | +4,1 % |
+| 4 | 49 | 156 | Panzerung 14,5 → 16,0 (−12,7 % → −13,8 %) | +1,31 % | 37,4 | 29,7 | +5,5 % |
+| 5 | 58 | 214 | Panzerung 16,0 → 17,5 (−13,8 % → −14,9 %) | +1,29 % | 44,9 | 35,2 | +6,8 % |
+| 6 | 69 | 283 | Panzerung 17,5 → 19,0 (−14,9 % → −16,0 %) | +1,28 % | 54,0 | 41,8 | +8,2 % |
+| 7 | 81 | 364 | Panzerung 19,0 → 20,5 (−16,0 % → −17,0 %) | +1,26 % | 64,3 | 49,1 | +9,5 % |
+| 8 | 96 | 460 | Panzerung 20,5 → 22,0 (−17,0 % → −18,0 %) | +1,24 % | 77,1 | 58,2 | +10,9 % |
+| 9 | 113 | 573 | Panzerung 22,0 → 23,5 (−18,0 % → −19,0 %) | +1,23 % | 91,9 | 68,5 | +12,3 % |
+| 10 | 133 | 706 | Panzerung 23,5 → 25,0 (−19,0 % → −20,0 %) | +1,21 % | 110 | 80,6 | +13,6 % |
+| 11 | 157 | 863 | Panzerung 25,0 → 26,5 (−20,0 % → −20,9 %) | +1,20 % | 131 | 95,2 | +15,0 % |
+| 12 | 185 | 1.048 | Panzerung 26,5 → 28,0 (−20,9 % → −21,9 %) | +1,19 % | 156 | 112 | +16,4 % |
+| 13 | 219 | 1.267 | Panzerung 28,0 → 29,5 (−21,9 % → −22,8 %) | +1,17 % | 187 | 133 | +17,7 % |
+| 14 | 258 | 1.525 | Panzerung 29,5 → 31,0 (−22,8 % → −23,7 %) | +1,16 % | 223 | 156 | +19,1 % |
+| 15 | 304 | 1.829 | Panzerung 31,0 → 32,5 (−23,7 % → −24,5 %) | +1,15 % | 265 | 184 | +20,5 % |
+| 16 | 359 | 2.188 | Panzerung 32,5 → 34,0 (−24,5 % → −25,4 %) | +1,13 % | 317 | 218 | +21,8 % |
+| 17 | 424 | 2.612 | Panzerung 34,0 → 35,5 (−25,4 % → −26,2 %) | +1,12 % | 379 | 257 | +23,2 % |
+| 18 | 500 | 3.112 | Panzerung 35,5 → 37,0 (−26,2 % → −27,0 %) | +1,11 % | 452 | 303 | +24,5 % |
+| 19 | 590 | 3.702 | Panzerung 37,0 → 38,5 (−27,0 % → −27,8 %) | +1,09 % | 539 | 358 | +25,9 % |
+| 20 | 696 | 4.398 | Panzerung 38,5 → 40,0 (−27,8 % → −28,6 %) | +1,08 % | 643 | 422 | +27,3 % |
+
 ## Verteidigung
 
 ### Bollwerk
 
 - **Freischaltung:** von Anfang an
 - **Baukosten:** 4 (+1 je 6 gebaute) · **Upgrade-Basis:** 40
-- **Grundwerte:** 1.600 HP · Kapazität 12 · Selbstreparatur 5 HP/s für 0,4 Energie/s
+- **Grundwerte:** 1.600 HP · Panzerung 40 · Kapazität 12 · Selbstreparatur 5 HP/s für 0,4 Energie/s
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
-| Panzerung | 8 | 5 | 251 | 580 | +32.049 % | 0,0250 → 2,93 |
+| Leben | 8 | 5 | 251 | 580 | +32.049 % | 0,0250 → 2,93 |
 
-#### Bollwerk – Panzerung
+#### Bollwerk – Leben
 
 **Verändert:** Maximale Trefferpunkte. Eigene Kurve: Multiplikator 1 + 2 × (1,85^Stufe − 1) / 0,85, Preiswachstum 1,75 je Stufe – jede Stufe ist effizienter als die vorige. Die Selbstreparatur bleibt bei 5 HP/s. **Je Stufe:** wachsend (×3 bis ×37,5).
 
@@ -2519,7 +2641,7 @@ Neubau zum Vergleich: 0,0025 Münzen je HP.
 
 - **Freischaltung:** Forschung „Bollwerk-Turm“ (2 SP)
 - **Baukosten:** 130 · **Upgrade-Basis:** 130
-- **Grundwerte:** 900 HP · Kapazität 60 · 14 Schaden alle 0,50 s, 3 Energie/Schuss, Reichweite 4,29 Felder · DPS 31,4 (Ø inkl. 12 % Krit)
+- **Grundwerte:** 900 HP · Panzerung 50 · Kapazität 60 · 14 Schaden alle 0,50 s, 3 Energie/Schuss, Reichweite 4,29 Felder · DPS 31,4 (Ø inkl. 12 % Krit)
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -2530,7 +2652,8 @@ Neubau zum Vergleich: 0,0025 Münzen je HP.
 | Effizienz | 20 | 26 | 604 | 3.812 | +100 % | 5,20 → 236 |
 | Kapazität | 25 | 23 | 1.243 | 8.017 | +500 % | 1,15 → 360 |
 | Strahlübertragung | 10 | 26 | 115 | 611 | +11 % | 23,4 → 114 |
-| Panzerung | 30 | 23 | 2.843 | 18.507 | +450 % | 1,53 → 1.014 |
+| Leben | 30 | 23 | 2.843 | 18.507 | +450 % | 1,53 → 1.014 |
+| Panzerung | 20 | 20 | 453 | 2.860 | +100 % | 4,00 → 177 |
 
 #### Bollwerk-Turm – Schaden
 
@@ -2744,7 +2867,7 @@ Neubau zum Vergleich: 2,17 Münzen je Energie.
 | 9 | 98 | 496 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 96,0 | +10,0 % |
 | 10 | 115 | 611 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 114 | +11,1 % |
 
-#### Bollwerk-Turm – Panzerung
+#### Bollwerk-Turm – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -2783,11 +2906,40 @@ Neubau zum Vergleich: 0,144 Münzen je HP.
 | 29 | 2.409 | 15.664 | 4.680,0 → 4.815,0 HP | +2,88 % | 835 | 17,844 | +435,0 % |
 | 30 | 2.843 | 18.507 | 4.815,0 → 4.950,0 HP | +2,80 % | 1.014 | 21,059 | +450,0 % |
 
+#### Bollwerk-Turm – Panzerung
+
+**Verändert:** Panzerung. Jeder erlittene Treffer sinkt um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Nutzen gemessen an den effektiven Lebenspunkten (Leben ÷ (1 − Reduktion)) mit Grund-Leben, ohne Mindestschaden. **Je Stufe:** +15 % des Grundwerts.
+
+Neubau zum Vergleich: 0,0963 Münzen je eff. HP.
+
+| Stufe | Kosten | Summe | Veränderung | Nutzen | Münzen je % | Münzen je eff. HP | Nutzen gesamt |
+|---|---|---|---|---|---|---|---|
+| 1 | 20 | 20 | Panzerung 50,0 → 57,5 (−33,3 % → −36,5 %) | +5,00 % | 4,00 | 0,30 | +5,0 % |
+| 2 | 23 | 43 | Panzerung 57,5 → 65,0 (−36,5 % → −39,4 %) | +4,76 % | 4,83 | 0,34 | +10,0 % |
+| 3 | 27 | 70 | Panzerung 65,0 → 72,5 (−39,4 % → −42,0 %) | +4,55 % | 5,94 | 0,40 | +15,0 % |
+| 4 | 32 | 102 | Panzerung 72,5 → 80,0 (−42,0 % → −44,4 %) | +4,35 % | 7,36 | 0,47 | +20,0 % |
+| 5 | 38 | 140 | Panzerung 80,0 → 87,5 (−44,4 % → −46,7 %) | +4,17 % | 9,12 | 0,56 | +25,0 % |
+| 6 | 45 | 185 | Panzerung 87,5 → 95,0 (−46,7 % → −48,7 %) | +4,00 % | 11,2 | 0,67 | +30,0 % |
+| 7 | 53 | 238 | Panzerung 95,0 → 102,5 (−48,7 % → −50,6 %) | +3,85 % | 13,8 | 0,79 | +35,0 % |
+| 8 | 62 | 300 | Panzerung 102,5 → 110,0 (−50,6 % → −52,4 %) | +3,70 % | 16,7 | 0,92 | +40,0 % |
+| 9 | 73 | 373 | Panzerung 110,0 → 117,5 (−52,4 % → −54,0 %) | +3,57 % | 20,4 | 1,08 | +45,0 % |
+| 10 | 86 | 459 | Panzerung 117,5 → 125,0 (−54,0 % → −55,6 %) | +3,45 % | 24,9 | 1,27 | +50,0 % |
+| 11 | 102 | 561 | Panzerung 125,0 → 132,5 (−55,6 % → −57,0 %) | +3,33 % | 30,6 | 1,51 | +55,0 % |
+| 12 | 120 | 681 | Panzerung 132,5 → 140,0 (−57,0 % → −58,3 %) | +3,23 % | 37,2 | 1,78 | +60,0 % |
+| 13 | 142 | 823 | Panzerung 140,0 → 147,5 (−58,3 % → −59,6 %) | +3,12 % | 45,4 | 2,10 | +65,0 % |
+| 14 | 168 | 991 | Panzerung 147,5 → 155,0 (−59,6 % → −60,8 %) | +3,03 % | 55,4 | 2,49 | +70,0 % |
+| 15 | 198 | 1.189 | Panzerung 155,0 → 162,5 (−60,8 % → −61,9 %) | +2,94 % | 67,3 | 2,93 | +75,0 % |
+| 16 | 233 | 1.422 | Panzerung 162,5 → 170,0 (−61,9 % → −63,0 %) | +2,86 % | 81,6 | 3,45 | +80,0 % |
+| 17 | 276 | 1.698 | Panzerung 170,0 → 177,5 (−63,0 % → −64,0 %) | +2,78 % | 99,4 | 4,09 | +85,0 % |
+| 18 | 325 | 2.023 | Panzerung 177,5 → 185,0 (−64,0 % → −64,9 %) | +2,70 % | 120 | 4,81 | +90,0 % |
+| 19 | 384 | 2.407 | Panzerung 185,0 → 192,5 (−64,9 % → −65,8 %) | +2,63 % | 146 | 5,69 | +95,0 % |
+| 20 | 453 | 2.860 | Panzerung 192,5 → 200,0 (−65,8 % → −66,7 %) | +2,56 % | 177 | 6,71 | +100,0 % |
+
 ### Schildgenerator
 
 - **Freischaltung:** Forschung „Schildgenerator“ (3 SP)
 - **Baukosten:** 140 · **Upgrade-Basis:** 140
-- **Grundwerte:** 100 HP · Kapazität 140 · Schildradius 3,75 Felder, Schildstärke 2 Schaden/Energie
+- **Grundwerte:** 100 HP · Panzerung 10 · Kapazität 140 · Schildradius 3,75 Felder, Schildstärke 2 Schaden/Energie
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -2795,7 +2947,7 @@ Neubau zum Vergleich: 0,144 Münzen je HP.
 | Schildradius | 15 | 42 | 426 | 2.559 | +60 % | 10,5 → 166 |
 | Kapazität | 25 | 25 | 1.338 | 8.635 | +500 % | 1,25 → 388 |
 | Strahlübertragung | 10 | 28 | 124 | 658 | +11 % | 25,2 → 123 |
-| Panzerung | 30 | 25 | 3.062 | 19.934 | +450 % | 1,67 → 1.092 |
+| Leben | 30 | 25 | 3.062 | 19.934 | +450 % | 1,67 → 1.092 |
 
 #### Schildgenerator – Schildstärke
 
@@ -2919,7 +3071,7 @@ Neubau zum Vergleich: 1,00 Münzen je Energie.
 | 9 | 105 | 534 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 103 | +10,0 % |
 | 10 | 124 | 658 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 123 | +11,1 % |
 
-#### Schildgenerator – Panzerung
+#### Schildgenerator – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -2962,7 +3114,7 @@ Neubau zum Vergleich: 1,400 Münzen je HP.
 
 - **Freischaltung:** Forschung „Heilturm“ (2 SP)
 - **Baukosten:** 110 · **Upgrade-Basis:** 110
-- **Grundwerte:** 90 HP · Kapazität 80 · Heilung 20 HP alle 0,90 s, 6 Energie je Heilung, Reichweite 4,11 Felder
+- **Grundwerte:** 90 HP · Panzerung 6 · Kapazität 80 · Heilung 20 HP alle 0,90 s, 6 Energie je Heilung, Reichweite 4,11 Felder
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -2972,7 +3124,8 @@ Neubau zum Vergleich: 1,400 Münzen je HP.
 | Effizienz | 20 | 22 | 511 | 3.226 | +100 % | 4,40 → 199 |
 | Kapazität | 25 | 20 | 1.052 | 6.783 | +500 % | 1,00 → 305 |
 | Strahlübertragung | 10 | 22 | 98 | 518 | +11 % | 19,8 → 97,0 |
-| Panzerung | 30 | 20 | 2.406 | 15.661 | +450 % | 1,33 → 858 |
+| Leben | 30 | 20 | 2.406 | 15.661 | +450 % | 1,33 → 858 |
+| Panzerung | 20 | 17 | 383 | 2.420 | +17 % | 20,0 → 524 |
 
 #### Heilturm – Heilkraft
 
@@ -3157,7 +3310,7 @@ Neubau zum Vergleich: 1,38 Münzen je Energie.
 | 9 | 83 | 420 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 81,3 | +10,0 % |
 | 10 | 98 | 518 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 97,0 | +11,1 % |
 
-#### Heilturm – Panzerung
+#### Heilturm – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -3196,20 +3349,49 @@ Neubau zum Vergleich: 1,222 Münzen je HP.
 | 29 | 2.039 | 13.255 | 468,0 → 481,5 HP | +2,88 % | 707 | 151,037 | +435,0 % |
 | 30 | 2.406 | 15.661 | 481,5 → 495,0 HP | +2,80 % | 858 | 178,222 | +450,0 % |
 
+#### Heilturm – Panzerung
+
+**Verändert:** Panzerung. Jeder erlittene Treffer sinkt um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Nutzen gemessen an den effektiven Lebenspunkten (Leben ÷ (1 − Reduktion)) mit Grund-Leben, ohne Mindestschaden. **Je Stufe:** +15 % des Grundwerts.
+
+Neubau zum Vergleich: 1,15 Münzen je eff. HP.
+
+| Stufe | Kosten | Summe | Veränderung | Nutzen | Münzen je % | Münzen je eff. HP | Nutzen gesamt |
+|---|---|---|---|---|---|---|---|
+| 1 | 17 | 17 | Panzerung 6,0 → 6,9 (−5,7 % → −6,5 %) | +0,85 % | 20,0 | 21,0 | +0,8 % |
+| 2 | 19 | 36 | Panzerung 6,9 → 7,8 (−6,5 % → −7,2 %) | +0,84 % | 22,6 | 23,5 | +1,7 % |
+| 3 | 23 | 59 | Panzerung 7,8 → 8,7 (−7,2 % → −8,0 %) | +0,83 % | 27,5 | 28,4 | +2,5 % |
+| 4 | 27 | 86 | Panzerung 8,7 → 9,6 (−8,0 % → −8,8 %) | +0,83 % | 32,6 | 33,3 | +3,4 % |
+| 5 | 32 | 118 | Panzerung 9,6 → 10,5 (−8,8 % → −9,5 %) | +0,82 % | 39,0 | 39,5 | +4,2 % |
+| 6 | 38 | 156 | Panzerung 10,5 → 11,4 (−9,5 % → −10,2 %) | +0,81 % | 46,7 | 46,9 | +5,1 % |
+| 7 | 45 | 201 | Panzerung 11,4 → 12,3 (−10,2 % → −11,0 %) | +0,81 % | 55,7 | 55,6 | +5,9 % |
+| 8 | 53 | 254 | Panzerung 12,3 → 13,2 (−11,0 % → −11,7 %) | +0,80 % | 66,1 | 65,4 | +6,8 % |
+| 9 | 62 | 316 | Panzerung 13,2 → 14,1 (−11,7 % → −12,4 %) | +0,80 % | 78,0 | 76,5 | +7,6 % |
+| 10 | 73 | 389 | Panzerung 14,1 → 15,0 (−12,4 % → −13,0 %) | +0,79 % | 92,5 | 90,1 | +8,5 % |
+| 11 | 86 | 475 | Panzerung 15,0 → 15,9 (−13,0 % → −13,7 %) | +0,78 % | 110 | 106 | +9,3 % |
+| 12 | 102 | 577 | Panzerung 15,9 → 16,8 (−13,7 % → −14,4 %) | +0,78 % | 131 | 126 | +10,2 % |
+| 13 | 120 | 697 | Panzerung 16,8 → 17,7 (−14,4 % → −15,0 %) | +0,77 % | 156 | 148 | +11,0 % |
+| 14 | 142 | 839 | Panzerung 17,7 → 18,6 (−15,0 % → −15,7 %) | +0,76 % | 186 | 175 | +11,9 % |
+| 15 | 167 | 1.006 | Panzerung 18,6 → 19,5 (−15,7 % → −16,3 %) | +0,76 % | 220 | 206 | +12,7 % |
+| 16 | 198 | 1.204 | Panzerung 19,5 → 20,4 (−16,3 % → −16,9 %) | +0,75 % | 263 | 244 | +13,6 % |
+| 17 | 233 | 1.437 | Panzerung 20,4 → 21,3 (−16,9 % → −17,6 %) | +0,75 % | 312 | 288 | +14,4 % |
+| 18 | 275 | 1.712 | Panzerung 21,3 → 22,2 (−17,6 % → −18,2 %) | +0,74 % | 371 | 340 | +15,3 % |
+| 19 | 325 | 2.037 | Panzerung 22,2 → 23,1 (−18,2 % → −18,8 %) | +0,74 % | 441 | 401 | +16,1 % |
+| 20 | 383 | 2.420 | Panzerung 23,1 → 24,0 (−18,8 % → −19,4 %) | +0,73 % | 524 | 473 | +17,0 % |
+
 ## Extras
 
 ### Lampe
 
 - **Freischaltung:** von Anfang an
 - **Baukosten:** 25 · **Upgrade-Basis:** 25
-- **Grundwerte:** 60 HP · Kapazität 40 · Verbrauch bei Radius 3 Felder 3,31 E/s
+- **Grundwerte:** 60 HP · Panzerung 0 · Kapazität 40 · Verbrauch bei Radius 3 Felder 3,31 E/s
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
 | Lichteffizienz | 20 | 5 | 116 | 732 | +100 % | 1,00 → 45,2 |
 | Kapazität | 25 | 5 | 239 | 1.543 | +500 % | 0,25 → 69,3 |
 | Strahlübertragung | 10 | 5 | 22 | 117 | +11 % | 4,50 → 21,8 |
-| Panzerung | 30 | 5 | 547 | 3.561 | +450 % | 0,33 → 195 |
+| Leben | 30 | 5 | 547 | 3.561 | +450 % | 0,33 → 195 |
 
 #### Lampe – Lichteffizienz
 
@@ -3289,7 +3471,7 @@ Neubau zum Vergleich: 0,62 Münzen je Energie.
 | 9 | 19 | 95 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 18,6 | +10,0 % |
 | 10 | 22 | 117 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 21,8 | +11,1 % |
 
-#### Lampe – Panzerung
+#### Lampe – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -3332,7 +3514,7 @@ Neubau zum Vergleich: 0,417 Münzen je HP.
 
 - **Freischaltung:** Forschung „Mobiler Turm“ (2 SP)
 - **Baukosten:** 150 · **Upgrade-Basis:** 150
-- **Grundwerte:** 160 HP · Kapazität 120 · 20 Schaden alle 0,50 s, 3 Energie/Schuss, Reichweite 3,75 Felder · DPS 44,8 (Ø inkl. 12 % Krit) · Fahren 1,52 Felder/s, 6,72 Energie/Feld
+- **Grundwerte:** 160 HP · Panzerung 12 · Kapazität 120 · 20 Schaden alle 0,50 s, 3 Energie/Schuss, Reichweite 3,75 Felder · DPS 44,8 (Ø inkl. 12 % Krit) · Fahren 1,52 Felder/s, 6,72 Energie/Feld
 
 | Pfad | Stufen | 1. Stufe | letzte Stufe | Summe bis max. | Nutzen gesamt | Münzen je % (1. → letzte) |
 |---|---|---|---|---|---|---|
@@ -3344,7 +3526,8 @@ Neubau zum Vergleich: 0,417 Münzen je HP.
 | Fahreffizienz | 20 | 30 | 696 | 4.398 | +100 % | 6,00 → 271 |
 | Kapazität | 25 | 27 | 1.434 | 9.250 | +500 % | 1,35 → 416 |
 | Strahlübertragung | 10 | 30 | 133 | 706 | +11 % | 27,0 → 132 |
-| Panzerung | 30 | 27 | 3.281 | 21.356 | +450 % | 1,80 → 1.170 |
+| Leben | 30 | 27 | 3.281 | 21.356 | +450 % | 1,80 → 1.170 |
+| Panzerung | 20 | 23 | 522 | 3.300 | +32 % | 14,3 → 424 |
 
 #### Mobiler Turm – Schaden
 
@@ -3579,7 +3762,7 @@ Neubau zum Vergleich: 1,25 Münzen je Energie.
 | 9 | 113 | 573 | Verlustfaktor 20 % → 10 % (Referenz 98,0 % → 99,0 % kommt an) | +1,02 % | 111 | +10,0 % |
 | 10 | 133 | 706 | Verlustfaktor 10 % → 0 % (Referenz 99,0 % → 100,0 % kommt an) | +1,01 % | 132 | +11,1 % |
 
-#### Mobiler Turm – Panzerung
+#### Mobiler Turm – Leben
 
 **Verändert:** Maximale Trefferpunkte. **Je Stufe:** +15 % des Grundwerts.
 
@@ -3617,3 +3800,32 @@ Neubau zum Vergleich: 0,938 Münzen je HP.
 | 28 | 2.356 | 15.295 | 808,0 → 832,0 HP | +2,97 % | 793 | 98,167 | +420,0 % |
 | 29 | 2.780 | 18.075 | 832,0 → 856,0 HP | +2,88 % | 964 | 115,833 | +435,0 % |
 | 30 | 3.281 | 21.356 | 856,0 → 880,0 HP | +2,80 % | 1.170 | 136,708 | +450,0 % |
+
+#### Mobiler Turm – Panzerung
+
+**Verändert:** Panzerung. Jeder erlittene Treffer sinkt um Panzerung ÷ (Panzerung + 100), höchstens 90 %. Nutzen gemessen an den effektiven Lebenspunkten (Leben ÷ (1 − Reduktion)) mit Grund-Leben, ohne Mindestschaden. **Je Stufe:** +15 % des Grundwerts.
+
+Neubau zum Vergleich: 0,84 Münzen je eff. HP.
+
+| Stufe | Kosten | Summe | Veränderung | Nutzen | Münzen je % | Münzen je eff. HP | Nutzen gesamt |
+|---|---|---|---|---|---|---|---|
+| 1 | 23 | 23 | Panzerung 12,0 → 13,8 (−10,7 % → −12,1 %) | +1,61 % | 14,3 | 7,99 | +1,6 % |
+| 2 | 27 | 50 | Panzerung 13,8 → 15,6 (−12,1 % → −13,5 %) | +1,58 % | 17,1 | 9,38 | +3,2 % |
+| 3 | 31 | 81 | Panzerung 15,6 → 17,4 (−13,5 % → −14,8 %) | +1,56 % | 19,9 | 10,8 | +4,8 % |
+| 4 | 37 | 118 | Panzerung 17,4 → 19,2 (−14,8 % → −16,1 %) | +1,53 % | 24,1 | 12,8 | +6,4 % |
+| 5 | 44 | 162 | Panzerung 19,2 → 21,0 (−16,1 % → −17,4 %) | +1,51 % | 29,1 | 15,3 | +8,0 % |
+| 6 | 51 | 213 | Panzerung 21,0 → 22,8 (−17,4 % → −18,6 %) | +1,49 % | 34,3 | 17,7 | +9,6 % |
+| 7 | 61 | 274 | Panzerung 22,8 → 24,6 (−18,6 % → −19,7 %) | +1,47 % | 41,6 | 21,2 | +11,3 % |
+| 8 | 72 | 346 | Panzerung 24,6 → 26,4 (−19,7 % → −20,9 %) | +1,44 % | 49,8 | 25,0 | +12,9 % |
+| 9 | 85 | 431 | Panzerung 26,4 → 28,2 (−20,9 % → −22,0 %) | +1,42 % | 59,7 | 29,5 | +14,5 % |
+| 10 | 100 | 531 | Panzerung 28,2 → 30,0 (−22,0 % → −23,1 %) | +1,40 % | 71,2 | 34,7 | +16,1 % |
+| 11 | 118 | 649 | Panzerung 30,0 → 31,8 (−23,1 % → −24,1 %) | +1,38 % | 85,2 | 41,0 | +17,7 % |
+| 12 | 139 | 788 | Panzerung 31,8 → 33,6 (−24,1 % → −25,1 %) | +1,37 % | 102 | 48,3 | +19,3 % |
+| 13 | 164 | 952 | Panzerung 33,6 → 35,4 (−25,1 % → −26,1 %) | +1,35 % | 122 | 56,9 | +20,9 % |
+| 14 | 193 | 1.145 | Panzerung 35,4 → 37,2 (−26,1 % → −27,1 %) | +1,33 % | 145 | 67,0 | +22,5 % |
+| 15 | 228 | 1.373 | Panzerung 37,2 → 39,0 (−27,1 % → −28,1 %) | +1,31 % | 174 | 79,2 | +24,1 % |
+| 16 | 269 | 1.642 | Panzerung 39,0 → 40,8 (−28,1 % → −29,0 %) | +1,29 % | 208 | 93,4 | +25,7 % |
+| 17 | 318 | 1.960 | Panzerung 40,8 → 42,6 (−29,0 % → −29,9 %) | +1,28 % | 249 | 110 | +27,3 % |
+| 18 | 375 | 2.335 | Panzerung 42,6 → 44,4 (−29,9 % → −30,7 %) | +1,26 % | 297 | 130 | +28,9 % |
+| 19 | 443 | 2.778 | Panzerung 44,4 → 46,2 (−30,7 % → −31,6 %) | +1,25 % | 355 | 154 | +30,5 % |
+| 20 | 522 | 3.300 | Panzerung 46,2 → 48,0 (−31,6 % → −32,4 %) | +1,23 % | 424 | 181 | +32,1 % |

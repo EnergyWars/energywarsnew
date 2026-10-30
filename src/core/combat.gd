@@ -103,15 +103,13 @@ func _laser(tower: Building, target: Object, delta: float) -> void:
 		return
 	tower.energy -= cost
 	tower.target_id = target.id
-	var amount := Formulas.damage(tower) * delta
-	tower.laser_damage += amount
+	var position: Vector2 = target.position
+	tower.laser_damage += damage(target, Formulas.damage(tower) * delta, false, false, delta)
 	tower.laser_timer += delta
-	var report := tower.laser_timer >= GameConfig.LASER_REPORT
-	if report:
-		events.emit("hit", {"position": target.position, "amount": tower.laser_damage, "crit": false})
+	if tower.laser_timer >= GameConfig.LASER_REPORT:
+		events.emit("hit", {"position": position, "amount": tower.laser_damage, "crit": false})
 		tower.laser_damage = 0.0
 		tower.laser_timer = 0.0
-	damage(target, amount, false, false)
 
 
 func _chain(tower: Building, first: Object, amount: float, crit: bool) -> void:
@@ -370,52 +368,57 @@ func nearest_player_building(origin: Vector2, reach: float = INF) -> Building:
 	return best
 
 
-func damage(target: Object, amount: float, crit: bool, report: bool = true) -> void:
+func damage(target: Object, amount: float, crit: bool, report: bool = true, share: float = 1.0) -> float:
 	if target is Enemy:
-		damage_enemy(target as Enemy, amount, crit, report)
-	elif target is Obstacle:
-		damage_obstacle(target as Obstacle, amount, crit, report)
-	elif target is Building:
+		return damage_enemy(target as Enemy, amount, crit, report, share)
+	if target is Obstacle:
+		return damage_obstacle(target as Obstacle, amount, crit, report)
+	if target is Building:
 		var building := target as Building
 		if report:
-			events.emit("hit", {"position": building.position, "amount": amount, "crit": crit})
-		damage_building(building, amount)
+			events.emit("hit", {"position": building.position, "amount": Formulas.mitigate(amount, Formulas.armor(building), share), "crit": crit})
+		return damage_building(building, amount, share)
+	return 0.0
 
 
-func damage_enemy(enemy: Enemy, amount: float, crit: bool, report: bool = true) -> void:
+func damage_enemy(enemy: Enemy, amount: float, crit: bool, report: bool = true, share: float = 1.0) -> float:
 	if not enemy.is_alive():
-		return
-	enemy.hp -= amount
+		return 0.0
+	var dealt := Formulas.mitigate(amount, enemy.armor(), share)
+	enemy.hp -= dealt
 	if report:
-		events.emit("hit", {"position": enemy.position, "amount": amount, "crit": crit})
+		events.emit("hit", {"position": enemy.position, "amount": dealt, "crit": crit})
 	if not enemy.is_alive():
 		economy.enemy_killed(enemy)
+	return dealt
 
 
-func damage_obstacle(obstacle: Obstacle, amount: float, crit: bool, report: bool = true) -> void:
+func damage_obstacle(obstacle: Obstacle, amount: float, crit: bool, report: bool = true) -> float:
 	if not obstacle.is_alive():
-		return
+		return 0.0
 	obstacle.hp -= amount
 	if report:
 		events.emit("hit", {"position": obstacle.position, "amount": amount, "crit": crit})
 	if not obstacle.is_alive():
 		state.clear_obstacle(obstacle.cell)
 		events.emit("cleared", {"position": obstacle.position, "obstacle": obstacle.type, "cell": obstacle.cell})
+	return amount
 
 
-func damage_building(building: Building, amount: float) -> void:
+func damage_building(building: Building, amount: float, share: float = 1.0) -> float:
 	if not building.is_alive() or building.immune:
-		return
-	var remaining := amount
+		return 0.0
+	var remaining := Formulas.mitigate(amount, Formulas.armor(building), share)
 	if building.is_player():
 		building.hit_time = state.time
 		remaining = _absorb(building, remaining)
 	if remaining <= 0.0:
-		return
+		return 0.0
 	building.hp -= remaining
 	events.emit("building_hit", {"id": building.id, "position": building.position, "amount": remaining, "player": building.is_player()})
 	if not building.is_alive():
 		destroy(building)
+	return remaining
 
 
 func _absorb(building: Building, amount: float) -> float:

@@ -82,3 +82,49 @@ class StoreTest(unittest.TestCase):
         with self.assertRaises(ValidationFailed):
             self.store.promote()
         self.assertEqual(self.config.read_text(encoding="utf-8"), CONFIG.read_text(encoding="utf-8"))
+
+
+class ContentPromoteTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        data = self.tmp / "data"
+        data.mkdir()
+        shutil.copy(TOOL_DIR / "data" / "game.json", data / "game.json")
+        self.config = self.tmp / "game_config.gd"
+        shutil.copy(CONFIG, self.config)
+        self.store = DocumentStore(data, self.config, self.tmp / "upgrade_overrides.json")
+        self.content = self.tmp / "content_overrides.json"
+
+    def test_default_edit_writes_no_content_file(self):
+        self.store.save_edited(edited(lambda d: building(d, "solar").update(cost=50)))
+        self.store.promote()
+        self.assertFalse(self.content.exists())
+
+    def test_content_edit_writes_file_and_keeps_defaults(self):
+        self.store.save_edited(edited(lambda d: d["enemies"]["wasp"].update(hp=77.0)))
+        self.store.promote()
+        written = json.loads(self.content.read_text(encoding="utf-8"))
+        self.assertEqual(written["enemies"]["wasp"]["hp"], 77.0)
+        self.assertEqual(self.store.load_original()["defaults"]["enemies"]["wasp"]["hp"], load_game()["enemies"]["wasp"]["hp"])
+
+    def test_second_apply_keeps_earlier_overrides_and_revert_removes_file(self):
+        self.store.save_edited(edited(lambda d: d["enemies"]["wasp"].update(hp=77.0)))
+        self.store.promote()
+        self.store.save_edited(edited(lambda d: building(d, "solar").update(cost=50)) | {"enemies": self.store.load_original()["enemies"]})
+        self.store.promote()
+        self.assertEqual(json.loads(self.content.read_text(encoding="utf-8"))["enemies"]["wasp"]["hp"], 77.0)
+        reverted = self.store.load_original()
+        reverted["enemies"]["wasp"]["hp"] = load_game()["enemies"]["wasp"]["hp"]
+        self.store.save_edited(reverted)
+        self.store.promote()
+        self.assertFalse(self.content.exists())
+
+    def test_invalid_content_is_rejected(self):
+        with self.assertRaises(ValidationFailed):
+            self.store.save_edited(edited(lambda d: d["armor"].update(constant=0)))
+
+    def test_building_armor_reaches_the_config(self):
+        self.store.save_edited(edited(lambda d: building(d, "bastion").update(armor=61.0)))
+        self.store.promote()
+        self.assertIn('"armor": 61.0', self.config.read_text(encoding="utf-8"))

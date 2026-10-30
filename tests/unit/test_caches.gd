@@ -86,6 +86,9 @@ func test_building_stats_are_cached_until_levels_or_elevation_change() -> void:
 	assert_gt(Formulas.attack_range(zapper), reach)
 	zapper.set_level(GameConfig.TRACK_HULL, 2)
 	assert_gt(zapper.max_hp(), hp)
+	var armor := Formulas.armor(zapper)
+	zapper.set_level(GameConfig.TRACK_ARMOR, 2)
+	assert_gt(Formulas.armor(zapper), armor)
 	state.money = 100000
 	var before := Formulas.capacity(zapper)
 	assert_true(battle.upgrade(zapper.id, GameConfig.TRACK_CAPACITY))
@@ -110,7 +113,7 @@ func test_building_geometry_is_cached_from_definition() -> void:
 
 
 func test_enemy_flags_are_cached_from_definition() -> void:
-	for kind: String in GameConfig.ENEMIES:
+	for kind: String in GameConfig.enemy_kinds():
 		var definition: Dictionary = GameConfig.enemy(kind)
 		var enemy := Enemy.new(1, kind, Vector2.ZERO)
 		assert_eq(enemy.speed(), float(definition.speed), kind)

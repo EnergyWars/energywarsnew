@@ -17,6 +17,25 @@ function index(doc) {
   for (const entry of doc.buildings) {
     for (const [key, value] of Object.entries(entry)) if (key !== "id") flatten(value, `buildings.${entry.id}.${key}`, flat);
   }
+  (doc.levels ?? []).forEach((level) => flatten(level, `levels.${level.id}`, flat));
+  if (doc.levels) flat["levels.order"] = doc.levels.map((level) => level.id).join(", ");
+  if (doc.routes !== undefined) flat.routes = Array.isArray(doc.routes) ? doc.routes.map((route) => route.join("-")).join(", ") : "auto";
+  indexGroups(doc.groups, flat);
+  return flat;
+}
+
+export function indexGroups(groups, flat) {
+  if (!Array.isArray(groups)) return flat;
+  const list = groups.filter((area) => area && typeof area === "object");
+  if (!list.length) return flat;
+  flat["groups.order"] = list.map((area) => area.name).join(", ");
+  for (const area of list) {
+    const base = `groups.${area.name}`;
+    const sections = (Array.isArray(area.sections) ? area.sections : []).filter((section) => section && typeof section === "object");
+    flat[`${base}.items`] = (area.items ?? []).join(", ");
+    flat[`${base}.sections`] = sections.map((section) => section.name).join(", ");
+    for (const section of sections) flat[`${base}.section.${section.name}`] = (section.items ?? []).join(", ");
+  }
   return flat;
 }
 

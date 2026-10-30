@@ -151,5 +151,5 @@ func test_spawners_without_guard_config_get_none() -> void:
 	assert_true(GameConfig.guard(GameConfig.TURRET).is_empty())
 	assert_false(GameConfig.guard(GameConfig.NEST).is_empty())
 	assert_false(GameConfig.guard(GameConfig.CAMP).is_empty())
-	assert_true(GameConfig.ENEMIES.has(str(GameConfig.guard(GameConfig.NEST).kind)))
-	assert_true(GameConfig.ENEMIES.has(str(GameConfig.guard(GameConfig.CAMP).kind)))
+	assert_true(GameConfig.enemy_kinds().has(str(GameConfig.guard(GameConfig.NEST).kind)))
+	assert_true(GameConfig.enemy_kinds().has(str(GameConfig.guard(GameConfig.CAMP).kind)))

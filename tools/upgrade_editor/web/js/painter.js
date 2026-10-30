@@ -7,7 +7,7 @@ function polygonPoints(cx, cy, radius, sides, rotation = 0) {
   return Array.from({ length: sides }, (_, i) => [cx + Math.cos(rotation + (TAU * i) / sides) * radius, cy + Math.sin(rotation + (TAU * i) / sides) * radius]);
 }
 
-function fillPoly(ctx, points, color) {
+export function fillPoly(ctx, points, color) {
   ctx.beginPath();
   points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
   ctx.closePath();
@@ -19,21 +19,21 @@ function poly(ctx, cx, cy, radius, sides, rotation, color) {
   fillPoly(ctx, polygonPoints(cx, cy, radius, sides, rotation), color);
 }
 
-function circle(ctx, cx, cy, radius, color) {
+export function circle(ctx, cx, cy, radius, color) {
   ctx.beginPath();
   ctx.arc(cx, cy, Math.max(radius, 0), 0, TAU);
   ctx.fillStyle = color;
   ctx.fill();
 }
 
-function ellipse(ctx, cx, cy, rx, ry, color) {
+export function ellipse(ctx, cx, cy, rx, ry, color) {
   ctx.beginPath();
   ctx.ellipse(cx, cy, Math.max(rx, 0.01), Math.max(ry, 0.01), 0, 0, TAU);
   ctx.fillStyle = color;
   ctx.fill();
 }
 
-function line(ctx, x1, y1, x2, y2, color, width) {
+export function line(ctx, x1, y1, x2, y2, color, width) {
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
@@ -43,7 +43,7 @@ function line(ctx, x1, y1, x2, y2, color, width) {
   ctx.stroke();
 }
 
-function arc(ctx, cx, cy, radius, start, end, color, width) {
+export function arc(ctx, cx, cy, radius, start, end, color, width) {
   ctx.beginPath();
   ctx.arc(cx, cy, radius, start, end);
   ctx.strokeStyle = color;
@@ -52,7 +52,7 @@ function arc(ctx, cx, cy, radius, start, end, color, width) {
   ctx.stroke();
 }
 
-function rect(ctx, x, y, w, h, color) {
+export function rect(ctx, x, y, w, h, color) {
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
 }

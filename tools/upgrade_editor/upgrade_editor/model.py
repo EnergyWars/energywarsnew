@@ -1,3 +1,6 @@
+from .content_model import check_building_armor, validate_content
+from .expr import is_formula
+
 SCHEMA = 1
 MAX_LEVELS = 200
 PLAN_MODES = ("formula", "table")
@@ -6,10 +9,20 @@ HISTORY_LIMIT = 30
 HISTORY_TEXT_LIMIT = 500
 TRACK_KEYS = ("max", "step", "price", "growth", "energy")
 CURVE_KEYS = ("max", "gain", "gain_growth", "price", "growth")
+PLAN_KEYS = ("mode", "levels", "max", "cost", "effect")
+BUILDING_EXTRA_KEYS = ("plans", "curves", "armor")
+READONLY_BUILDING_KEYS = ("description_key", "cost_every")
+MAX_NUMBER = 1e15
+GROUP_NAME_LIMIT = 60
+GROUP_AREA_LIMIT = 50
+GROUP_SECTION_LIMIT = 50
+GROUP_ITEM_LIMIT = 500
+GROUP_AREA_KEYS = ("name", "items", "sections")
+GROUP_SECTION_KEYS = ("name", "items")
 
 
 def _is_number(value):
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and abs(value) <= MAX_NUMBER
 
 
 def _is_integer(value):
@@ -65,7 +78,84 @@ def validate(document, original):
     originals = {entry["id"]: entry for entry in original["buildings"]}
     for entry in buildings:
         _check_building(entry, originals[entry["id"]], tracks, errors)
+        check_building_armor(entry, errors)
+    _check_groups(document.get("groups"), _known_items(buildings), errors)
+    errors.extend(validate_content(document, original))
     return errors
+
+
+def _known_items(buildings):
+    known = set()
+    for entry in buildings:
+        listed = entry.get("tracks")
+        if isinstance(listed, list):
+            known.update(f"{entry['id']}:{track}" for track in listed if isinstance(track, str))
+    return known
+
+
+def _group_name_valid(name):
+    return isinstance(name, str) and bool(name.strip()) and len(name.strip()) <= GROUP_NAME_LIMIT
+
+
+def _check_group_shape(value, keys, path, errors):
+    if not isinstance(value, dict) or set(value) - set(keys):
+        errors.append(_error("GROUPS", path))
+        return False
+    if not _group_name_valid(value.get("name")):
+        errors.append(_error("GROUP_NAME", f"{path}.name"))
+    return True
+
+
+def _check_group_items(items, known, path, errors):
+    if items is None:
+        return
+    if not isinstance(items, list) or len(items) > GROUP_ITEM_LIMIT:
+        errors.append(_error("GROUPS", path))
+        return
+    seen = set()
+    for index, item in enumerate(items):
+        if not isinstance(item, str) or item not in known:
+            errors.append(_error("GROUP_ITEM", f"{path}.{index}"))
+            continue
+        if item in seen:
+            errors.append(_error("GROUP_DUPLICATE", f"{path}.{index}"))
+        seen.add(item)
+
+
+def _check_group_names(entries, path, errors):
+    seen = set()
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
+            continue
+        name = entry["name"].strip().lower()
+        if name and name in seen:
+            errors.append(_error("GROUP_DUPLICATE", f"{path}.{index}.name"))
+        seen.add(name)
+
+
+def _check_groups(groups, known, errors):
+    if groups is None:
+        return
+    if not isinstance(groups, list) or len(groups) > GROUP_AREA_LIMIT:
+        errors.append(_error("GROUPS", "groups"))
+        return
+    for area_index, area in enumerate(groups):
+        path = f"groups.{area_index}"
+        if not _check_group_shape(area, GROUP_AREA_KEYS, path, errors):
+            continue
+        _check_group_items(area.get("items"), known, f"{path}.items", errors)
+        sections = area.get("sections")
+        if sections is None:
+            continue
+        if not isinstance(sections, list) or len(sections) > GROUP_SECTION_LIMIT:
+            errors.append(_error("GROUPS", f"{path}.sections"))
+            continue
+        for section_index, section in enumerate(sections):
+            where = f"{path}.sections.{section_index}"
+            if _check_group_shape(section, GROUP_SECTION_KEYS, where, errors):
+                _check_group_items(section.get("items"), known, f"{where}.items", errors)
+        _check_group_names(sections, f"{path}.sections", errors)
+    _check_group_names(groups, "groups", errors)
 
 
 def _check_history(history, errors):
@@ -76,8 +166,8 @@ def _check_history(history, errors):
         valid = (
             isinstance(items, list)
             and len(items) <= HISTORY_LIMIT
+            and all(isinstance(item, str) and len(item) <= HISTORY_TEXT_LIMIT and is_formula(item) for item in items)
             and len(set(items)) == len(items)
-            and all(isinstance(item, str) and item.strip() and len(item) <= HISTORY_TEXT_LIMIT for item in items)
         )
         if not valid:
             errors.append(_error("HISTORY", f"formula_history.{kind}"))
@@ -85,6 +175,12 @@ def _check_history(history, errors):
 
 def _check_building(entry, source, tracks, errors):
     path = f"buildings.{entry['id']}"
+    for key in entry:
+        if key not in source and key not in BUILDING_EXTRA_KEYS:
+            errors.append(_error("UNKNOWN_KEY", f"{path}.{key}"))
+    for key in READONLY_BUILDING_KEYS:
+        if entry.get(key) != source.get(key):
+            errors.append(_error("READONLY", f"{path}.{key}"))
     if not _is_integer(entry.get("cost")) or entry["cost"] < 0:
         errors.append(_error("COST", f"{path}.cost"))
     if not _is_integer(entry.get("upgrade_base")) or entry["upgrade_base"] < 1:
@@ -131,6 +227,9 @@ def _check_plans(plans, listed, path, errors):
         if not isinstance(plan, dict) or plan.get("mode") not in PLAN_MODES:
             errors.append(_error("PLAN", where))
             continue
+        for key in plan:
+            if key not in PLAN_KEYS:
+                errors.append(_error("UNKNOWN_KEY", f"{where}.{key}"))
         levels = plan.get("levels")
         if not isinstance(levels, list) or not 1 <= len(levels) <= MAX_LEVELS:
             errors.append(_error("PLAN_LEVELS", f"{where}.levels"))
@@ -141,7 +240,17 @@ def _check_plans(plans, listed, path, errors):
                 errors.append(_error("PLAN_LEVELS", f"{where}.levels.{index}"))
         if plan["mode"] == "formula":
             for key in ("cost", "effect"):
-                if not isinstance(plan.get(key), str) or not plan[key].strip():
+                if not isinstance(plan.get(key), str) or len(plan[key]) > HISTORY_TEXT_LIMIT or not is_formula(plan[key]):
                     errors.append(_error("PLAN_FORMULA", f"{where}.{key}"))
             if plan.get("max") != len(levels):
                 errors.append(_error("PLAN_FORMULA", f"{where}.max"))
+
+
+MALFORMED = (AttributeError, TypeError, KeyError, IndexError, ValueError, OverflowError, RecursionError)
+
+
+def safe_validate(document, original):
+    try:
+        return validate(document, original)
+    except MALFORMED:
+        return [_error("TYPE", "document")]

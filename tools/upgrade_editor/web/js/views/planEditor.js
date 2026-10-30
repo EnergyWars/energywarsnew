@@ -1,10 +1,10 @@
 import { h } from "../dom.js";
 import { t } from "../i18n.js";
 import { number } from "../format.js";
-import { trackConfig, planOf, maxLevel, buildFormulaLevels, multiplier, roundTo, COST_VARIABLES, EFFECT_VARIABLES, MAX_LEVELS } from "../formulas.js";
+import { trackConfig, planOf, maxLevel, buildFormulaLevels, multiplier, roundTo, writeLevels, COST_VARIABLES, EFFECT_VARIABLES, MAX_LEVELS } from "../formulas.js";
 import { ExpressionError } from "../expr.js";
-import { numberField } from "./components.js";
-import { setDraftLevels } from "./valueTable.js";
+import { numberField, searchSelect } from "./components.js";
+import { draftKey } from "./valueTable.js";
 
 const TOOLS = ["params", "formula", "table"];
 export const HISTORY_LIMIT = 30;
@@ -106,27 +106,36 @@ function report(ctx, entry, track, error) {
   ctx.render();
 }
 
+function commitLevels(ctx, entry, track, levels, change = () => {}) {
+  delete ctx.view.planErrors[inputKey(entry, track, "fill")];
+  delete ctx.view.drafts[draftKey(entry, track)];
+  ctx.store.update((doc) => {
+    writeLevels(doc.buildings.find((item) => item.id === entry.id), track, levels.map((level) => ({ ...level })));
+    change(doc);
+  });
+}
+
 export function fillFromParams(ctx, entry, track) {
+  let levels;
   try {
-    setDraftLevels(ctx, entry, track, paramLevels(ctx.doc, entry, paramInputs(ctx, entry, track)));
+    levels = paramLevels(ctx.doc, entry, paramInputs(ctx, entry, track));
   } catch (error) {
     report(ctx, entry, track, error);
     return;
   }
-  delete ctx.view.planErrors[inputKey(entry, track, "fill")];
-  ctx.render();
+  commitLevels(ctx, entry, track, levels);
 }
 
 export function fillFromFormula(ctx, entry, track) {
   const inputs = formulaInputs(ctx, entry, track);
+  let levels;
   try {
-    setDraftLevels(ctx, entry, track, buildFormulaLevels(ctx.doc, entry, inputs));
+    levels = buildFormulaLevels(ctx.doc, entry, inputs);
   } catch (error) {
     report(ctx, entry, track, error);
     return;
   }
-  delete ctx.view.planErrors[inputKey(entry, track, "fill")];
-  ctx.store.update((doc) => {
+  commitLevels(ctx, entry, track, levels, (doc) => {
     rememberFormula(doc, "cost", inputs.cost);
     rememberFormula(doc, "effect", inputs.effect);
   });
@@ -173,17 +182,16 @@ function textField(ctx, entry, track, key, label, desc) {
 function historyPicker(ctx, kind, pickKey, commit) {
   const items = formulaHistory(ctx.doc, kind);
   const picked = items.includes(ctx.view.drafts[pickKey]) ? ctx.view.drafts[pickKey] : "";
-  const select = h("select", { "aria-label": t("plan.history") },
-    h("option", { value: "" }, t("plan.historyPick", { count: items.length })),
-    items.map((item) => h("option", { value: item, selected: item === picked }, item)));
-  select.addEventListener("change", () => {
-    if (!select.value) {
-      delete ctx.view.drafts[pickKey];
-      ctx.render();
-      return;
-    }
-    ctx.view.drafts[pickKey] = select.value;
-    commit(select.value);
+  const select = searchSelect({
+    options: items.map((item) => ({ value: item, label: item })),
+    value: picked || null,
+    label: t("plan.history"),
+    prompt: t("plan.historyPick", { count: items.length }),
+    disabled: items.length === 0,
+    onChange: (value) => {
+      ctx.view.drafts[pickKey] = value;
+      commit(value);
+    },
   });
   const remove = h("button", { class: "danger", disabled: !picked, title: t("plan.historyDelete"), onclick: () => {
     delete ctx.view.drafts[pickKey];

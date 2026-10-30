@@ -127,7 +127,8 @@ export function deriveRows(entry, levels) {
       spentFactor: known ? (purchase + upgrades) / build : null,
       gain: level.gain,
       effect,
-      benefit: before > 0 ? ((level.gain / before) * 100) / level.cost * 1000 : null,
+      totalEffect: (effect - 1) * 100,
+      unitCost: before > 0 && level.gain > 0 ? level.cost / ((level.gain / before) * 100) : null,
       single: known ? (level.gain / (level.cost / build)) * 100 : null,
       total: known ? (effect / (1 + upgrades / build)) * 100 : null,
     };
@@ -149,8 +150,9 @@ export function baseRow(entry) {
     spentFactor: build > 0 ? purchase / build : null,
     gain: null,
     effect: 1,
-    benefit: null,
-    single: null,
+    totalEffect: 0,
+    unitCost: null,
+    single: build > 0 ? 100 : null,
     total: build > 0 ? 100 : null,
   };
 }
@@ -159,7 +161,7 @@ export function deriveRowsFromBase(entry, levels) {
   return [baseRow(entry), ...deriveRows(entry, levels)];
 }
 
-export const EDITABLE_FIELDS = ["cost", "costFactor", "spent", "spentFactor", "gain", "effect", "single", "total", "benefit"];
+export const EDITABLE_FIELDS = ["cost", "costFactor", "spent", "spentFactor", "gain", "effect", "totalEffect", "single", "total", "unitCost"];
 
 export function editLevel(entry, levels, index, field, value) {
   const next = levels.map((level) => ({ ...level }));
@@ -178,10 +180,11 @@ export function editLevel(entry, levels, index, field, value) {
     spentFactor: () => (build > 0 ? costOf(value * build - purchase - upgradesBefore) : null),
     single: () => (value > 0 && level.gain > 0 && build > 0 ? costOf((level.gain * build) / (value / 100)) : null),
     total: () => (value > 0 && build > 0 && effectAfter > 0 ? costOf(build * (effectAfter / (value / 100) - 1) - upgradesBefore) : null),
-    benefit: () => (value > 0 && level.gain > 0 && effectBefore > 0 ? costOf((((level.gain / effectBefore) * 100) / value) * 1000) : null),
+    unitCost: () => (value > 0 && level.gain > 0 && effectBefore > 0 ? costOf(value * ((level.gain / effectBefore) * 100)) : null),
   };
   if (field === "gain") level.gain = roundTo(value);
   else if (field === "effect") level.gain = roundTo(value - effectBefore);
+  else if (field === "totalEffect") level.gain = roundTo(value / 100 + 1 - effectBefore);
   else {
     const cost = setters[field]();
     if (cost !== null) level.cost = cost;
@@ -196,6 +199,7 @@ export function writeLevels(entry, track, levels) {
 
 const GAIN_BASES = {
   hull: (entry) => ({ value: entry.hp }),
+  armor: (entry) => ({ value: entry.armor }),
   output: (entry) => ({ value: entry.stats.output }),
   capacity: (entry) => ({ value: entry.stats.capacity }),
   rate: (entry) => ({ value: entry.stats.export ?? entry.stats.rate }),

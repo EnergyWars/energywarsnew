@@ -10,12 +10,15 @@ config/name_localized={
 "en": "Energy Wars"
 }
 config/description="Harvest the sun, beam power across the battlefield and wipe out every enemy base."
+config/version="1.0.0"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.svg"
 config/quit_on_go_back=false
 run/low_processor_mode=false
 run/max_fps=60
+boot_splash/bg_color=Color(0.043137256, 0.0627451, 0.1254902, 1)
+boot_splash/show_image=false
 
 [display]
 

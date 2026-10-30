@@ -7,8 +7,11 @@ import { buildMenu } from "./views/buildMenu.js";
 import { tracksView } from "./views/tracksView.js";
 import { overviewView } from "./views/overviewView.js";
 import { changesView, computeChanges } from "./views/changesView.js";
+import { levelsView } from "./views/levelsView.js";
+import { monstersView } from "./views/monstersView.js";
+import { balanceView } from "./views/balanceView.js";
 
-const TABS = ["buildings", "overview", "tracks", "changes"];
+const TABS = ["buildings", "overview", "tracks", "levels", "monsters", "balance", "changes"];
 const view = { tab: "buildings", building: null, category: "all", open: new Set(), drafts: {}, tools: {}, hidden: new Set(), collapsed: new Set(), gainModes: {}, planErrors: {}, sort: { key: "benefit", direction: "desc" }, errors: [] };
 let store;
 let names = {};
@@ -80,6 +83,9 @@ function body() {
   const ctx = context();
   if (view.tab === "overview") return overviewView(ctx, view.sort, (key) => { view.sort = { key, direction: view.sort.key === key && view.sort.direction === "desc" ? "asc" : "desc" }; render(); });
   if (view.tab === "tracks") return tracksView(ctx);
+  if (view.tab === "levels") return levelsView(ctx);
+  if (view.tab === "monsters") return monstersView(ctx);
+  if (view.tab === "balance") return balanceView(ctx);
   if (view.tab === "changes") return changesView(ctx);
   const entry = ctx.doc.buildings.find((item) => item.id === view.building) ?? ctx.doc.buildings[0];
   view.building = entry.id;

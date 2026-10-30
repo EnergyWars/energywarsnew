@@ -16,6 +16,19 @@ class PatcherTest(unittest.TestCase):
         patched = patch_config(self.text, document)
         self.assertIn('TRACK_RATE: {"max": 30, "step": 0.2, "price": 0.5, "growth": 1.3},', patched)
 
+    def test_armour_track_values_are_written(self):
+        document = edited(lambda d: d["tracks"]["armor"].update(max=25, step=0.2, price=0.12))
+        patched = patch_config(self.text, document)
+        self.assertIn('TRACK_ARMOR: {"max": 25, "step": 0.2, "price": 0.12},', patched)
+        self.assertIn('TRACK_HULL: {"max": 30, "step": 0.15, "price": 0.18},', patched)
+
+    def test_armour_track_can_be_removed_from_a_tower(self):
+        document = edited(lambda d: building(d, "zapper").update(tracks=[track for track in building(d, "zapper")["tracks"] if track != "armor"]))
+        patched = patch_config(self.text, document)
+        self.assertIn('"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_TRANSFER, TRACK_HULL]},', patched)
+        self.assertEqual(self.text.count("TRACK_HULL, TRACK_ARMOR]"), 7)
+        self.assertEqual(patched.count("TRACK_HULL, TRACK_ARMOR]"), 6)
+
     def test_energy_and_growth_constants(self):
         document = edited(lambda d: (d["tracks"]["overclock"].update(energy=1.5), d["system"].update(track_growth=1.2)))
         patched = patch_config(self.text, document)
@@ -30,14 +43,14 @@ class PatcherTest(unittest.TestCase):
     def test_building_scalars_are_written(self):
         document = edited(lambda d: building(d, "solar").update(cost=45, hp=75.5))
         patched = patch_config(self.text, document)
-        self.assertIn('SOLAR: {"team": TEAM_PLAYER, "cost": 45, "upgrade_base": 40, "hp": 75.5,', patched)
+        self.assertIn('SOLAR: {"team": TEAM_PLAYER, "armor": 0.0, "cost": 45, "upgrade_base": 40, "hp": 75.5,', patched)
         self.assertEqual(patched.count('"cost": 45'), 1)
 
     def test_upgrade_base_is_updated_or_inserted(self):
         document = edited(lambda d: (building(d, "core").update(upgrade_base=200), building(d, "solar").update(upgrade_base=99)))
         patched = patch_config(self.text, document)
-        self.assertIn('CORE: {"team": TEAM_PLAYER, "cost": 0, "upgrade_base": 200,', patched)
-        self.assertIn('SOLAR: {"team": TEAM_PLAYER, "cost": 40, "upgrade_base": 99, "hp": 70.0,', patched)
+        self.assertIn('CORE: {"team": TEAM_PLAYER, "armor": 20.0, "cost": 0, "upgrade_base": 200,', patched)
+        self.assertIn('SOLAR: {"team": TEAM_PLAYER, "armor": 0.0, "cost": 40, "upgrade_base": 99, "hp": 70.0,', patched)
 
     def test_upgrade_base_equal_to_cost_stays_implicit(self):
         document = edited(lambda d: building(d, "solar").update(cost=60, upgrade_base=60))
@@ -51,7 +64,7 @@ class PatcherTest(unittest.TestCase):
         document = edited(lambda d: building(d, "bulwark").update(hp=1700.0))
         patched = patch_config(self.text, document)
         self.assertIn('"hp": 1700.0', patched)
-        self.assertIn('NEST: {"team": TEAM_ENEMY, "hp": 1200.0', patched)
+        self.assertIn('NEST: {"team": TEAM_ENEMY, "armor": 30.0, "hp": 1200.0', patched)
 
     def test_flat_and_nested_stats_are_written(self):
         def mutate(d):
@@ -71,3 +84,25 @@ class PatcherTest(unittest.TestCase):
     def test_missing_target_raises(self):
         with self.assertRaises(ValueError):
             patch_config("const TRACKS := {}\n", load_game())
+
+    def test_building_armor_is_written(self):
+        patched = patch_config(self.text, edited(lambda d: building(d, "bastion").update(armor=55.5)))
+        self.assertIn('BASTION: {"team": TEAM_PLAYER, "armor": 55.5, "cost": 130,', patched)
+        self.assertEqual(patched.count('"armor": 55.5'), 1)
+
+    def test_integer_armor_keeps_float_form(self):
+        patched = patch_config(self.text, edited(lambda d: building(d, "solar").update(armor=3)))
+        self.assertIn('SOLAR: {"team": TEAM_PLAYER, "armor": 3.0, "cost": 40,', patched)
+
+    def test_document_without_armor_keeps_text(self):
+        def strip(d):
+            for entry in d["buildings"]:
+                entry.pop("armor", None)
+        self.assertEqual(patch_config(self.text, edited(strip)), self.text)
+
+    def test_content_sections_are_not_written_to_config(self):
+        def mutate(d):
+            d["armor"]["constant"] = 50.0
+            d["enemies"]["wasp"]["hp"] = 99.0
+            d["levels"][0]["money"] = 1
+        self.assertEqual(patch_config(self.text, edited(mutate)), self.text)

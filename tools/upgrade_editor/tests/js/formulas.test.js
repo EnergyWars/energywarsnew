@@ -63,6 +63,13 @@ test("benefit decreases when the price rises", () => {
 test("usage lists buildings sharing a track", () => {
   assert.ok(usage(game, "hull").length > 5);
   assert.deepEqual(usage(game, "chain"), ["tesla"]);
+  assert.deepEqual(usage(game, "armor"), ["zapper", "laser", "healer", "bastion", "rover", "tesla", "plasma"]);
+});
+
+test("armour track scales the base armour like every percentage track", () => {
+  const config = trackConfig(game, find(game, "zapper"), "armor");
+  assert.equal(config, game.tracks.armor);
+  assert.ok(Math.abs(multiplier(config, 20) - 4) < 1e-9);
 });
 
 function tableEntry(buildCost, levels) {

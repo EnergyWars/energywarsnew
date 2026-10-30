@@ -15,7 +15,13 @@ export_credentials.cfg
 *.keystore
 *.jks
 *.pepk
+*.p12
+*.pem
+*.der
+keystore.properties
+*.env
 
 tools/upgrade_editor/data/archive/
 tools/upgrade_editor/data/last_changes.jsonl
+tools/upgrade_editor/data/last_config.diff
 __pycache__/

@@ -272,6 +272,40 @@ func test_track_config_prefers_kind_curves() -> void:
 	assert_eq(Formulas.multiplier(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), 1.0)
 
 
+func test_armour_track_scales_the_base_armour() -> void:
+	var zapper := _building(GameConfig.ZAPPER)
+	var base := float(GameConfig.building(GameConfig.ZAPPER).armor)
+	assert_eq(Formulas.base_armor(zapper), base)
+	assert_eq(Formulas.armor(zapper), base)
+	zapper.set_level(GameConfig.TRACK_ARMOR, 4)
+	assert_almost_eq(Formulas.armor(zapper), base * (1.0 + 4.0 * float(GameConfig.TRACKS[GameConfig.TRACK_ARMOR].step)), 0.0001)
+	assert_eq(Formulas.base_armor(zapper), base)
+	zapper.levels = {}
+	assert_eq(Formulas.armor(zapper), base)
+
+
+func test_armour_track_costs_follow_the_track_price() -> void:
+	var laser := _building(GameConfig.LASER)
+	var config: Dictionary = GameConfig.TRACKS[GameConfig.TRACK_ARMOR]
+	assert_eq(Formulas.upgrade_cost(laser, GameConfig.TRACK_ARMOR), int(round(120 * float(config.price))))
+	laser.set_level(GameConfig.TRACK_ARMOR, 3)
+	assert_eq(Formulas.upgrade_cost(laser, GameConfig.TRACK_ARMOR), int(round(120 * float(config.price) * pow(GameConfig.TRACK_GROWTH, 3))))
+	assert_eq(Formulas.max_level(laser, GameConfig.TRACK_ARMOR), int(config.max))
+	laser.set_level(GameConfig.TRACK_ARMOR, int(config.max))
+	assert_true(Formulas.is_maxed(laser, GameConfig.TRACK_ARMOR))
+
+
+func test_armour_upgrades_do_not_change_health() -> void:
+	var tesla := _building(GameConfig.TESLA)
+	var hp := tesla.max_hp()
+	tesla.set_level(GameConfig.TRACK_ARMOR, 5)
+	assert_eq(tesla.max_hp(), hp)
+	var armor := Formulas.armor(tesla)
+	tesla.set_level(GameConfig.TRACK_HULL, 5)
+	assert_eq(Formulas.armor(tesla), armor)
+	assert_gt(tesla.max_hp(), hp)
+
+
 func test_repair_values() -> void:
 	var bulwark := _building(GameConfig.BULWARK)
 	assert_eq(Formulas.repair_rate(bulwark), 5.0)

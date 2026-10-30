@@ -9,6 +9,27 @@ SETTINGS_OFF,Off,Aus
 LANGUAGE_AUTO,Auto,Automatisch
 LANGUAGE_DE,Deutsch,Deutsch
 LANGUAGE_EN,English,English
+ABOUT_TITLE,About Energy Wars,Über Energy Wars
+ABOUT_VERSION,Version %s,Version %s
+ABOUT_CREDITS,"Game design, programming, graphics and sound: WaffleHQ. All graphics and sounds are generated procedurally while you play. Made with the Godot Engine.","Spieldesign, Programmierung, Grafik und Sound: WaffleHQ. Alle Grafiken und Sounds entstehen während des Spiels prozedural. Entwickelt mit der Godot Engine."
+ABOUT_PRIVACY_TITLE,Privacy,Datenschutz
+ABOUT_PRIVACY_TEXT,"Energy Wars works completely offline. The game collects no personal data, shows no ads, has no in-app purchases, no analytics and no trackers, and it never connects to the internet. Your progress and settings are stored only on this device. If Android backup is turned on, Android may include them in your personal device backup; the developer has no access to it.","Energy Wars funktioniert vollständig offline. Das Spiel erhebt keine personenbezogenen Daten, zeigt keine Werbung, hat keine In-App-Käufe, keine Analyse- oder Tracking-Dienste und verbindet sich nie mit dem Internet. Spielstand und Einstellungen werden nur auf diesem Gerät gespeichert. Ist die Android-Sicherung aktiv, kann Android sie in deine persönliche Gerätesicherung aufnehmen; der Entwickler hat darauf keinen Zugriff."
+ABOUT_PRIVACY_OPEN,Open privacy policy,Datenschutzerklärung öffnen
+ABOUT_LICENSES_TITLE,Licenses,Lizenzen
+ABOUT_LICENSES_HINT,Energy Wars uses the following third-party components. Tap an entry to show the full license text.,"Energy Wars nutzt die folgenden Komponenten von Drittanbietern. Tippe auf einen Eintrag, um den vollständigen Lizenztext anzuzeigen."
+ABOUT_LIB_GEIST,Geist,Geist
+ABOUT_LIB_GEIST_INFO,Font by The Geist Project Authors · SIL Open Font License 1.1,Schriftart von The Geist Project Authors · SIL Open Font License 1.1
+ABOUT_LIB_ICONS,Material Icons,Material Icons
+ABOUT_LIB_ICONS_INFO,Icon font by Google · Apache License 2.0,Symbolschrift von Google · Apache License 2.0
+ABOUT_LIB_GODOT,Godot Engine,Godot Engine
+ABOUT_LIB_GODOT_INFO,Game engine by the Godot Engine contributors · MIT License,Spiel-Engine der Godot-Engine-Mitwirkenden · MIT-Lizenz
+ABOUT_LIB_GODOT_PARTS,Godot Engine third-party components,Drittkomponenten der Godot Engine
+ABOUT_LIB_GODOT_PARTS_INFO,%d components with their copyright holders and licenses,%d Komponenten mit Urhebern und Lizenzen
+ABOUT_LIB_ANDROID,AndroidX & Kotlin libraries,AndroidX- & Kotlin-Bibliotheken
+ABOUT_LIB_ANDROID_INFO,Android platform libraries bundled by the Godot Android template · Apache License 2.0,Android-Bibliotheken aus der Godot-Android-Vorlage · Apache License 2.0
+ABOUT_LICENSE_TEXT_INFO,License text used by the components above,"Lizenztext, den die Komponenten oben verwenden"
+ABOUT_COMPONENT_COPYRIGHT,© %s,© %s
+ABOUT_COMPONENT_LICENSE,License: %s,Lizenz: %s
 LEVEL_DAWN,First Light,Erstes Licht
 LEVEL_DAWN_INFO,"A lone nest. Find a good spot, wall yourself in and learn to beam power.","Ein einzelnes Nest. Finde einen guten Platz, mauere dich ein und lerne, Energie zu strahlen."
 LEVEL_BEETLE_HILL,Beetle Hill,Käferhügel
@@ -106,7 +127,8 @@ REASON_LINK_EXISTS,Already connected.,Schon verbunden.
 REASON_LINK_FULL,No free beam – upgrade beams or cut one.,Kein Strahl frei – Strahlen upgraden oder einen kappen.
 REASON_LINK_RANGE,Out of beam range.,Außer Strahlreichweite.
 REASON_UPGRADE_MONEY,Not enough money!,Nicht genug Geld!
-STAT_HP,Hull,Hülle
+STAT_HP,Health,Leben
+STAT_ARMOR,Armour,Panzerung
 STAT_DAMAGE,Damage,Schaden
 STAT_RANGE,Range (tiles),Reichweite (Felder)
 STAT_SPAWNS,Spawns,Erzeugt
@@ -183,7 +205,8 @@ TOAST_MODE_CONNECT,"Connect mode: drag to link, swipe to cut","Verbinden-Modus: 
 TOAST_SABOTAGE,Sabotage! A beam was cut.,Sabotage! Ein Strahl wurde gekappt.
 TOAST_PLACE,Tap the map to place: %s,Tippe auf die Karte: %s platzieren
 BUILDING_CORE_SHORT,Base,Basis
-TRACK_HULL,Armour,Panzerung
+TRACK_HULL,Health,Leben
+TRACK_ARMOR,Armour,Panzerung
 STAT_HIGH_GROUND,High ground,Hochebene
 ENEMY_SPITTER,Spitter,Speier
 ENEMY_DRONE,Drone,Drohne
@@ -364,7 +387,7 @@ TECH_WEAPONS_2_INFO,All towers +10% damage,Alle Türme +10 % Schaden
 TECH_OPTICS,Targeting optics,Zieloptik
 TECH_OPTICS_INFO,All towers +8% range,Alle Türme +8 % Reichweite
 TECH_BULWARK_HULL,Reinforced walls,Verstärkte Mauern
-TECH_BULWARK_HULL_INFO,Bulwark +25% HP,Bollwerk +25 % HP
+TECH_BULWARK_HULL_INFO,Bulwark +25% health,Bollwerk +25 % Leben
 TECH_HEALER,Medic tower,Heilturm
 TECH_HEALER_INFO,Unlocks the medic tower,Schaltet den Heilturm frei
 TECH_HEALER_POWER,Nano repair,Nanoreparatur
@@ -373,10 +396,10 @@ TECH_BASTION,Bulwark tower,Bollwerk-Turm
 TECH_BASTION_INFO,Unlocks the bulwark tower,Schaltet den Bollwerk-Turm frei
 TECH_SHIELD,Shield generator,Schildgenerator
 TECH_SHIELD_INFO,Unlocks the shield generator,Schaltet den Schildgenerator frei
-TECH_PLATING_1,Armour plating I,Panzerung I
-TECH_PLATING_1_INFO,All buildings +15% HP,Alle Gebäude +15 % HP
-TECH_PLATING_2,Armour plating II,Panzerung II
-TECH_PLATING_2_INFO,All buildings +15% HP,Alle Gebäude +15 % HP
+TECH_PLATING_1,Vitality I,Lebenskraft I
+TECH_PLATING_1_INFO,All buildings +15% health,Alle Gebäude +15 % Leben
+TECH_PLATING_2,Vitality II,Lebenskraft II
+TECH_PLATING_2_INFO,All buildings +15% health,Alle Gebäude +15 % Leben
 TECH_SOLAR_OUTPUT,Better cells,Bessere Zellen
 TECH_SOLAR_OUTPUT_INFO,Solar +15% output,Solar +15 % Leistung
 TECH_SOLAR_OUTPUT_2,Perfect cells,Perfekte Zellen
@@ -505,3 +528,85 @@ BUILD_CATEGORY_TOWERS,Towers,Türme
 BUILD_CATEGORY_DEFENSE,Defence,Verteidigung
 BUILD_CATEGORY_UTILITY,Utility,Extras
 BUILD_CATEGORY_OTHER,Other,Sonstiges
+BUILDING_CORE_DESC,"Your base and the heart of the whole energy grid. It makes a little energy day and night, fires at ground and air enemies on its own and has lots of armour and health. If it is destroyed, the round is lost, so protect it first.","Deine Basis und das Herz des gesamten Energienetzes. Er erzeugt Tag und Nacht etwas Energie, schießt selbstständig auf Boden- und Luftgegner und hält viel aus. Wird er zerstört, ist die Runde verloren – schütze ihn also zuerst."
+BUILDING_SOLAR_DESC,"The standard energy source: cheap and reliable, but it only produces power while the sun is shining. Build several and link them to your storage so the night is covered. It is fragile, so keep it behind your defences.","Die Standard-Energiequelle: günstig und zuverlässig, liefert aber nur Strom, solange die Sonne scheint. Baue mehrere und verbinde sie mit Speichern, damit die Nacht überbrückt wird. Sie ist zerbrechlich, stelle sie also hinter deine Verteidigung."
+BUILDING_WATER_DESC,"Produces a small but steady amount of energy, day and night. It can only be placed on water, so it is perfect for lakes and ponds where nothing else fits. Plan your power network around it, because spots are limited.","Liefert wenig, dafür gleichmäßig Energie – bei Tag und bei Nacht. Es kann nur auf Wasser gebaut werden und eignet sich daher für Seen und Teiche, wo sonst nichts passt. Plane dein Netz darum herum, denn die Plätze sind begrenzt."
+BUILDING_FIRE_DESC,"A very cheap and powerful energy source, but it only burns as long as there are trees you have marked for fuel. Once the trees are gone, so is the power, and burned trees no longer shelter your base. Great for a quick start, not for the long run.","Eine sehr günstige und starke Energiequelle, die aber nur brennt, solange von dir markierte Bäume als Brennstoff da sind. Sind die Bäume weg, ist auch der Strom weg, und verbrannte Bäume schützen deine Basis nicht mehr. Ideal für einen schnellen Start, nicht für die lange Strecke."
+BUILDING_LAMP_DESC,"Lights up the area at night so your towers can see and hit enemies there. It needs energy after dark, and a larger light radius costs much more than a small one. Place it where your towers actually fight.","Erhellt nachts die Umgebung, damit deine Türme Gegner dort sehen und treffen. Sie braucht nach Sonnenuntergang Energie, und ein großer Leuchtradius kostet viel mehr als ein kleiner. Stelle sie dorthin, wo deine Türme tatsächlich kämpfen."
+BUILDING_RELAY_DESC,"Passes energy on over long distances and lets you build further away, since it extends your build area. It has a long reach and several beams, so it is the backbone of a spread-out base. It does not produce or store much itself.","Leitet Energie über weite Strecken weiter und erweitert dein Baugebiet, sodass du weiter entfernt bauen kannst. Mit großer Reichweite und mehreren Strahlen ist es das Rückgrat einer weitläufigen Basis. Selbst erzeugt oder speichert es kaum etwas."
+BUILDING_BATTERY_DESC,"Stores a large amount of energy so your towers keep firing through the night, when solar power is gone. Link it to your producers and to your towers. It is sturdy but has no weapon, so keep it well inside your base.","Speichert viel Energie, damit deine Türme auch nachts weiterschießen, wenn die Solarzellen nichts liefern. Verbinde ihn mit deinen Erzeugern und deinen Türmen. Er hält einiges aus, hat aber keine Waffe – stelle ihn weit ins Innere deiner Basis."
+BUILDING_EXPORTER_DESC,"Turns surplus energy into money, which you can spend on new buildings. It keeps selling as long as it gets power, so cut its beam at night, or it drains the energy your towers need. Only worth it when you have energy to spare.","Verwandelt überschüssige Energie in Geld, das du für neue Gebäude ausgeben kannst. Er verkauft, solange er Strom bekommt – kappe nachts seinen Strahl, sonst entzieht er den Türmen die nötige Energie. Lohnt sich nur, wenn du Energie übrig hast."
+BUILDING_ZAPPER_DESC,"A cheap, fast tower that fires lightning bolts at single enemies, on the ground and in the air. A good first defence and easy on your energy. It has medium range and little armour, so build several and support them with walls.","Ein günstiger, schneller Turm, der Blitze auf einzelne Gegner schießt – am Boden und in der Luft. Eine gute erste Verteidigung, die wenig Energie braucht. Reichweite mittel und wenig Panzerung, baue daher mehrere und schütze sie mit Mauern."
+BUILDING_LASER_DESC,"Fires a continuous beam that deals steady damage and is good against tough single targets. It hits ground and air enemies, but it uses a lot of energy while firing. Make sure it is well connected to a battery.","Schießt einen Dauerstrahl, der gleichmäßig Schaden macht und zähe Einzelziele gut knackt. Er trifft Boden- und Luftgegner, verbraucht beim Feuern aber viel Energie. Achte auf eine gute Verbindung zu einem Speicher."
+BUILDING_TESLA_DESC,"Its lightning jumps from one enemy to the next, hitting up to five at once. Excellent against swarms of weak enemies, on the ground and in the air. It costs more and uses more energy per shot than a zapper.","Ihr Blitz springt von Gegner zu Gegner und trifft bis zu fünf gleichzeitig. Hervorragend gegen Schwärme schwacher Gegner, am Boden und in der Luft. Sie kostet mehr und braucht pro Schuss mehr Energie als der Blitzturm."
+BUILDING_PLASMA_DESC,"Lobs slow plasma balls with a huge range and area damage, ideal against groups and slow heavy enemies. It can only hit ground targets and cannot hit enemies that get too close, so combine it with other towers.","Verschießt langsame Plasmakugeln mit riesiger Reichweite und Flächenschaden – ideal gegen Gruppen und langsame, schwere Gegner. Er trifft nur Bodenziele und keine Gegner, die zu nah herankommen, kombiniere ihn daher mit anderen Türmen."
+BUILDING_SHIELD_DESC,"Creates a protective bubble that absorbs damage dealt to buildings inside it, using its own stored energy. Place it in the middle of your important buildings. When its energy runs out, the protection stops, so keep it charged.","Erzeugt eine Schutzblase, die Schaden an Gebäuden darin mit der eigenen Energie abfängt. Stelle ihn in die Mitte deiner wichtigen Gebäude. Ist seine Energie leer, endet der Schutz – halte ihn also aufgeladen."
+BUILDING_HEALER_DESC,"Repairs damaged buildings in its range and automatically chooses the one that needs it most. It keeps your defence standing during long fights. Healing costs energy, so it needs a good supply, and it cannot fight itself.","Repariert beschädigte Gebäude in Reichweite und wählt automatisch das dringendste Ziel. So hält deine Verteidigung auch lange Kämpfe durch. Heilen kostet Energie, daher braucht er gute Versorgung, und kämpfen kann er selbst nicht."
+BUILDING_ROVER_DESC,"A mobile tower that you drive wherever it is needed, on the ground and in the air. Driving uses a lot of energy, and it only recharges within reach of your beams, so do not wander too far from the grid. Sturdy, but it does not extend your build area.","Ein beweglicher Turm, den du dorthin fährst, wo er gebraucht wird – er trifft Boden und Luft. Fahren kostet viel Energie, und aufgeladen wird er nur in Reichweite deiner Strahlen, entferne dich daher nicht zu weit vom Netz. Robust, erweitert aber nicht dein Baugebiet."
+BUILDING_BASTION_DESC,"A very tough tower with heavy armour and lots of health that shoots at flying enemies only. Flying enemies always attack it first, so it draws fire away from your fragile buildings. Combine it with ground towers.","Ein sehr zäher Turm mit dicker Panzerung und viel Lebensenergie, der nur auf fliegende Gegner schießt. Luftgegner greifen ihn immer zuerst an und werden so von deinen empfindlichen Gebäuden abgelenkt. Kombiniere ihn mit Bodentürmen."
+BUILDING_BULWARK_DESC,"A cheap, heavily armoured wall block that enemies cannot walk through. Use it to funnel enemies and protect weak buildings. Upgrading a block is worth much more than building new ones, and with energy it slowly repairs itself.","Ein günstiger, stark gepanzerter Mauerblock, durch den Gegner nicht gehen können. Nutze ihn, um Gegner zu lenken und schwache Gebäude zu schützen. Ein Ausbau lohnt sich weit mehr als neue Blöcke, und mit Energie repariert er sich langsam."
+PANEL_INFO,Info,Info
+ENEMY_LARVA,Larva,Larve
+ENEMY_LARVA_DESC,"A tiny, pale grub that charges in huge numbers. Each one is almost harmless, but they swamp single targets.","Eine winzige, blasse Made, die in riesigen Mengen anstürmt. Einzeln harmlos, aber sie überrennen einzelne Ziele."
+ENEMY_MAULER,Mauler,Zerfleischer
+ENEMY_MAULER_DESC,A horned brawler with solid bite and a little armour. A sturdy day melee unit that bridges the gap to the heavy beetles.,Ein gehörnter Raufbold mit kräftigem Biss und etwas Panzerung. Ein robuster Nahkämpfer des Tages vor den schweren Käfern.
+ENEMY_RAVAGER,Ravager,Verwüster
+ENEMY_RAVAGER_DESC,"A fast, spiked night hunter with strong claws. It tears through weakly defended towers before they can react.","Ein schneller, bestachelter Nachtjäger mit starken Klauen. Er reißt schlecht verteidigte Türme nieder, bevor sie reagieren können."
+ENEMY_SLINGER,Slinger,Schleuderer
+ENEMY_SLINGER_DESC,A green ranged bug that lobs acid from a slightly longer distance than the spitter. Weak up close.,"Ein grüner Fernkämpfer, der Säure etwas weiter als der Speier schleudert. Aus der Nähe schwach."
+ENEMY_GNAT,Gnat,Mücke
+ENEMY_GNAT_DESC,"The fastest and weakest flyer. It arrives in swarms and dies to a single hit, but it keeps your anti-air busy.","Der schnellste und schwächste Flieger. Er kommt im Schwarm und stirbt mit einem Treffer, hält aber deine Luftabwehr beschäftigt."
+ENEMY_DREADWING,Dreadwing,Schreckensschwinge
+ENEMY_DREADWING_DESC,A huge winged boss that dives at your buildings from the air. Strong armour and high health; only anti-air can stop it.,"Ein riesiger geflügelter Boss, der aus der Luft auf deine Gebäude herabstößt. Starke Panzerung und viel Leben; nur Luftabwehr kann ihn stoppen."
+ENEMY_JUGGERNAUT,Juggernaut,Moloch
+ENEMY_JUGGERNAUT_DESC,"A slow, plated melee boss. Its thick armour shrugs off weak shots, so you need heavy-hitting towers.","Ein langsamer, gepanzerter Nahkampf-Boss. Seine dicke Panzerung steckt schwache Schüsse weg, du brauchst stark treffende Türme."
+ENEMY_BROODMOTHER,Broodmother,Brutmutter
+ENEMY_BROODMOTHER_DESC,A purple ranged boss that spits acid from afar. It stays back and punishes anything inside its range.,"Ein violetter Fernkampf-Boss, der Säure aus der Ferne spuckt. Er hält Abstand und bestraft alles in seiner Reichweite."
+ENEMY_SNIPER,Sniper,Scharfschütze
+ENEMY_SNIPER_DESC,A patient night ranged unit with the longest reach of the regulars and a hard hit. It picks off towers from outside their range.,Ein geduldiger Fernkämpfer der Nacht mit der größten Reichweite der normalen Gegner und hartem Treffer. Er schießt Türme von außerhalb ihrer Reichweite ab.
+ENEMY_SPRINTER,Sprinter,Sprinter
+ENEMY_SPRINTER_DESC,"A very fast, lightly armed runner. It reaches your defences first and is hard to hit, but it dies quickly.","Ein sehr schneller, leicht bewaffneter Läufer. Er erreicht deine Verteidigung zuerst und ist schwer zu treffen, hält aber wenig aus."
+ENEMY_BREACHER,Breacher,Sprengmeister
+ENEMY_BREACHER_DESC,A glass cannon with a devastating but slow melee strike. It breaks walls and towers fast if it gets through.,"Eine Glaskanone mit verheerendem, aber langsamem Nahkampfschlag. Er bricht Mauern und Türme schnell, wenn er durchkommt."
+ENEMY_BRUTE,Brute,Schläger
+ENEMY_BRUTE_DESC,"A slow, heavily armoured night bruiser. Armour makes weak shots nearly useless, so bring strong turrets.","Ein langsamer, schwer gepanzerter Nachtschläger. Die Panzerung macht schwache Schüsse fast wirkungslos, bring starke Türme mit."
+ENEMY_ARTILLERY,Artillery,Artillerie
+ENEMY_ARTILLERY_DESC,A siege boss with by far the longest reach. It shells your towers from outside their range while barely moving.,Ein Belagerungs-Boss mit Abstand der größten Reichweite. Er beschießt deine Türme von außerhalb ihrer Reichweite und bewegt sich kaum.
+ENEMY_WARLORD,Warlord,Kriegsherr
+ENEMY_WARLORD_DESC,"A twin-barrelled, armoured ranged boss. It combines good reach with steady firepower and thick armour.","Ein doppelläufiger, gepanzerter Fernkampf-Boss. Er verbindet gute Reichweite mit stetigem Feuer und dicker Panzerung."
+ENEMY_COLOSSUS,Colossus,Titan
+ENEMY_COLOSSUS_DESC,"The toughest melee boss of all: gigantic health, extreme armour and a crushing blow. Extremely slow, so keep it away from your core.","Der zäheste Nahkampf-Boss überhaupt: riesige Lebenspunkte, extreme Panzerung und ein vernichtender Schlag. Sehr langsam, halte ihn also vom Kern fern."
+ENEMY_REAPER,Reaper,Schnitter
+ENEMY_REAPER_DESC,"A fast melee boss with long legs and scythe-like horns. Less armour than other bosses, but it closes the distance quickly.","Ein schneller Nahkampf-Boss mit langen Beinen und sensenartigen Hörnern. Weniger Panzerung als andere Bosse, überbrückt aber schnell die Distanz."
+ENEMY_GUNSHIP,Gunship,Kampfhubschrauber
+ENEMY_GUNSHIP_DESC,A heavily armoured flying boss with rotors and a cannon. It shoots from the air and ignores ground obstacles.,Ein schwer gepanzerter fliegender Boss mit Rotoren und Kanone. Er schießt aus der Luft und ignoriert Hindernisse am Boden.
+ENEMY_CRAWLER_DESC,"The basic bug: weak and cheap, but it comes in large numbers and wears down undefended targets.","Der einfache Käfer: schwach und billig, kommt aber in großen Mengen und zermürbt ungeschützte Ziele."
+ENEMY_BEETLE_DESC,"A slow, tough beetle with a heavy shell. Weak shots barely scratch it, so use stronger towers.","Ein langsamer, zäher Käfer mit schwerem Panzer. Schwache Schüsse kratzen ihn kaum, nutze stärkere Türme."
+ENEMY_WASP_DESC,A quick day flyer that ignores the ground and goes straight for your buildings. Needs anti-air.,"Ein flinker Flieger des Tages, der den Boden ignoriert und direkt auf deine Gebäude zufliegt. Braucht Luftabwehr."
+ENEMY_BEHEMOTH_DESC,"The nest boss: huge health, thick armour and a heavy melee blow. Slow, but it flattens everything in its way.","Der Boss des Nests: riesige Lebenspunkte, dicke Panzerung und ein schwerer Nahkampfschlag. Langsam, aber er walzt alles nieder."
+ENEMY_SOLDIER_DESC,A standard ranged infantryman with light armour. He shoots your buildings from a short distance.,Ein normaler Fernkampf-Infanterist mit leichter Panzerung. Er schießt aus kurzer Distanz auf deine Gebäude.
+ENEMY_SABOTEUR_DESC,Does not attack buildings but cuts your energy beams. It stays dangerous for your network even though it hits weakly.,"Greift keine Gebäude an, sondern kappt deine Energiestrahlen. Gefährlich für dein Netz, auch wenn er schwach zuschlägt."
+ENEMY_TANK_DESC,"The camp boss: very heavy armour, long reach and a hard shot. It outranges small towers and survives weak fire.","Der Boss des Lagers: sehr schwere Panzerung, große Reichweite und harter Schuss. Er übertrifft kleine Türme an Reichweite und überlebt schwaches Feuer."
+ENEMY_SPITTER_DESC,"A small ranged bug that spits acid from a distance. Fragile, so kill it before it reaches range.","Ein kleiner Fernkampf-Käfer, der Säure aus der Distanz spuckt. Zerbrechlich, erledige ihn also früh."
+ENEMY_DRONE_DESC,"A flying machine from the camp that shoots from a short distance. Light armour, needs anti-air.","Eine fliegende Maschine des Lagers, die aus kurzer Distanz schießt. Leichte Panzerung, braucht Luftabwehr."
+ENEMY_STALKER_DESC,A fast night hunter that burns at dawn. It is quicker and tougher than the day bugs.,"Ein schneller Nachtjäger, der bei Tagesanbruch verbrennt. Schneller und zäher als die Käfer des Tages."
+ENEMY_NIGHTWING_DESC,A night flyer that burns at dawn. Fast and tougher than the day flyers.,"Ein Flieger der Nacht, der bei Tagesanbruch verbrennt. Schnell und zäher als die Flieger des Tages."
+ENEMY_RAIDER_DESC,A tough night ranged unit with good armour. It shoots from medium distance and burns at dawn.,Ein zäher Fernkämpfer der Nacht mit guter Panzerung. Er schießt aus mittlerer Distanz und verbrennt bei Tagesanbruch.
+ENEMY_PHANTOM_DESC,A night drone with a glowing core. It shoots from a distance and burns at dawn.,Eine Nachtdrohne mit leuchtendem Kern. Sie schießt aus der Distanz und verbrennt bei Tagesanbruch.
+BESTIARY_TITLE,Monster Lexicon,Monster-Lexikon
+BESTIARY_HINT,Every monster you have spotted in battle shows up here with its strengths. Monsters you have not met yet stay hidden as ???.,"Jedes Monster, das du in einer Schlacht gesehen hast, erscheint hier mit seinen Stärken. Monster, die du noch nicht getroffen hast, bleiben als ??? verborgen."
+BESTIARY_OPEN,Monsters %d/%d,Monster %d/%d
+BESTIARY_UNKNOWN,???,???
+BESTIARY_UNKNOWN_HINT,Not spotted yet. Meet it in battle to learn more about it.,"Noch nicht gesichtet. Begegne ihm in einer Schlacht, um mehr darüber zu erfahren."
+BESTIARY_BOSS,Boss,Boss
+BESTIARY_NIGHT,Night,Nacht
+BESTIARY_DAY,Day,Tag
+BESTIARY_HP,Health,Leben
+BESTIARY_SPEED,Speed (tiles/s),Tempo (Felder/s)
+BESTIARY_MELEE,Close combat,Nahkampf
+BESTIARY_NEW,New monster: %s,Neues Monster: %s
+BESTIARY_NEW_HINT,Tap to look it up in the lexicon after the battle,Tippen: nach der Schlacht im Lexikon ansehen
+BESTIARY_LATER,The monster lexicon opens after the battle.,Das Monster-Lexikon öffnet sich nach der Schlacht.
+WAVE_PREVIEW_TITLE,Enemies that can appear today,Diese Gegner können heute kommen
+WAVE_PREVIEW_RAID,Air raid possible:,Luftangriff möglich:
+BUILD_INFO_PLACE,Place,Platzieren

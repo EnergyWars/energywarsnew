@@ -13,13 +13,17 @@ const MARGIN := 56.0
 const DASH := 14.0
 const TREES := 7
 const AVATAR_LIFT := 40.0
+const WHEEL_STEP := 60.0
 
 var progress: Progress
 var walker: WorldWalker
 var top_inset := 0.0
 var bottom_inset := 0.0
 var clock := 0.0
+var pan := 0.0
 var _press := Vector2.INF
+var _dragging := false
+var _centered := false
 
 
 func setup(p_progress: Progress) -> WorldMapView:
@@ -35,6 +39,11 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	clock += delta
+	if not _centered and size.y > 1.0:
+		_centered = true
+		if max_pan() > 0.0:
+			center_on(walker.anchor())
+	set_pan(pan)
 	if walker.update(delta):
 		arrived.emit(walker.location)
 	queue_redraw()
@@ -48,7 +57,21 @@ func map_rect() -> Rect2:
 
 func to_screen(normalized: Vector2) -> Vector2:
 	var rect := map_rect()
-	return rect.position + normalized * rect.size
+	return rect.position + normalized * rect.size + Vector2(0.0, pan)
+
+
+func max_pan() -> float:
+	return -Campaign.top() * map_rect().size.y
+
+
+func set_pan(value: float) -> void:
+	pan = clampf(value, 0.0, max_pan())
+
+
+func center_on(index: int) -> void:
+	var rect := map_rect()
+	var wanted := rect.position.y + rect.size.y * 0.5 - Campaign.position(index).y * rect.size.y
+	set_pan(wanted - rect.position.y)
 
 
 func node_position(index: int) -> Vector2:
@@ -67,15 +90,29 @@ func node_at(point: Vector2) -> int:
 
 
 func _gui_input(event: InputEvent) -> void:
+	var motion := event as InputEventMouseMotion
+	if motion != null:
+		if _press != Vector2.INF and (_dragging or _press.distance_to(motion.position) > TAP_TRAVEL):
+			_dragging = true
+			set_pan(pan + motion.relative.y)
+		return
 	var button := event as InputEventMouseButton
-	if button == null or button.button_index != MOUSE_BUTTON_LEFT:
+	if button == null:
+		return
+	if button.pressed and button.button_index == MOUSE_BUTTON_WHEEL_UP:
+		set_pan(pan + WHEEL_STEP)
+	elif button.pressed and button.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		set_pan(pan - WHEEL_STEP)
+	if button.button_index != MOUSE_BUTTON_LEFT:
 		return
 	if button.pressed:
 		_press = button.position
+		_dragging = false
 		return
-	if _press != Vector2.INF and _press.distance_to(button.position) <= TAP_TRAVEL:
+	if _press != Vector2.INF and not _dragging and _press.distance_to(button.position) <= TAP_TRAVEL:
 		tap(button.position)
 	_press = Vector2.INF
+	_dragging = false
 
 
 func tap(point: Vector2) -> void:
@@ -114,7 +151,7 @@ func _paint_land() -> void:
 	for pass_index in 2:
 		var color := AppTheme.WORLD_COAST if pass_index == 0 else AppTheme.WORLD_LAND
 		var grow := COAST if pass_index == 0 else 0.0
-		for route in GameConfig.WORLD_ROUTES:
+		for route in Campaign.routes():
 			draw_line(node_position(route.x), node_position(route.y), color, (LAND_RADIUS + grow) * 1.3, true)
 		for index in Campaign.region_count():
 			draw_circle(node_position(index), LAND_RADIUS + grow, color)
@@ -130,7 +167,7 @@ func _paint_land() -> void:
 
 
 func _paint_routes() -> void:
-	for route in GameConfig.WORLD_ROUTES:
+	for route in Campaign.routes():
 		var from := node_position(route.x)
 		var to := node_position(route.y)
 		if progress.is_conquered(route.x) and progress.is_conquered(route.y):

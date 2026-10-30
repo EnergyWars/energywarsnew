@@ -39,6 +39,22 @@ func test_track_values() -> void:
 	assert_eq(StatText.track_value(relay, "unknown"), "")
 
 
+func test_armour_track_shows_the_armour_and_its_reduction() -> void:
+	var zapper := _building(GameConfig.ZAPPER)
+	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), StatText.armor_value(Formulas.armor(zapper)))
+	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), "6 (−6%)")
+	assert_eq(StatText.next_value(zapper, GameConfig.TRACK_ARMOR), "7 (−6%)")
+	assert_eq(zapper.level(GameConfig.TRACK_ARMOR), 0)
+	zapper.set_level(GameConfig.TRACK_ARMOR, 20)
+	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), "24 (−19%)")
+
+
+func test_armor_value_rounds_armour_and_reduction() -> void:
+	assert_eq(StatText.armor_value(0.0), "0 (−0%)")
+	assert_eq(StatText.armor_value(6.9), "7 (−6%)")
+	assert_eq(StatText.armor_value(100.0), "100 (−50%)")
+
+
 func test_level_text() -> void:
 	var relay := _building(GameConfig.RELAY)
 	relay.set_level(GameConfig.TRACK_LINKS, 1)
@@ -162,3 +178,31 @@ func test_lamp_upgrades_preview_their_draw() -> void:
 	assert_eq(StatText.draw_change(lamp, GameConfig.TRACK_HULL), "")
 	var exporter := _building(GameConfig.EXPORTER)
 	assert_ne(StatText.draw_change(exporter, GameConfig.TRACK_RATE), "")
+
+
+func test_stats_show_armor_with_its_reduction() -> void:
+	var state := BattleFixtures.battle(0, false).state
+	var bulwark := Building.new(1, GameConfig.BULWARK, Vector2.ZERO)
+	var rows := StatText.stats(bulwark, state)
+	var found := false
+	for row in rows:
+		if row[0] == "STAT_ARMOR":
+			found = true
+			assert_string_contains(row[1], "%d" % int(Formulas.armor(bulwark)))
+			assert_string_contains(row[1], "%")
+	assert_true(found)
+	var solar := Building.new(2, GameConfig.SOLAR, Vector2.ZERO)
+	for row in StatText.stats(solar, state):
+		assert_ne(row[0], "STAT_ARMOR")
+
+
+func test_stats_show_the_upgraded_armour() -> void:
+	var state := BattleFixtures.battle(0, false).state
+	var bastion := Building.new(1, GameConfig.BASTION, Vector2.ZERO)
+	bastion.set_level(GameConfig.TRACK_ARMOR, 10)
+	var shown := ""
+	for row in StatText.stats(bastion, state):
+		if row[0] == "STAT_ARMOR":
+			shown = row[1]
+	assert_eq(shown, StatText.armor_value(Formulas.armor(bastion)))
+	assert_eq(shown, "125 (−56%)")

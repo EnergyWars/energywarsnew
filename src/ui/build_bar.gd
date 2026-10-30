@@ -10,6 +10,8 @@ const COLUMNS := 4
 const ACTION_HEIGHT := 72.0
 const ALL := "all"
 const OTHER := "other"
+const INFO_HOLD := 0.45
+const INFO_ICON := 56.0
 
 var kinds: Array[String] = []
 var selected := ""
@@ -30,6 +32,19 @@ var _buttons := {}
 var _costs := {}
 var _icons := {}
 var _groups := []
+var info_kind := ""
+var info_mode := false
+var info_button: Button
+var info_build_button: Button
+var _info: PanelContainer
+var _info_icon: BuildingIcon
+var _info_title: Label
+var _info_short: Label
+var _info_desc: Label
+var _info_cost: Label
+var _hold_kind := ""
+var _hold_time := 0.0
+var _suppressed := ""
 
 
 func setup(p_kinds: Array[String], p_collapsible: bool = true) -> BuildBar:
@@ -43,11 +58,15 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var column := UiKit.vbox(AppTheme.SPACING_SM)
 	add_child(column)
+	column.add_child(_build_info())
 	_options = UiKit.hbox(AppTheme.SPACING_SM)
 	once_button = _option(Icons.ONCE, "BUILD_ONCE", false)
 	multi_button = _option(Icons.REPEAT, "BUILD_MULTI", true)
 	_options.add_child(once_button)
 	_options.add_child(multi_button)
+	info_button = UiKit.button(Icons.DETAILS, "Button", toggle_info_mode)
+	info_button.custom_minimum_size = Vector2(56, 56)
+	_options.add_child(info_button)
 	collapse_button = UiKit.icon_button(Icons.EXPAND_MORE, collapse, 56.0)
 	_options.add_child(collapse_button)
 	column.add_child(_options)
@@ -66,6 +85,113 @@ func _ready() -> void:
 	column.add_child(cancel_button)
 	set_kinds(kinds)
 	_layout()
+
+
+func _build_info() -> PanelContainer:
+	_info = PanelContainer.new()
+	_info.add_theme_stylebox_override(&"panel", AppTheme.box(AppTheme.SURFACE, AppTheme.RADIUS_CARD, AppTheme.ENERGY, AppTheme.SPACING_MD))
+	_info.visible = false
+	var column := UiKit.vbox(AppTheme.SPACING_SM)
+	_info.add_child(column)
+	var head := UiKit.hbox(AppTheme.SPACING_MD)
+	_info_icon = BuildingIcon.new().setup("", INFO_ICON)
+	head.add_child(_info_icon)
+	var titles := UiKit.vbox(2)
+	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_info_title = UiKit.label("", "Title")
+	titles.add_child(_info_title)
+	_info_short = UiKit.label("", "Caption")
+	_info_short.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	titles.add_child(_info_short)
+	head.add_child(titles)
+	head.add_child(UiKit.icon_button(Icons.CLOSE, hide_info, 52.0))
+	column.add_child(head)
+	_info_desc = UiKit.label("", "Body")
+	_info_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(_info_desc)
+	var footer := UiKit.hbox(AppTheme.SPACING_SM)
+	footer.add_child(UiKit.icon(Icons.PAID, AppTheme.GOLD, 24))
+	_info_cost = UiKit.label("", "Title")
+	_info_cost.add_theme_color_override(&"font_color", AppTheme.GOLD)
+	_info_cost.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(_info_cost)
+	info_build_button = UiKit.button("", "PrimaryButton", _build_from_info)
+	footer.add_child(info_build_button)
+	column.add_child(footer)
+	return _info
+
+
+func show_info(kind: String) -> void:
+	if not kinds.has(kind):
+		return
+	info_kind = kind
+	_info_icon.kind = kind
+	_info_icon.queue_redraw()
+	_info_title.text = Texts.building_name(kind)
+	_info_short.text = Texts.building_info(kind)
+	var description := Texts.building_desc(kind)
+	_info_desc.text = description
+	_info_desc.visible = not description.is_empty()
+	_info_cost.text = (_costs[kind] as Label).text if _costs.has(kind) else str(int(GameConfig.building(kind).get("cost", 0)))
+	info_build_button.text = "%s  %s" % [Icons.BUILD, Texts.t("BUILD_INFO_PLACE")]
+	_layout()
+
+
+func hide_info() -> void:
+	if info_kind.is_empty():
+		return
+	info_kind = ""
+	_layout()
+
+
+func info_visible() -> bool:
+	return _info != null and _info.visible
+
+
+func toggle_info_mode() -> void:
+	info_mode = not info_mode
+	if not info_mode:
+		hide_info()
+	_layout()
+
+
+func _build_from_info() -> void:
+	var kind := info_kind
+	hide_info()
+	if not kind.is_empty():
+		kind_pressed.emit(kind)
+
+
+func _card_pressed(kind: String) -> void:
+	if _suppressed == kind:
+		_suppressed = ""
+		return
+	if info_mode:
+		show_info(kind)
+		return
+	kind_pressed.emit(kind)
+
+
+func begin_hold(kind: String) -> void:
+	_hold_kind = kind
+	_hold_time = 0.0
+	_suppressed = ""
+
+
+func end_hold() -> void:
+	_hold_kind = ""
+	_hold_time = 0.0
+
+
+func _process(delta: float) -> void:
+	if _hold_kind.is_empty():
+		return
+	_hold_time += delta
+	if _hold_time < INFO_HOLD:
+		return
+	_suppressed = _hold_kind
+	show_info(_hold_kind)
+	end_hold()
 
 
 func _option(glyph: String, key: String, value: bool) -> Button:
@@ -178,6 +304,10 @@ func _layout() -> void:
 	if _grid == null:
 		return
 	var cards := shows_cards()
+	if not cards or not kinds.has(info_kind):
+		info_kind = ""
+	_info.visible = not info_kind.is_empty()
+	info_button.theme_type_variation = "PrimaryButton" if info_mode else "Button"
 	_grid.visible = cards
 	_tabs.visible = cards and _groups.size() > 1
 	for key: String in _tab_buttons:
@@ -197,7 +327,9 @@ func _make_button(kind: String) -> Button:
 	button.custom_minimum_size = Vector2(0, BUTTON_HEIGHT)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.theme_type_variation = "Button"
-	button.pressed.connect(func() -> void: kind_pressed.emit(kind))
+	button.pressed.connect(_card_pressed.bind(kind))
+	button.button_down.connect(begin_hold.bind(kind))
+	button.button_up.connect(end_hold)
 	var column := UiKit.vbox(0)
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var icon := BuildingIcon.new().setup(kind, 62.0)
@@ -229,6 +361,8 @@ func refresh(state: BattleState, p_selected: String) -> void:
 		var button: Button = _buttons[kind]
 		button.modulate = Color(1, 1, 1, 1.0 if affordable else 0.45)
 		(_costs[kind] as Label).add_theme_color_override(&"font_color", AppTheme.GOLD if affordable else AppTheme.DANGER)
+	if _costs.has(info_kind):
+		_info_cost.text = (_costs[info_kind] as Label).text
 
 
 func button_for(kind: String) -> Button:

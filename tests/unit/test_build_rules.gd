@@ -47,6 +47,7 @@ func test_blocked_by_terrain() -> void:
 
 
 func test_water_wheel_needs_pond() -> void:
+	battle.state.setup.arsenal = Arsenal.everything()
 	var spot := core.position + Vector2(150, 0)
 	var cell := battle.state.map.cell_of(spot)
 	assert_eq(BuildRules.reason(battle.state, GameConfig.WATER, spot), BuildRules.WATER_ONLY)

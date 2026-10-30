@@ -1,7 +1,7 @@
 class_name Formulas
 extends RefCounted
 
-enum Stat { CAPACITY, OUTPUT, RATE, LINK_RANGE, ATTACK_RANGE, DAMAGE, COOLDOWN, SHOT_ENERGY, MAX_HP, COUNT }
+enum Stat { CAPACITY, OUTPUT, RATE, LINK_RANGE, ATTACK_RANGE, DAMAGE, COOLDOWN, SHOT_ENERGY, MAX_HP, ARMOR, COUNT }
 
 
 static func compute_stats(building: Building) -> PackedFloat64Array:
@@ -27,6 +27,7 @@ static func compute_stats(building: Building) -> PackedFloat64Array:
 		stats[Stat.COOLDOWN] = base_cooldown
 	stats[Stat.SHOT_ENERGY] = float(attack(building).get("energy", 0.0)) * overclock_energy(building) / efficiency(building)
 	stats[Stat.MAX_HP] = float(building.definition().get("hp", 1.0)) * multiplier(building, GameConfig.TRACK_HULL) * building.boost(GameConfig.BOOST_HP)
+	stats[Stat.ARMOR] = base_armor(building) * multiplier(building, GameConfig.TRACK_ARMOR)
 	return stats
 
 
@@ -206,6 +207,14 @@ static func build_cost(state: BattleState, kind: String) -> int:
 	return cost + state.count_kind(kind) / every if every > 0 else cost
 
 
+static func base_armor(building: Building) -> float:
+	return ContentOverrides.building_armor(building.kind, float(building.definition().get("armor", 0.0)))
+
+
+static func armor(building: Building) -> float:
+	return building.stat(Stat.ARMOR)
+
+
 static func damage(building: Building) -> float:
 	return building.stat(Stat.DAMAGE)
 
@@ -374,8 +383,36 @@ static func wave_count(waves: Dictionary, round_number: int, progress: float, ni
 	return count * float(waves.night) if night else count
 
 
+static func extra_waves(level: Dictionary, round_number: int, index: int) -> Array:
+	var result := []
+	var night := DayCycle.is_night(wave_time(level, index), level)
+	var opens := index == 0 or DayCycle.is_night(wave_time(level, index - 1), level) != night
+	if not opens:
+		return result
+	for entry: Dictionary in level.get("extra_waves", GameConfig.EMPTY_LIST):
+		if int(entry.day) == round_number and bool(entry.night) == night:
+			result.append(entry)
+	return result
+
+
 static func wave_tier(round_number: int) -> int:
 	return maxi(round_number - 1, 0)
+
+
+static func armor_reduction(armor: float) -> float:
+	if armor <= 0.0:
+		return 0.0
+	var config: Dictionary = GameConfig.armor_config()
+	return clampf(armor / (armor + float(config.constant)), 0.0, float(config.max_reduction))
+
+
+static func mitigate(amount: float, armor: float, share: float = 1.0) -> float:
+	if amount <= 0.0:
+		return 0.0
+	if armor <= 0.0:
+		return amount
+	var reduced := amount * (1.0 - armor_reduction(armor))
+	return minf(amount, maxf(reduced, float(GameConfig.armor_config().min_damage) * maxf(share, 0.0)))
 
 
 static func enemy_hp_scale(round_number: int) -> float:
@@ -388,6 +425,15 @@ static func enemy_damage_scale(round_number: int) -> float:
 
 static func enemy_bounty_scale(round_number: int) -> float:
 	return 1.0 + GameConfig.ROUND_BOUNTY_GROWTH * maxi(round_number - 1, 0)
+
+
+static func enemy_buff(kind: String, stat: String, is_night: bool, level_index: int) -> float:
+	var buffs: Dictionary = GameConfig.enemy(kind).get("buffs", GameConfig.EMPTY)
+	var night_bonus := 0.0
+	if is_night:
+		night_bonus = float(buffs.get("night", GameConfig.EMPTY).get(stat, 0.0))
+	var level_bonus := float(buffs.get("level", GameConfig.EMPTY).get(stat, 0.0)) * maxi(level_index, 0)
+	return maxf(1.0 + night_bonus, 0.0) * maxf(1.0 + level_bonus, 0.0)
 
 
 static func combo_tier(count: int) -> int:

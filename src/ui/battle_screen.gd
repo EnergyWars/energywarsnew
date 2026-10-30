@@ -39,6 +39,8 @@ var _result_timer := -1.0
 var _recorded := false
 var _panel_timer := 0.0
 var _steered_id := -1
+var bestiary_request := ""
+var discovered: Array[String] = []
 
 
 func setup(p_level: int, p_progress: Progress, p_settings: AppSettings, p_sfx: SfxPlayer, p_safe_top: float = 0.0, p_rules: BattleSetup = null, p_resume: BattleCheckpoint = null) -> BattleScreen:
@@ -66,6 +68,7 @@ func _ready() -> void:
 	root.theme = AppTheme.build()
 	layer.add_child(root)
 	hud = BattleHud.new().setup(safe_top, MapPanel.new().setup(battle.state), CreativeBar.new() if battle.state.is_creative() else null)
+	hud.known = progress.has_seen
 	root.add_child(hud)
 	build_bar = BuildBar.new().setup(bar_kinds(), not battle.state.is_scouting())
 	root.add_child(build_bar)
@@ -99,6 +102,7 @@ func _ready() -> void:
 	hud.reset_pressed.connect(confirm_reset)
 	hud.status_pressed.connect(toggle_status)
 	hud.map_focus_requested.connect(func(world: Vector2) -> void: view.focus(world))
+	hud.discovery_pressed.connect(request_bestiary)
 	if hud.creative_bar != null:
 		hud.creative_bar.day_requested.connect(set_day)
 		hud.creative_bar.clear_pressed.connect(clear_enemies)
@@ -234,6 +238,28 @@ func _on_event(event: Dictionary) -> void:
 			_show_mode(view.mode)
 		"cleared":
 			view.terrain_changed(event.cell)
+		"enemy_sighted":
+			record_sighting(str(event.kind))
+
+
+func records_sightings() -> bool:
+	return not battle.state.is_creative()
+
+
+func record_sighting(kind: String) -> bool:
+	if not records_sightings() or not progress.mark_seen(kind):
+		return false
+	progress.save()
+	discovered.append(kind)
+	hud.announce_discovery(kind)
+	if sfx != null:
+		sfx.play(SoundBank.POP)
+	return true
+
+
+func request_bestiary(kind: String) -> void:
+	bestiary_request = kind
+	hud.toast(Texts.t("BESTIARY_LATER"), AppTheme.GOLD)
 
 
 func focus_scout() -> void:
@@ -314,6 +340,11 @@ func toggle_pause() -> void:
 	menu.restart_pressed.connect(func() -> void: retry_requested.emit())
 	menu.menu_pressed.connect(func() -> void: menu_requested.emit())
 	_open_overlay(menu)
+
+
+func suspend() -> void:
+	if not paused and not is_overlay_open():
+		toggle_pause()
 
 
 func cycle_speed() -> void:
@@ -553,6 +584,8 @@ func handle_back() -> void:
 		view.set_build_kind("")
 	elif view.selected_id >= 0:
 		view.select(-1)
+	elif build_bar.info_visible():
+		build_bar.hide_info()
 	elif build_bar.expanded and build_bar.collapsible:
 		build_bar.collapse()
 	elif hud.stats_panel.visible:

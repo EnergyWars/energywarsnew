@@ -236,7 +236,7 @@ func test_soldier_walks_to_tapped_ground() -> void:
 	_land()
 	var origin := map.cell_of(state.scout.position)
 	state.scout.position = map.center_of(origin)
-	var goal := origin + Vector2i(0, 5)
+	var goal := origin + Vector2i(0, 4)
 	assert_eq(battle.walk_scout(map.center_of(goal)), ScoutControl.OK)
 	assert_true(state.scout.is_walking())
 	assert_eq(state.scout.pending_cell, Scout.NO_CELL)

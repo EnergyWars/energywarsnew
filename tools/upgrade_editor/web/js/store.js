@@ -4,11 +4,32 @@ export function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-export function setPath(document, path, value) {
-  const keys = path.split(".");
+const FORBIDDEN_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+
+function pathKeys(path) {
+  const keys = String(path).split(".");
+  if (keys.some((key) => key === "" || FORBIDDEN_KEYS.has(key))) throw new Error("PATH");
+  return keys;
+}
+
+function parentOf(document, keys) {
   let node = document;
-  for (const key of keys.slice(0, -1)) node = node[key];
-  node[keys[keys.length - 1]] = value;
+  for (const key of keys.slice(0, -1)) {
+    if (node === null || typeof node !== "object" || !Object.hasOwn(node, key)) throw new Error("PATH");
+    node = node[key];
+  }
+  if (node === null || typeof node !== "object") throw new Error("PATH");
+  return node;
+}
+
+export function setPath(document, path, value) {
+  const keys = pathKeys(path);
+  parentOf(document, keys)[keys[keys.length - 1]] = value;
+}
+
+export function unsetPath(document, path) {
+  const keys = pathKeys(path);
+  delete parentOf(document, keys)[keys[keys.length - 1]];
 }
 
 export function create(document, original) {
@@ -39,10 +60,7 @@ export function create(document, original) {
     },
     unset(path) {
       push();
-      const keys = path.split(".");
-      let node = state.document;
-      for (const key of keys.slice(0, -1)) node = node[key];
-      delete node[keys[keys.length - 1]];
+      unsetPath(state.document, path);
       notify();
     },
     undo() {

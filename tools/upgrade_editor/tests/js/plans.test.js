@@ -117,25 +117,37 @@ test("legacy formula plans provide their formulas as defaults", () => {
   assert.deepEqual(formulaDefaults(doc, solar, "output"), { max: 2, cost: "base", effect: "1 + level" });
 });
 
-test("tools only fill the table draft and never change the applied values", () => {
+test("the formula tool fills the table and applies it at once in one undo step", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
-  const before = JSON.stringify(ctx.doc.buildings);
   ctx.view.drafts["solar:output:f:cost"] = "base * 3";
   ctx.view.drafts["solar:output:f:effect"] = "1 + level";
   ctx.view.drafts["solar:output:f:max"] = 4;
   fillFromFormula(ctx, solar, "output");
-  const draft = pendingLevels(ctx, solar, "output");
-  assert.deepEqual(draft.map((level) => level.cost), [120, 120, 120, 120].map((value) => value * 1));
-  assert.equal(JSON.stringify(ctx.doc.buildings), before);
+  assert.equal(pendingLevels(ctx, solar, "output"), null);
+  const plan = planOf(find(ctx.doc, "solar"), "output");
+  assert.equal(plan.mode, "table");
+  assert.deepEqual(plan.levels.map((level) => level.cost), [120, 120, 120, 120]);
+  assert.deepEqual(plan.levels.map((level) => level.gain), [1, 1, 1, 1]);
   assert.deepEqual(formulaHistory(ctx.doc, "cost"), ["base * 3"]);
   assert.deepEqual(formulaHistory(ctx.doc, "effect"), ["1 + level"]);
-  applyLevels(ctx, find(ctx.doc, "solar"), "output");
-  assert.equal(planOf(find(ctx.doc, "solar"), "output").levels.length, 4);
-  assert.equal(planOf(find(ctx.doc, "solar"), "output").mode, "table");
+  assert.equal(ctx.store.state.past.length, 1);
+  ctx.store.undo();
+  assert.equal(planOf(find(ctx.doc, "solar"), "output"), null);
+  assert.deepEqual(formulaHistory(ctx.doc, "cost"), []);
 });
 
-test("the parameter tool fills the table from its own inputs", () => {
+test("filling replaces a pending table draft instead of keeping it", () => {
+  const ctx = context();
+  const solar = find(ctx.doc, "solar");
+  ctx.view.drafts[draftKey(solar, "output")] = { base: "stale", levels: [{ cost: 1, gain: 9 }] };
+  ctx.view.drafts["solar:output:p:max"] = 2;
+  fillFromParams(ctx, solar, "output");
+  assert.equal(ctx.view.drafts[draftKey(solar, "output")], undefined);
+  assert.equal(planOf(find(ctx.doc, "solar"), "output").levels.length, 2);
+});
+
+test("the parameter tool fills the table from its own inputs and applies it", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
   ctx.view.drafts["solar:output:p:max"] = 3;
@@ -144,29 +156,31 @@ test("the parameter tool fills the table from its own inputs", () => {
   ctx.view.drafts["solar:output:p:growth"] = 2;
   assert.equal(paramInputs(ctx, solar, "output").max, 3);
   fillFromParams(ctx, solar, "output");
-  const draft = pendingLevels(ctx, solar, "output");
-  assert.deepEqual(draft.map((level) => level.cost), [40, 80, 160]);
-  assert.deepEqual(draft.map((level) => level.gain), [0.5, 0.5, 0.5]);
-  assert.equal(planOf(solar, "output"), null);
-  assert.equal(ctx.store.state.past.length, 0);
+  assert.equal(pendingLevels(ctx, solar, "output"), null);
+  const plan = planOf(find(ctx.doc, "solar"), "output");
+  assert.deepEqual(plan.levels.map((level) => level.cost), [40, 80, 160]);
+  assert.deepEqual(plan.levels.map((level) => level.gain), [0.5, 0.5, 0.5]);
+  assert.equal(ctx.store.state.past.length, 1);
 });
 
-test("invalid tool inputs report an error and keep the table untouched", () => {
+test("invalid tool inputs report an error and change nothing", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
+  const before = JSON.stringify(ctx.doc.buildings);
   ctx.view.drafts["solar:output:f:effect"] = "1 +";
   fillFromFormula(ctx, solar, "output");
   assert.ok(ctx.view.planErrors["solar:output:fill"]);
-  assert.equal(ctx.view.drafts[draftKey(solar, "output")], undefined);
+  assert.equal(JSON.stringify(ctx.doc.buildings), before);
   assert.deepEqual(formulaHistory(ctx.doc, "effect"), []);
   ctx.view.drafts["solar:output:p:price"] = 0;
   fillFromParams(ctx, solar, "output");
   assert.ok(ctx.view.planErrors["solar:output:fill"]);
-  assert.equal(ctx.view.drafts[draftKey(solar, "output")], undefined);
+  assert.equal(JSON.stringify(ctx.doc.buildings), before);
+  assert.equal(ctx.store.state.past.length, 0);
   delete ctx.view.drafts["solar:output:p:price"];
   fillFromParams(ctx, solar, "output");
   assert.equal(ctx.view.planErrors["solar:output:fill"], undefined);
-  assert.ok(pendingLevels(ctx, solar, "output"));
+  assert.ok(planOf(find(ctx.doc, "solar"), "output"));
 });
 
 test("tool inputs fall back to the current values and the tool is remembered per track", () => {

@@ -1,9 +1,9 @@
 const HEADERS = { "Content-Type": "application/json", "X-Upgrade-Editor": "1" };
 
 async function request(path, options = {}) {
-  const response = await fetch(path, options);
-  const body = await response.json();
-  if (!response.ok) throw Object.assign(new Error(body.error || "ERROR"), { errors: body.errors || [] });
+  const response = await fetch(path, { ...options, credentials: "omit", cache: "no-store" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw Object.assign(new Error(body.error || "ERROR"), { errors: body.errors || [], status: response.status });
   return body;
 }
 

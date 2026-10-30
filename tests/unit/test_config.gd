@@ -13,7 +13,7 @@ func test_levels_have_valid_layout() -> void:
 
 
 func test_levels_define_rounds_and_waves() -> void:
-	for level: Dictionary in GameConfig.LEVELS:
+	for level: Dictionary in GameConfig.levels():
 		assert_gt(float(level.day), 0.0, level.id)
 		assert_gt(float(level.night), 0.0, level.id)
 		assert_gt(Formulas.wave_times(level), 4, level.id)
@@ -58,10 +58,25 @@ func test_spread_settings() -> void:
 	assert_gt(GameConfig.SPREAD_REACH, 0.0)
 
 
-func test_every_player_building_can_upgrade_its_armour() -> void:
+func test_every_player_building_can_upgrade_its_health() -> void:
 	for kind: String in GameConfig.BUILDINGS:
 		if int(GameConfig.BUILDINGS[kind].team) == GameConfig.TEAM_PLAYER:
 			assert_true(GameConfig.building(kind).tracks.has(GameConfig.TRACK_HULL), kind)
+
+
+func test_every_tower_can_upgrade_its_armour() -> void:
+	var armored: Array[String] = [GameConfig.ZAPPER, GameConfig.LASER, GameConfig.TESLA, GameConfig.PLASMA, GameConfig.HEALER, GameConfig.ROVER, GameConfig.BASTION]
+	for kind: String in GameConfig.BUILDINGS:
+		var tracks: Array = GameConfig.building(kind).get("tracks", [])
+		assert_eq(tracks.has(GameConfig.TRACK_ARMOR), armored.has(kind), kind)
+		if GameConfig.is_tower(kind):
+			assert_true(armored.has(kind), kind)
+	for kind in armored:
+		assert_gt(float(GameConfig.building(kind).armor), 0.0, kind)
+	var config: Dictionary = GameConfig.TRACKS[GameConfig.TRACK_ARMOR]
+	assert_gt(int(config.max), 0)
+	assert_gt(float(config.step), 0.0)
+	assert_gt(float(config.price), 0.0)
 
 
 func test_planning_keeps_a_wide_berth_from_enemy_bases() -> void:
@@ -70,7 +85,7 @@ func test_planning_keeps_a_wide_berth_from_enemy_bases() -> void:
 
 func test_level_ids_are_unique() -> void:
 	var ids := {}
-	for level: Dictionary in GameConfig.LEVELS:
+	for level: Dictionary in GameConfig.levels():
 		assert_false(ids.has(level.id), level.id)
 		ids[level.id] = true
 
@@ -81,7 +96,7 @@ func test_every_spawner_has_day_and_night_units() -> void:
 		for key in ["roster", "night_roster"]:
 			var roster := []
 			for entry: Array in level.waves[key]:
-				assert_true(GameConfig.ENEMIES.has(entry[0]), entry[0])
+				assert_true(GameConfig.enemy_kinds().has(entry[0]), entry[0])
 				assert_eq(GameConfig.is_nocturnal(entry[0]), key == "night_roster", "%s %s" % [level.id, entry[0]])
 				roster.append(entry[0])
 			for entry: Array in level.structures:
@@ -93,7 +108,7 @@ func test_every_spawner_has_day_and_night_units() -> void:
 func test_night_monsters_are_stronger_than_day_monsters() -> void:
 	var day_best := 0.0
 	var night_weakest := INF
-	for kind: String in GameConfig.ENEMIES:
+	for kind: String in GameConfig.enemy_kinds():
 		var hp := float(GameConfig.enemy(kind).hp)
 		if GameConfig.is_nocturnal(kind):
 			night_weakest = minf(night_weakest, hp)
@@ -160,8 +175,8 @@ func test_techs_are_consistent() -> void:
 
 
 func test_level_lookup_clamps() -> void:
-	assert_eq(GameConfig.level(-3).id, GameConfig.LEVELS[0].id)
-	assert_eq(GameConfig.level(99).id, GameConfig.LEVELS[GameConfig.level_count() - 1].id)
+	assert_eq(GameConfig.level(-3).id, GameConfig.levels()[0].id)
+	assert_eq(GameConfig.level(99).id, GameConfig.levels()[GameConfig.level_count() - 1].id)
 
 
 func test_bastion_is_an_anti_air_lure_tower() -> void:
@@ -215,7 +230,7 @@ func test_player_buildings_define_tracks() -> void:
 
 func test_every_enemy_has_a_class_and_each_class_exists() -> void:
 	var seen := {}
-	for kind: String in GameConfig.ENEMIES:
+	for kind: String in GameConfig.enemy_kinds():
 		var unit_class := str(GameConfig.enemy(kind).get("class", ""))
 		assert_true(GameConfig.CLASSES.has(unit_class), kind)
 		seen[unit_class] = true
@@ -236,7 +251,7 @@ func test_buildings_fit_their_cells() -> void:
 
 
 func test_levels_mix_ponds_groves_forests_and_rocks() -> void:
-	for level: Dictionary in GameConfig.LEVELS:
+	for level: Dictionary in GameConfig.levels():
 		var terrain: Dictionary = level.terrain
 		assert_gt(int(terrain.get("ponds", 0)), 0, level.id)
 		assert_gt(int(terrain.get("groves", 0)), 0, level.id)

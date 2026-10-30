@@ -47,12 +47,12 @@ func test_enemy_walks_toward_target() -> void:
 
 func test_melee_attack_when_in_reach() -> void:
 	var crawler := BattleFixtures.enemy(battle, "crawler", core.position + Vector2(0, -core.half_extent() - 8.0))
-	var bite := float(GameConfig.enemy("crawler").damage)
+	var bite := Formulas.mitigate(float(GameConfig.enemy("crawler").damage), Formulas.armor(core))
 	battle.ai.update(0.1)
-	assert_eq(core.hp, core.max_hp() - bite)
+	assert_almost_eq(core.hp, core.max_hp() - bite, 0.001)
 	assert_almost_eq(crawler.cooldown, float(GameConfig.enemy("crawler").cooldown), 0.001)
 	battle.ai.update(0.1)
-	assert_eq(core.hp, core.max_hp() - bite)
+	assert_almost_eq(core.hp, core.max_hp() - bite, 0.001)
 	var attack := BattleFixtures.of_type(battle.events.drain(), "enemy_attack")
 	assert_false(attack[0].ranged)
 
@@ -62,7 +62,7 @@ func test_ranged_enemy_stops_at_reach() -> void:
 	var soldier := BattleFixtures.enemy(battle, "soldier", start)
 	battle.ai.update(0.1)
 	assert_eq(soldier.position, start)
-	assert_eq(core.hp, core.max_hp() - float(GameConfig.enemy("soldier").damage))
+	assert_almost_eq(core.hp, core.max_hp() - Formulas.mitigate(float(GameConfig.enemy("soldier").damage), Formulas.armor(core)), 0.001)
 	assert_true(BattleFixtures.of_type(battle.events.drain(), "enemy_attack")[0].ranged)
 
 
@@ -151,8 +151,10 @@ func test_flyers_prefer_bastion_over_everything() -> void:
 
 
 func test_ground_units_ignore_bastion_lure() -> void:
+	var zapper := _powered(GameConfig.ZAPPER, Vector2i(0, -2))
 	var bastion := _powered(GameConfig.BASTION, Vector2i(6, 6))
 	var crawler := BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9)))
+	assert_eq(battle.ai.choose_target(crawler), zapper)
 	assert_ne(battle.ai.choose_target(crawler), bastion)
 
 
@@ -244,7 +246,7 @@ func test_saboteur_ignores_walled_links() -> void:
 func test_saboteur_attacks_buildings_without_links() -> void:
 	BattleFixtures.enemy(battle, "saboteur", core.position + Vector2(0, -core.half_extent() - 8.0))
 	battle.ai.update(0.1)
-	assert_eq(core.hp, core.max_hp() - float(GameConfig.enemy("saboteur").damage))
+	assert_almost_eq(core.hp, core.max_hp() - Formulas.mitigate(float(GameConfig.enemy("saboteur").damage), Formulas.armor(core)), 0.001)
 
 
 func test_nearest_link() -> void:

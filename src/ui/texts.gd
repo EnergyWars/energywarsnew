@@ -14,8 +14,22 @@ static func building_info(kind: String) -> String:
 	return t("BUILDING_%s_INFO" % kind.to_upper())
 
 
+static func building_desc(kind: String) -> String:
+	var key := "BUILDING_%s_DESC" % kind.to_upper()
+	var text := t(key)
+	return "" if text == key else text
+
+
 static func enemy_name(kind: String) -> String:
-	return t("ENEMY_%s" % kind.to_upper())
+	var key := "ENEMY_%s" % kind.to_upper()
+	var text := t(key)
+	return kind.capitalize() if text == key else text
+
+
+static func enemy_desc(kind: String) -> String:
+	var key := "ENEMY_%s_DESC" % kind.to_upper()
+	var text := t(key)
+	return "" if text == key else text
 
 
 static func track_name(track: String, kind: String) -> String:
@@ -61,7 +75,9 @@ static func branch_name(branch: String) -> String:
 
 
 static func challenge(challenge: Dictionary) -> String:
-	return format("CHALLENGE_%s" % str(challenge.id).to_upper(), [int(challenge.get("value", 0))])
+	var key := "CHALLENGE_%s" % str(challenge.id).to_upper()
+	var text := t(key)
+	return text % [int(challenge.get("value", 0))] if text.contains("%") else text
 
 
 static func survival_target(days: int) -> String:

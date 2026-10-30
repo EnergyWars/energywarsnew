@@ -96,6 +96,7 @@ func test_overcharge_track_value_shows_damage_and_shot_energy() -> void:
 
 
 func test_overcharge_is_offered_on_every_firing_tower() -> void:
-	for kind in [GameConfig.ZAPPER, GameConfig.LASER, GameConfig.TESLA, GameConfig.PLASMA, GameConfig.ROVER]:
+	for kind in [GameConfig.ZAPPER, GameConfig.TESLA, GameConfig.PLASMA, GameConfig.ROVER]:
 		assert_true(GameConfig.building(kind).tracks.has(GameConfig.TRACK_OVERCLOCK), kind)
+	assert_false(GameConfig.building(GameConfig.LASER).tracks.has(GameConfig.TRACK_OVERCLOCK))
 	assert_false(GameConfig.building(GameConfig.CORE).tracks.has(GameConfig.TRACK_OVERCLOCK))

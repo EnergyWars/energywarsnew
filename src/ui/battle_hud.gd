@@ -8,11 +8,16 @@ signal undo_pressed
 signal reset_pressed
 signal status_pressed
 signal map_focus_requested(world: Vector2)
+signal discovery_pressed(kind: String)
 
 const BANNER_TIME := 1.8
 const TOAST_TIME := 1.6
 const COMBO_FADE := 0.6
 const LEGEND_WIDTH := 600.0
+const DISCOVERY_TIME := 4.0
+const DISCOVERY_FADE := 0.3
+const DISCOVERY_ICON := 56.0
+const PREVIEW_ICON := 30.0
 
 var safe_top := 0.0
 var money_roll := RollingNumber.new()
@@ -53,6 +58,19 @@ var _banner_timer := 0.0
 var _toast_timer := 0.0
 var _combo_timer := 0.0
 var _night := false
+var known := Callable()
+var preview := {}
+var discovery_kind := ""
+var _preview: VBoxContainer
+var _preview_day: HFlowContainer
+var _preview_night: HFlowContainer
+var _preview_key := Vector2i(-1, -1)
+var _preview_signature := []
+var _discovery: PanelContainer
+var _discovery_icon: EnemyIcon
+var _discovery_title: Label
+var _discoveries: Array[String] = []
+var _discovery_timer := 0.0
 
 
 func setup(p_safe_top: float, p_map: MapPanel = null, p_creative: CreativeBar = null) -> BattleHud:
@@ -72,6 +90,7 @@ func _ready() -> void:
 	_build_map()
 	_build_legend()
 	_build_hint()
+	_build_discovery()
 	_build_combo()
 	_build_banner()
 	_build_toast()
@@ -143,7 +162,85 @@ func _build_prep() -> void:
 	row.add_child(_reset)
 	_start = UiKit.button("", "PrimaryButton", func() -> void: start_pressed.emit())
 	row.add_child(_start)
-	_prep.add_child(row)
+	var column := UiKit.vbox(AppTheme.SPACING_XS)
+	column.add_child(row)
+	column.add_child(_build_preview())
+	_prep.add_child(column)
+
+
+func _build_preview() -> VBoxContainer:
+	_preview = UiKit.vbox(AppTheme.SPACING_XS)
+	_preview.visible = false
+	_preview.add_child(UiKit.label(Texts.t("WAVE_PREVIEW_TITLE"), "Tiny"))
+	_preview_day = _preview_row()
+	_preview_night = _preview_row()
+	return _preview
+
+
+func _preview_row() -> HFlowContainer:
+	var flow := HFlowContainer.new()
+	flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flow.add_theme_constant_override(&"h_separation", AppTheme.SPACING_XS)
+	flow.add_theme_constant_override(&"v_separation", AppTheme.SPACING_XS)
+	_preview.add_child(flow)
+	return flow
+
+
+func preview_visible() -> bool:
+	return _preview.visible
+
+
+func preview_icons(night: bool) -> Array[EnemyIcon]:
+	var icons: Array[EnemyIcon] = []
+	for child in (_preview_night if night else _preview_day).get_children():
+		if child is EnemyIcon:
+			icons.append(child)
+	return icons
+
+
+func is_known(kind: String) -> bool:
+	return bool(known.call(kind)) if known.is_valid() else true
+
+
+func _refresh_preview(state: BattleState) -> void:
+	var key := Vector2i(state.round_number, state.roster_version)
+	if key == _preview_key:
+		return
+	_preview_key = key
+	var next := WavePreview.of(state)
+	var signature := [next, _known_flags(next)]
+	if signature == _preview_signature:
+		return
+	_preview_signature = signature
+	preview = next
+	_fill_preview(_preview_day, Icons.SUN, AppTheme.GOLD, preview[WavePreview.DAY])
+	_fill_preview(_preview_night, Icons.MOON, AppTheme.VIOLET, preview[WavePreview.NIGHT])
+
+
+func _known_flags(sections: Dictionary) -> Array[bool]:
+	var flags: Array[bool] = []
+	for section: Dictionary in sections.values():
+		for list: Array in section.values():
+			for kind: String in list:
+				flags.append(is_known(kind))
+	return flags
+
+
+func _fill_preview(flow: HFlowContainer, glyph: String, color: Color, section: Dictionary) -> void:
+	UiKit.clear(flow)
+	var kinds: Array = section[WavePreview.KINDS]
+	var raid: Array = section[WavePreview.RAID]
+	flow.visible = not kinds.is_empty() or not raid.is_empty()
+	flow.add_child(UiKit.icon(glyph, color, 24))
+	for kind: String in kinds:
+		flow.add_child(EnemyIcon.new().setup(kind, PREVIEW_ICON, is_known(kind)))
+	if raid.is_empty():
+		return
+	var raid_label := UiKit.label("%s %s" % [Icons.FLIGHT, Texts.t("WAVE_PREVIEW_RAID")], "Tiny")
+	raid_label.custom_minimum_size = Vector2(0, PREVIEW_ICON)
+	flow.add_child(raid_label)
+	for kind: String in raid:
+		flow.add_child(EnemyIcon.new().setup(kind, PREVIEW_ICON, is_known(kind)))
 
 
 func _build_creative() -> void:
@@ -270,6 +367,89 @@ func _build_hint() -> void:
 	_hint.add_child(row)
 
 
+func _build_discovery() -> void:
+	_discovery = PanelContainer.new()
+	_discovery.add_theme_stylebox_override(&"panel", AppTheme.glow_box(AppTheme.PANEL, AppTheme.RADIUS_CARD, AppTheme.GOLD, AppTheme.SPACING_MD))
+	_discovery.mouse_filter = Control.MOUSE_FILTER_STOP
+	_discovery.visible = false
+	_discovery.gui_input.connect(_on_discovery_input)
+	add_child(_discovery)
+	var row := UiKit.hbox(AppTheme.SPACING_MD)
+	var frame := PanelContainer.new()
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_theme_stylebox_override(&"panel", AppTheme.box(AppTheme.SURFACE_HIGH, AppTheme.RADIUS_PILL))
+	_discovery_icon = EnemyIcon.new().setup("", DISCOVERY_ICON)
+	frame.add_child(_discovery_icon)
+	row.add_child(frame)
+	var texts := UiKit.vbox(2)
+	_discovery_title = UiKit.label("", "Title")
+	_discovery_title.add_theme_color_override(&"font_color", AppTheme.GOLD)
+	texts.add_child(_discovery_title)
+	texts.add_child(UiKit.label(Texts.t("BESTIARY_NEW_HINT"), "Caption"))
+	row.add_child(texts)
+	_discovery.add_child(row)
+
+
+func announce_discovery(kind: String) -> void:
+	if kind == discovery_kind or _discoveries.has(kind):
+		return
+	_discoveries.append(kind)
+	if discovery_kind.is_empty():
+		_next_discovery()
+
+
+func discovery_visible() -> bool:
+	return _discovery.visible
+
+
+func discovery_text() -> String:
+	return _discovery_title.text
+
+
+func _next_discovery() -> void:
+	if _discoveries.is_empty():
+		discovery_kind = ""
+		_discovery.visible = false
+		return
+	discovery_kind = _discoveries.pop_front()
+	_discovery_icon.kind = discovery_kind
+	_discovery_icon.queue_redraw()
+	_discovery_title.text = Texts.format("BESTIARY_NEW", [Texts.enemy_name(discovery_kind)])
+	_discovery_timer = DISCOVERY_TIME
+	_discovery.modulate.a = 1.0
+	_discovery.visible = true
+	_discovery.reset_size()
+	Juice.pop(_discovery, 1.12)
+
+
+func _tick_discovery(delta: float) -> void:
+	if discovery_kind.is_empty():
+		return
+	_discovery_timer -= delta
+	_discovery.modulate.a = clampf(_discovery_timer / DISCOVERY_FADE, 0.0, 1.0)
+	if _discovery_timer <= 0.0:
+		_next_discovery()
+
+
+func _on_discovery_input(event: InputEvent) -> void:
+	var released := false
+	if event is InputEventMouseButton:
+		released = (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and not event.is_pressed()
+	elif event is InputEventScreenTouch:
+		released = not event.is_pressed()
+	if released:
+		press_discovery()
+		accept_event()
+
+
+func press_discovery() -> void:
+	if discovery_kind.is_empty():
+		return
+	var kind := discovery_kind
+	_next_discovery()
+	discovery_pressed.emit(kind)
+
+
 func _build_combo() -> void:
 	_combo = UiKit.vbox(0)
 	_combo.modulate.a = 0.0
@@ -340,6 +520,9 @@ func refresh(state: BattleState, speed: float, tutorial_text: String, shown_mone
 	var mopping := fighting and state.night_over
 	_prep.visible = planning or scouting or mopping
 	_start.visible = planning
+	_preview.visible = planning
+	if planning:
+		_refresh_preview(state)
 	var undoable := planning and history != null and history.can_undo()
 	_undo.visible = planning
 	_reset.visible = planning
@@ -382,6 +565,7 @@ func _process(delta: float) -> void:
 		_money.text = NumberFormat.grouped(int(money_roll.target))
 	_layout()
 	_tick_banner(delta)
+	_tick_discovery(delta)
 	if _toast_timer > 0.0:
 		_toast_timer -= delta
 		_toast.modulate.a = clampf(_toast_timer / 0.3, 0.0, 1.0)
@@ -411,6 +595,9 @@ func _layout() -> void:
 		map_panel.position = Vector2((width - map_panel.size.x) * 0.5, below)
 		if map_panel.visible:
 			below += map_panel.size.y + AppTheme.SPACING_SM
+	_discovery.position = Vector2((width - _discovery.size.x) * 0.5, below)
+	if _discovery.visible:
+		below += _discovery.size.y + AppTheme.SPACING_SM
 	_hint.position = Vector2((width - _hint.size.x) * 0.5, below)
 	_combo.position = Vector2(width - _combo.size.x - AppTheme.SPACING_LG, top + 150.0)
 	_banner.size.x = width

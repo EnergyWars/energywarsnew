@@ -204,7 +204,7 @@ func test_every_receiver_can_upgrade_transfer() -> void:
 		var definition: Dictionary = GameConfig.BUILDINGS[kind]
 		if definition.team != GameConfig.TEAM_PLAYER or not definition.has("tracks") or float(definition.get("capacity", 0.0)) <= 0.0:
 			continue
-		if not bool(definition.get("receives", true)):
+		if not bool(definition.get("receives", true)) or GameConfig.is_wall(kind):
 			continue
 		assert_true((definition.tracks as Array).has(GameConfig.TRACK_TRANSFER), kind)
 

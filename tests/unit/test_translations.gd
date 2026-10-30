@@ -11,21 +11,24 @@ func _keys() -> Array[String]:
 	var keys: Array[String] = ["APP_TITLE", "MENU_TAGLINE", "COMBO_LABEL", "LANGUAGE_AUTO", "LANGUAGE_DE", "LANGUAGE_EN",
 		"HUD_PLAN", "HUD_PLAN_CARD", "HUD_START", "HUD_DAY_WAVE", "HUD_MOP_UP", "BANNER_ROUND_SUB", "BANNER_NIGHT_OVER",
 		"BANNER_NIGHT_OVER_SUB", "BANNER_ROUND_CLEARED", "BANNER_ROUND_CLEARED_SUB", "TOAST_NIGHT_WAVE", "PANEL_LEVEL",
-		"PANEL_RELOCATE_FREE", "STAT_CRIT"]
+		"PANEL_RELOCATE_FREE", "PANEL_INFO", "STAT_CRIT"]
 	for kind: String in GameConfig.BUILDINGS:
 		keys.append("BUILDING_%s" % kind.to_upper())
 		keys.append("BUILDING_%s_INFO" % kind.to_upper())
+		if GameConfig.BUILDINGS[kind].team == GameConfig.TEAM_PLAYER:
+			keys.append("BUILDING_%s_DESC" % kind.to_upper())
 	for kind in GameConfig.BUILD_ORDER:
 		keys.append("BUILDING_%s_SHORT" % kind.to_upper())
 	for key: String in [BuildBar.ALL, BuildBar.OTHER]:
 		keys.append("BUILD_CATEGORY_%s" % key.to_upper())
 	for entry: Dictionary in GameConfig.BUILD_CATEGORIES:
 		keys.append("BUILD_CATEGORY_%s" % str(entry.key).to_upper())
-	for kind: String in GameConfig.ENEMIES:
+	for kind: String in GameConfig.enemy_kinds():
 		keys.append("ENEMY_%s" % kind.to_upper())
+		keys.append("ENEMY_%s_DESC" % kind.to_upper())
 	for track: String in GameConfig.TRACKS:
 		keys.append("TRACK_%s" % track.to_upper())
-	for level: Dictionary in GameConfig.LEVELS:
+	for level: Dictionary in GameConfig.levels():
 		keys.append("LEVEL_%s" % str(level.id).to_upper())
 		keys.append("LEVEL_%s_INFO" % str(level.id).to_upper())
 	for code in [BuildRules.INVALID, BuildRules.LOCKED, BuildRules.MONEY, BuildRules.BOUNDS, BuildRules.BLOCKED, BuildRules.OVERLAP, BuildRules.ENEMY_NEAR, BuildRules.ENEMY_ZONE, BuildRules.TOO_FAR, BuildRules.SLIME]:
@@ -106,5 +109,12 @@ func test_german_differs_where_expected() -> void:
 	assert_eq(Texts.format("TOAST_ENEMIES_CLEARED", [4]), "4 Gegner entfernt")
 	assert_eq(Texts.t("CREATIVE_MONEY_ON"), "Unbegrenztes Geld an")
 	assert_eq(Texts.t("CREATIVE_MONEY_OFF"), "Unbegrenztes Geld aus")
+	assert_eq(Texts.track_name(GameConfig.TRACK_HULL, GameConfig.ZAPPER), "Leben")
+	assert_eq(Texts.track_name(GameConfig.TRACK_ARMOR, GameConfig.ZAPPER), "Panzerung")
+	assert_eq(Texts.t("STAT_HP"), "Leben")
+	assert_eq(Texts.t("STAT_ARMOR"), "Panzerung")
+	assert_eq(Texts.tech_name("plating_1"), "Lebenskraft I")
 	TranslationServer.set_locale("en")
 	assert_eq(Texts.building_name(GameConfig.BATTERY), "Storage")
+	assert_eq(Texts.track_name(GameConfig.TRACK_HULL, GameConfig.ZAPPER), "Health")
+	assert_eq(Texts.track_name(GameConfig.TRACK_ARMOR, GameConfig.ZAPPER), "Armour")

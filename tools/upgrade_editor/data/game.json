@@ -1,7 +1,8 @@
 {
 	"schema": 1,
 	"system": {
-		"track_growth": 1.18, "cell": 56.0
+		"track_growth": 1.18,
+		"cell": 56.0
 	},
 	"tracks": {
 		"rate": {
@@ -45,6 +46,11 @@
 			"step": 0.15,
 			"price": 0.18
 		},
+		"armor": {
+			"max": 20,
+			"step": 0.15,
+			"price": 0.15
+		},
 		"efficiency": {
 			"max": 20,
 			"step": 0.05,
@@ -84,6 +90,8 @@
 			"cost": 0,
 			"upgrade_base": 120,
 			"hp": 1500.0,
+			"armor": 20.0,
+			"description_key": "BUILDING_CORE_DESC",
 			"tracks": [
 				"rate",
 				"range",
@@ -118,6 +126,8 @@
 			"cost": 4,
 			"upgrade_base": 40,
 			"hp": 1600.0,
+			"armor": 40.0,
+			"description_key": "BUILDING_BULWARK_DESC",
 			"tracks": [
 				"hull"
 			],
@@ -149,6 +159,8 @@
 			"cost": 40,
 			"upgrade_base": 40,
 			"hp": 70.0,
+			"armor": 0.0,
+			"description_key": "BUILDING_SOLAR_DESC",
 			"tracks": [
 				"output",
 				"range",
@@ -172,6 +184,8 @@
 			"cost": 50,
 			"upgrade_base": 50,
 			"hp": 90.0,
+			"armor": 2.0,
+			"description_key": "BUILDING_WATER_DESC",
 			"tracks": [
 				"output",
 				"range",
@@ -195,6 +209,8 @@
 			"cost": 15,
 			"upgrade_base": 15,
 			"hp": 60.0,
+			"armor": 0.0,
+			"description_key": "BUILDING_FIRE_DESC",
 			"tracks": [
 				"output",
 				"range",
@@ -218,6 +234,8 @@
 			"cost": 30,
 			"upgrade_base": 30,
 			"hp": 90.0,
+			"armor": 4.0,
+			"description_key": "BUILDING_RELAY_DESC",
 			"tracks": [
 				"rate",
 				"range",
@@ -242,6 +260,8 @@
 			"cost": 80,
 			"upgrade_base": 80,
 			"hp": 140.0,
+			"armor": 8.0,
+			"description_key": "BUILDING_BATTERY_DESC",
 			"tracks": [
 				"capacity",
 				"rate",
@@ -265,6 +285,8 @@
 			"cost": 120,
 			"upgrade_base": 120,
 			"hp": 80.0,
+			"armor": 4.0,
+			"description_key": "BUILDING_EXPORTER_DESC",
 			"tracks": [
 				"rate",
 				"capacity",
@@ -285,6 +307,8 @@
 			"cost": 25,
 			"upgrade_base": 25,
 			"hp": 60.0,
+			"armor": 0.0,
+			"description_key": "BUILDING_LAMP_DESC",
 			"tracks": [
 				"efficiency",
 				"capacity",
@@ -304,6 +328,8 @@
 			"cost": 70,
 			"upgrade_base": 70,
 			"hp": 90.0,
+			"armor": 6.0,
+			"description_key": "BUILDING_ZAPPER_DESC",
 			"tracks": [
 				"power",
 				"speed",
@@ -313,7 +339,8 @@
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -334,13 +361,16 @@
 			"cost": 120,
 			"upgrade_base": 120,
 			"hp": 110.0,
+			"armor": 8.0,
+			"description_key": "BUILDING_LASER_DESC",
 			"tracks": [
 				"power",
 				"range",
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -361,6 +391,8 @@
 			"cost": 110,
 			"upgrade_base": 110,
 			"hp": 90.0,
+			"armor": 6.0,
+			"description_key": "BUILDING_HEALER_DESC",
 			"tracks": [
 				"power",
 				"speed",
@@ -368,7 +400,8 @@
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -389,6 +422,8 @@
 			"cost": 130,
 			"upgrade_base": 130,
 			"hp": 900.0,
+			"armor": 50.0,
+			"description_key": "BUILDING_BASTION_DESC",
 			"tracks": [
 				"power",
 				"speed",
@@ -397,7 +432,8 @@
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -418,6 +454,8 @@
 			"cost": 150,
 			"upgrade_base": 150,
 			"hp": 160.0,
+			"armor": 12.0,
+			"description_key": "BUILDING_ROVER_DESC",
 			"tracks": [
 				"power",
 				"speed",
@@ -427,7 +465,8 @@
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -452,6 +491,8 @@
 			"cost": 160,
 			"upgrade_base": 160,
 			"hp": 120.0,
+			"armor": 8.0,
+			"description_key": "BUILDING_TESLA_DESC",
 			"tracks": [
 				"power",
 				"speed",
@@ -462,7 +503,8 @@
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -484,6 +526,8 @@
 			"cost": 200,
 			"upgrade_base": 200,
 			"hp": 110.0,
+			"armor": 10.0,
+			"description_key": "BUILDING_PLASMA_DESC",
 			"tracks": [
 				"power",
 				"speed",
@@ -494,7 +538,8 @@
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -517,6 +562,8 @@
 			"cost": 140,
 			"upgrade_base": 140,
 			"hp": 100.0,
+			"armor": 10.0,
+			"description_key": "BUILDING_SHIELD_DESC",
 			"tracks": [
 				"power",
 				"range",
@@ -760,6 +807,34 @@
 			"en": "Enemy tower that shoots your buildings.",
 			"de": "Feindlicher Turm, der auf deine Gebäude schießt."
 		},
+		"ENEMY_CRAWLER": {
+			"en": "Crawler",
+			"de": "Krabbler"
+		},
+		"ENEMY_BEETLE": {
+			"en": "Armour beetle",
+			"de": "Panzerkäfer"
+		},
+		"ENEMY_WASP": {
+			"en": "Stinger",
+			"de": "Stachler"
+		},
+		"ENEMY_BEHEMOTH": {
+			"en": "Behemoth",
+			"de": "Koloss"
+		},
+		"ENEMY_SOLDIER": {
+			"en": "Soldier",
+			"de": "Soldat"
+		},
+		"ENEMY_SABOTEUR": {
+			"en": "Saboteur",
+			"de": "Saboteur"
+		},
+		"ENEMY_TANK": {
+			"en": "Tank",
+			"de": "Panzer"
+		},
 		"TRACK_RATE": {
 			"en": "Transfer rate",
 			"de": "Transferrate"
@@ -817,8 +892,20 @@
 			"de": "Basis"
 		},
 		"TRACK_HULL": {
+			"en": "Health",
+			"de": "Leben"
+		},
+		"TRACK_ARMOR": {
 			"en": "Armour",
 			"de": "Panzerung"
+		},
+		"ENEMY_SPITTER": {
+			"en": "Spitter",
+			"de": "Speier"
+		},
+		"ENEMY_DRONE": {
+			"en": "Drone",
+			"de": "Drohne"
 		},
 		"BUILDING_ROVER": {
 			"en": "Mobile tower",
@@ -851,6 +938,22 @@
 		"TRACK_EFFICIENCY_ROVER": {
 			"en": "Drive efficiency",
 			"de": "Fahreffizienz"
+		},
+		"ENEMY_STALKER": {
+			"en": "Stalker",
+			"de": "Pirscher"
+		},
+		"ENEMY_NIGHTWING": {
+			"en": "Night wing",
+			"de": "Nachtschwinge"
+		},
+		"ENEMY_RAIDER": {
+			"en": "Raider",
+			"de": "Plünderer"
+		},
+		"ENEMY_PHANTOM": {
+			"en": "Phantom drone",
+			"de": "Phantomdrohne"
 		},
 		"TRACK_OVERCLOCK": {
 			"en": "Overcharge",
@@ -923,6 +1026,262 @@
 		"BUILD_CATEGORY_OTHER": {
 			"en": "Other",
 			"de": "Sonstiges"
+		},
+		"BUILDING_CORE_DESC": {
+			"en": "Your base and the heart of the whole energy grid. It makes a little energy day and night, fires at ground and air enemies on its own and has lots of armour and health. If it is destroyed, the round is lost, so protect it first.",
+			"de": "Deine Basis und das Herz des gesamten Energienetzes. Er erzeugt Tag und Nacht etwas Energie, schießt selbstständig auf Boden- und Luftgegner und hält viel aus. Wird er zerstört, ist die Runde verloren – schütze ihn also zuerst."
+		},
+		"BUILDING_SOLAR_DESC": {
+			"en": "The standard energy source: cheap and reliable, but it only produces power while the sun is shining. Build several and link them to your storage so the night is covered. It is fragile, so keep it behind your defences.",
+			"de": "Die Standard-Energiequelle: günstig und zuverlässig, liefert aber nur Strom, solange die Sonne scheint. Baue mehrere und verbinde sie mit Speichern, damit die Nacht überbrückt wird. Sie ist zerbrechlich, stelle sie also hinter deine Verteidigung."
+		},
+		"BUILDING_WATER_DESC": {
+			"en": "Produces a small but steady amount of energy, day and night. It can only be placed on water, so it is perfect for lakes and ponds where nothing else fits. Plan your power network around it, because spots are limited.",
+			"de": "Liefert wenig, dafür gleichmäßig Energie – bei Tag und bei Nacht. Es kann nur auf Wasser gebaut werden und eignet sich daher für Seen und Teiche, wo sonst nichts passt. Plane dein Netz darum herum, denn die Plätze sind begrenzt."
+		},
+		"BUILDING_FIRE_DESC": {
+			"en": "A very cheap and powerful energy source, but it only burns as long as there are trees you have marked for fuel. Once the trees are gone, so is the power, and burned trees no longer shelter your base. Great for a quick start, not for the long run.",
+			"de": "Eine sehr günstige und starke Energiequelle, die aber nur brennt, solange von dir markierte Bäume als Brennstoff da sind. Sind die Bäume weg, ist auch der Strom weg, und verbrannte Bäume schützen deine Basis nicht mehr. Ideal für einen schnellen Start, nicht für die lange Strecke."
+		},
+		"BUILDING_LAMP_DESC": {
+			"en": "Lights up the area at night so your towers can see and hit enemies there. It needs energy after dark, and a larger light radius costs much more than a small one. Place it where your towers actually fight.",
+			"de": "Erhellt nachts die Umgebung, damit deine Türme Gegner dort sehen und treffen. Sie braucht nach Sonnenuntergang Energie, und ein großer Leuchtradius kostet viel mehr als ein kleiner. Stelle sie dorthin, wo deine Türme tatsächlich kämpfen."
+		},
+		"BUILDING_RELAY_DESC": {
+			"en": "Passes energy on over long distances and lets you build further away, since it extends your build area. It has a long reach and several beams, so it is the backbone of a spread-out base. It does not produce or store much itself.",
+			"de": "Leitet Energie über weite Strecken weiter und erweitert dein Baugebiet, sodass du weiter entfernt bauen kannst. Mit großer Reichweite und mehreren Strahlen ist es das Rückgrat einer weitläufigen Basis. Selbst erzeugt oder speichert es kaum etwas."
+		},
+		"BUILDING_BATTERY_DESC": {
+			"en": "Stores a large amount of energy so your towers keep firing through the night, when solar power is gone. Link it to your producers and to your towers. It is sturdy but has no weapon, so keep it well inside your base.",
+			"de": "Speichert viel Energie, damit deine Türme auch nachts weiterschießen, wenn die Solarzellen nichts liefern. Verbinde ihn mit deinen Erzeugern und deinen Türmen. Er hält einiges aus, hat aber keine Waffe – stelle ihn weit ins Innere deiner Basis."
+		},
+		"BUILDING_EXPORTER_DESC": {
+			"en": "Turns surplus energy into money, which you can spend on new buildings. It keeps selling as long as it gets power, so cut its beam at night, or it drains the energy your towers need. Only worth it when you have energy to spare.",
+			"de": "Verwandelt überschüssige Energie in Geld, das du für neue Gebäude ausgeben kannst. Er verkauft, solange er Strom bekommt – kappe nachts seinen Strahl, sonst entzieht er den Türmen die nötige Energie. Lohnt sich nur, wenn du Energie übrig hast."
+		},
+		"BUILDING_ZAPPER_DESC": {
+			"en": "A cheap, fast tower that fires lightning bolts at single enemies, on the ground and in the air. A good first defence and easy on your energy. It has medium range and little armour, so build several and support them with walls.",
+			"de": "Ein günstiger, schneller Turm, der Blitze auf einzelne Gegner schießt – am Boden und in der Luft. Eine gute erste Verteidigung, die wenig Energie braucht. Reichweite mittel und wenig Panzerung, baue daher mehrere und schütze sie mit Mauern."
+		},
+		"BUILDING_LASER_DESC": {
+			"en": "Fires a continuous beam that deals steady damage and is good against tough single targets. It hits ground and air enemies, but it uses a lot of energy while firing. Make sure it is well connected to a battery.",
+			"de": "Schießt einen Dauerstrahl, der gleichmäßig Schaden macht und zähe Einzelziele gut knackt. Er trifft Boden- und Luftgegner, verbraucht beim Feuern aber viel Energie. Achte auf eine gute Verbindung zu einem Speicher."
+		},
+		"BUILDING_TESLA_DESC": {
+			"en": "Its lightning jumps from one enemy to the next, hitting up to five at once. Excellent against swarms of weak enemies, on the ground and in the air. It costs more and uses more energy per shot than a zapper.",
+			"de": "Ihr Blitz springt von Gegner zu Gegner und trifft bis zu fünf gleichzeitig. Hervorragend gegen Schwärme schwacher Gegner, am Boden und in der Luft. Sie kostet mehr und braucht pro Schuss mehr Energie als der Blitzturm."
+		},
+		"BUILDING_PLASMA_DESC": {
+			"en": "Lobs slow plasma balls with a huge range and area damage, ideal against groups and slow heavy enemies. It can only hit ground targets and cannot hit enemies that get too close, so combine it with other towers.",
+			"de": "Verschießt langsame Plasmakugeln mit riesiger Reichweite und Flächenschaden – ideal gegen Gruppen und langsame, schwere Gegner. Er trifft nur Bodenziele und keine Gegner, die zu nah herankommen, kombiniere ihn daher mit anderen Türmen."
+		},
+		"BUILDING_SHIELD_DESC": {
+			"en": "Creates a protective bubble that absorbs damage dealt to buildings inside it, using its own stored energy. Place it in the middle of your important buildings. When its energy runs out, the protection stops, so keep it charged.",
+			"de": "Erzeugt eine Schutzblase, die Schaden an Gebäuden darin mit der eigenen Energie abfängt. Stelle ihn in die Mitte deiner wichtigen Gebäude. Ist seine Energie leer, endet der Schutz – halte ihn also aufgeladen."
+		},
+		"BUILDING_HEALER_DESC": {
+			"en": "Repairs damaged buildings in its range and automatically chooses the one that needs it most. It keeps your defence standing during long fights. Healing costs energy, so it needs a good supply, and it cannot fight itself.",
+			"de": "Repariert beschädigte Gebäude in Reichweite und wählt automatisch das dringendste Ziel. So hält deine Verteidigung auch lange Kämpfe durch. Heilen kostet Energie, daher braucht er gute Versorgung, und kämpfen kann er selbst nicht."
+		},
+		"BUILDING_ROVER_DESC": {
+			"en": "A mobile tower that you drive wherever it is needed, on the ground and in the air. Driving uses a lot of energy, and it only recharges within reach of your beams, so do not wander too far from the grid. Sturdy, but it does not extend your build area.",
+			"de": "Ein beweglicher Turm, den du dorthin fährst, wo er gebraucht wird – er trifft Boden und Luft. Fahren kostet viel Energie, und aufgeladen wird er nur in Reichweite deiner Strahlen, entferne dich daher nicht zu weit vom Netz. Robust, erweitert aber nicht dein Baugebiet."
+		},
+		"BUILDING_BASTION_DESC": {
+			"en": "A very tough tower with heavy armour and lots of health that shoots at flying enemies only. Flying enemies always attack it first, so it draws fire away from your fragile buildings. Combine it with ground towers.",
+			"de": "Ein sehr zäher Turm mit dicker Panzerung und viel Lebensenergie, der nur auf fliegende Gegner schießt. Luftgegner greifen ihn immer zuerst an und werden so von deinen empfindlichen Gebäuden abgelenkt. Kombiniere ihn mit Bodentürmen."
+		},
+		"BUILDING_BULWARK_DESC": {
+			"en": "A cheap, heavily armoured wall block that enemies cannot walk through. Use it to funnel enemies and protect weak buildings. Upgrading a block is worth much more than building new ones, and with energy it slowly repairs itself.",
+			"de": "Ein günstiger, stark gepanzerter Mauerblock, durch den Gegner nicht gehen können. Nutze ihn, um Gegner zu lenken und schwache Gebäude zu schützen. Ein Ausbau lohnt sich weit mehr als neue Blöcke, und mit Energie repariert er sich langsam."
+		},
+		"ENEMY_LARVA": {
+			"en": "Larva",
+			"de": "Larve"
+		},
+		"ENEMY_LARVA_DESC": {
+			"en": "A tiny, pale grub that charges in huge numbers. Each one is almost harmless, but they swamp single targets.",
+			"de": "Eine winzige, blasse Made, die in riesigen Mengen anstürmt. Einzeln harmlos, aber sie überrennen einzelne Ziele."
+		},
+		"ENEMY_MAULER": {
+			"en": "Mauler",
+			"de": "Zerfleischer"
+		},
+		"ENEMY_MAULER_DESC": {
+			"en": "A horned brawler with solid bite and a little armour. A sturdy day melee unit that bridges the gap to the heavy beetles.",
+			"de": "Ein gehörnter Raufbold mit kräftigem Biss und etwas Panzerung. Ein robuster Nahkämpfer des Tages vor den schweren Käfern."
+		},
+		"ENEMY_RAVAGER": {
+			"en": "Ravager",
+			"de": "Verwüster"
+		},
+		"ENEMY_RAVAGER_DESC": {
+			"en": "A fast, spiked night hunter with strong claws. It tears through weakly defended towers before they can react.",
+			"de": "Ein schneller, bestachelter Nachtjäger mit starken Klauen. Er reißt schlecht verteidigte Türme nieder, bevor sie reagieren können."
+		},
+		"ENEMY_SLINGER": {
+			"en": "Slinger",
+			"de": "Schleuderer"
+		},
+		"ENEMY_SLINGER_DESC": {
+			"en": "A green ranged bug that lobs acid from a slightly longer distance than the spitter. Weak up close.",
+			"de": "Ein grüner Fernkämpfer, der Säure etwas weiter als der Speier schleudert. Aus der Nähe schwach."
+		},
+		"ENEMY_GNAT": {
+			"en": "Gnat",
+			"de": "Mücke"
+		},
+		"ENEMY_GNAT_DESC": {
+			"en": "The fastest and weakest flyer. It arrives in swarms and dies to a single hit, but it keeps your anti-air busy.",
+			"de": "Der schnellste und schwächste Flieger. Er kommt im Schwarm und stirbt mit einem Treffer, hält aber deine Luftabwehr beschäftigt."
+		},
+		"ENEMY_DREADWING": {
+			"en": "Dreadwing",
+			"de": "Schreckensschwinge"
+		},
+		"ENEMY_DREADWING_DESC": {
+			"en": "A huge winged boss that dives at your buildings from the air. Strong armour and high health; only anti-air can stop it.",
+			"de": "Ein riesiger geflügelter Boss, der aus der Luft auf deine Gebäude herabstößt. Starke Panzerung und viel Leben; nur Luftabwehr kann ihn stoppen."
+		},
+		"ENEMY_JUGGERNAUT": {
+			"en": "Juggernaut",
+			"de": "Moloch"
+		},
+		"ENEMY_JUGGERNAUT_DESC": {
+			"en": "A slow, plated melee boss. Its thick armour shrugs off weak shots, so you need heavy-hitting towers.",
+			"de": "Ein langsamer, gepanzerter Nahkampf-Boss. Seine dicke Panzerung steckt schwache Schüsse weg, du brauchst stark treffende Türme."
+		},
+		"ENEMY_BROODMOTHER": {
+			"en": "Broodmother",
+			"de": "Brutmutter"
+		},
+		"ENEMY_BROODMOTHER_DESC": {
+			"en": "A purple ranged boss that spits acid from afar. It stays back and punishes anything inside its range.",
+			"de": "Ein violetter Fernkampf-Boss, der Säure aus der Ferne spuckt. Er hält Abstand und bestraft alles in seiner Reichweite."
+		},
+		"ENEMY_SNIPER": {
+			"en": "Sniper",
+			"de": "Scharfschütze"
+		},
+		"ENEMY_SNIPER_DESC": {
+			"en": "A patient night ranged unit with the longest reach of the regulars and a hard hit. It picks off towers from outside their range.",
+			"de": "Ein geduldiger Fernkämpfer der Nacht mit der größten Reichweite der normalen Gegner und hartem Treffer. Er schießt Türme von außerhalb ihrer Reichweite ab."
+		},
+		"ENEMY_SPRINTER": {
+			"en": "Sprinter",
+			"de": "Sprinter"
+		},
+		"ENEMY_SPRINTER_DESC": {
+			"en": "A very fast, lightly armed runner. It reaches your defences first and is hard to hit, but it dies quickly.",
+			"de": "Ein sehr schneller, leicht bewaffneter Läufer. Er erreicht deine Verteidigung zuerst und ist schwer zu treffen, hält aber wenig aus."
+		},
+		"ENEMY_BREACHER": {
+			"en": "Breacher",
+			"de": "Sprengmeister"
+		},
+		"ENEMY_BREACHER_DESC": {
+			"en": "A glass cannon with a devastating but slow melee strike. It breaks walls and towers fast if it gets through.",
+			"de": "Eine Glaskanone mit verheerendem, aber langsamem Nahkampfschlag. Er bricht Mauern und Türme schnell, wenn er durchkommt."
+		},
+		"ENEMY_BRUTE": {
+			"en": "Brute",
+			"de": "Schläger"
+		},
+		"ENEMY_BRUTE_DESC": {
+			"en": "A slow, heavily armoured night bruiser. Armour makes weak shots nearly useless, so bring strong turrets.",
+			"de": "Ein langsamer, schwer gepanzerter Nachtschläger. Die Panzerung macht schwache Schüsse fast wirkungslos, bring starke Türme mit."
+		},
+		"ENEMY_ARTILLERY": {
+			"en": "Artillery",
+			"de": "Artillerie"
+		},
+		"ENEMY_ARTILLERY_DESC": {
+			"en": "A siege boss with by far the longest reach. It shells your towers from outside their range while barely moving.",
+			"de": "Ein Belagerungs-Boss mit Abstand der größten Reichweite. Er beschießt deine Türme von außerhalb ihrer Reichweite und bewegt sich kaum."
+		},
+		"ENEMY_WARLORD": {
+			"en": "Warlord",
+			"de": "Kriegsherr"
+		},
+		"ENEMY_WARLORD_DESC": {
+			"en": "A twin-barrelled, armoured ranged boss. It combines good reach with steady firepower and thick armour.",
+			"de": "Ein doppelläufiger, gepanzerter Fernkampf-Boss. Er verbindet gute Reichweite mit stetigem Feuer und dicker Panzerung."
+		},
+		"ENEMY_COLOSSUS": {
+			"en": "Colossus",
+			"de": "Titan"
+		},
+		"ENEMY_COLOSSUS_DESC": {
+			"en": "The toughest melee boss of all: gigantic health, extreme armour and a crushing blow. Extremely slow, so keep it away from your core.",
+			"de": "Der zäheste Nahkampf-Boss überhaupt: riesige Lebenspunkte, extreme Panzerung und ein vernichtender Schlag. Sehr langsam, halte ihn also vom Kern fern."
+		},
+		"ENEMY_REAPER": {
+			"en": "Reaper",
+			"de": "Schnitter"
+		},
+		"ENEMY_REAPER_DESC": {
+			"en": "A fast melee boss with long legs and scythe-like horns. Less armour than other bosses, but it closes the distance quickly.",
+			"de": "Ein schneller Nahkampf-Boss mit langen Beinen und sensenartigen Hörnern. Weniger Panzerung als andere Bosse, überbrückt aber schnell die Distanz."
+		},
+		"ENEMY_GUNSHIP": {
+			"en": "Gunship",
+			"de": "Kampfhubschrauber"
+		},
+		"ENEMY_GUNSHIP_DESC": {
+			"en": "A heavily armoured flying boss with rotors and a cannon. It shoots from the air and ignores ground obstacles.",
+			"de": "Ein schwer gepanzerter fliegender Boss mit Rotoren und Kanone. Er schießt aus der Luft und ignoriert Hindernisse am Boden."
+		},
+		"ENEMY_CRAWLER_DESC": {
+			"en": "The basic bug: weak and cheap, but it comes in large numbers and wears down undefended targets.",
+			"de": "Der einfache Käfer: schwach und billig, kommt aber in großen Mengen und zermürbt ungeschützte Ziele."
+		},
+		"ENEMY_BEETLE_DESC": {
+			"en": "A slow, tough beetle with a heavy shell. Weak shots barely scratch it, so use stronger towers.",
+			"de": "Ein langsamer, zäher Käfer mit schwerem Panzer. Schwache Schüsse kratzen ihn kaum, nutze stärkere Türme."
+		},
+		"ENEMY_WASP_DESC": {
+			"en": "A quick day flyer that ignores the ground and goes straight for your buildings. Needs anti-air.",
+			"de": "Ein flinker Flieger des Tages, der den Boden ignoriert und direkt auf deine Gebäude zufliegt. Braucht Luftabwehr."
+		},
+		"ENEMY_BEHEMOTH_DESC": {
+			"en": "The nest boss: huge health, thick armour and a heavy melee blow. Slow, but it flattens everything in its way.",
+			"de": "Der Boss des Nests: riesige Lebenspunkte, dicke Panzerung und ein schwerer Nahkampfschlag. Langsam, aber er walzt alles nieder."
+		},
+		"ENEMY_SOLDIER_DESC": {
+			"en": "A standard ranged infantryman with light armour. He shoots your buildings from a short distance.",
+			"de": "Ein normaler Fernkampf-Infanterist mit leichter Panzerung. Er schießt aus kurzer Distanz auf deine Gebäude."
+		},
+		"ENEMY_SABOTEUR_DESC": {
+			"en": "Does not attack buildings but cuts your energy beams. It stays dangerous for your network even though it hits weakly.",
+			"de": "Greift keine Gebäude an, sondern kappt deine Energiestrahlen. Gefährlich für dein Netz, auch wenn er schwach zuschlägt."
+		},
+		"ENEMY_TANK_DESC": {
+			"en": "The camp boss: very heavy armour, long reach and a hard shot. It outranges small towers and survives weak fire.",
+			"de": "Der Boss des Lagers: sehr schwere Panzerung, große Reichweite und harter Schuss. Er übertrifft kleine Türme an Reichweite und überlebt schwaches Feuer."
+		},
+		"ENEMY_SPITTER_DESC": {
+			"en": "A small ranged bug that spits acid from a distance. Fragile, so kill it before it reaches range.",
+			"de": "Ein kleiner Fernkampf-Käfer, der Säure aus der Distanz spuckt. Zerbrechlich, erledige ihn also früh."
+		},
+		"ENEMY_DRONE_DESC": {
+			"en": "A flying machine from the camp that shoots from a short distance. Light armour, needs anti-air.",
+			"de": "Eine fliegende Maschine des Lagers, die aus kurzer Distanz schießt. Leichte Panzerung, braucht Luftabwehr."
+		},
+		"ENEMY_STALKER_DESC": {
+			"en": "A fast night hunter that burns at dawn. It is quicker and tougher than the day bugs.",
+			"de": "Ein schneller Nachtjäger, der bei Tagesanbruch verbrennt. Schneller und zäher als die Käfer des Tages."
+		},
+		"ENEMY_NIGHTWING_DESC": {
+			"en": "A night flyer that burns at dawn. Fast and tougher than the day flyers.",
+			"de": "Ein Flieger der Nacht, der bei Tagesanbruch verbrennt. Schnell und zäher als die Flieger des Tages."
+		},
+		"ENEMY_RAIDER_DESC": {
+			"en": "A tough night ranged unit with good armour. It shoots from medium distance and burns at dawn.",
+			"de": "Ein zäher Fernkämpfer der Nacht mit guter Panzerung. Er schießt aus mittlerer Distanz und verbrennt bei Tagesanbruch."
+		},
+		"ENEMY_PHANTOM_DESC": {
+			"en": "A night drone with a glowing core. It shoots from a distance and burns at dawn.",
+			"de": "Eine Nachtdrohne mit leuchtendem Kern. Sie schießt aus der Distanz und verbrennt bei Tagesanbruch."
 		}
 	},
 	"check": {
@@ -2208,6 +2567,28 @@
 				1099,
 				1297,
 				1531
+			],
+			"armor": [
+				11,
+				12,
+				15,
+				17,
+				20,
+				24,
+				28,
+				33,
+				39,
+				47,
+				55,
+				65,
+				77,
+				90,
+				107,
+				126,
+				148,
+				175,
+				207,
+				244
 			]
 		},
 		"laser": {
@@ -2362,6 +2743,28 @@
 				1885,
 				2224,
 				2624
+			],
+			"armor": [
+				18,
+				21,
+				25,
+				30,
+				35,
+				41,
+				49,
+				57,
+				68,
+				80,
+				94,
+				111,
+				131,
+				155,
+				183,
+				216,
+				254,
+				300,
+				354,
+				418
 			]
 		},
 		"healer": {
@@ -2543,6 +2946,28 @@
 				1728,
 				2039,
 				2406
+			],
+			"armor": [
+				17,
+				19,
+				23,
+				27,
+				32,
+				38,
+				45,
+				53,
+				62,
+				73,
+				86,
+				102,
+				120,
+				142,
+				167,
+				198,
+				233,
+				275,
+				325,
+				383
 			]
 		},
 		"bastion": {
@@ -2746,6 +3171,28 @@
 				2042,
 				2409,
 				2843
+			],
+			"armor": [
+				20,
+				23,
+				27,
+				32,
+				38,
+				45,
+				53,
+				62,
+				73,
+				86,
+				102,
+				120,
+				142,
+				168,
+				198,
+				233,
+				276,
+				325,
+				384,
+				453
 			]
 		},
 		"rover": {
@@ -2963,6 +3410,28 @@
 				2356,
 				2780,
 				3281
+			],
+			"armor": [
+				23,
+				27,
+				31,
+				37,
+				44,
+				51,
+				61,
+				72,
+				85,
+				100,
+				118,
+				139,
+				164,
+				193,
+				228,
+				269,
+				318,
+				375,
+				443,
+				522
 			]
 		},
 		"tesla": {
@@ -3187,6 +3656,28 @@
 				2513,
 				2965,
 				3499
+			],
+			"armor": [
+				24,
+				28,
+				33,
+				39,
+				47,
+				55,
+				65,
+				76,
+				90,
+				106,
+				126,
+				148,
+				175,
+				206,
+				244,
+				287,
+				339,
+				400,
+				472,
+				557
 			]
 		},
 		"plasma": {
@@ -3421,6 +3912,28 @@
 				3141,
 				3707,
 				4374
+			],
+			"armor": [
+				30,
+				35,
+				42,
+				49,
+				58,
+				69,
+				81,
+				96,
+				113,
+				133,
+				157,
+				185,
+				219,
+				258,
+				304,
+				359,
+				424,
+				500,
+				590,
+				696
 			]
 		},
 		"shield": {
@@ -3555,5 +4068,3793 @@
 				3062
 			]
 		}
+	},
+	"armor": {
+		"constant": 100.0,
+		"max_reduction": 0.9,
+		"min_damage": 1.0
+	},
+	"enemies": {
+		"crawler": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "crawler",
+			"armor": 0.0,
+			"hp": 42.0,
+			"speed": 70.0,
+			"damage": 6.0,
+			"cooldown": 0.8,
+			"reach": 0.0,
+			"radius": 10.0,
+			"bounty": 5,
+			"buffs": {
+				"night": {
+					"hp": 0.1,
+					"damage": 0.1,
+					"speed": 0.05,
+					"armor": 0.0
+				},
+				"level": {
+					"hp": 0.05,
+					"damage": 0.04,
+					"speed": 0.01,
+					"armor": 0.0
+				}
+			}
+		},
+		"larva": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "larva",
+			"armor": 0.0,
+			"hp": 24.0,
+			"speed": 90.0,
+			"damage": 3.0,
+			"cooldown": 0.6,
+			"reach": 0.0,
+			"radius": 7.0,
+			"bounty": 3,
+			"buffs": {
+				"night": {
+					"hp": 0.1,
+					"damage": 0.1,
+					"speed": 0.05,
+					"armor": 0.0
+				},
+				"level": {
+					"hp": 0.05,
+					"damage": 0.04,
+					"speed": 0.01,
+					"armor": 0.0
+				}
+			}
+		},
+		"mauler": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "mauler",
+			"armor": 2.0,
+			"hp": 90.0,
+			"speed": 62.0,
+			"damage": 14.0,
+			"cooldown": 0.9,
+			"reach": 0.0,
+			"radius": 14.0,
+			"bounty": 9,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"beetle": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "beetle",
+			"armor": 12.0,
+			"hp": 290.0,
+			"speed": 40.0,
+			"damage": 18.0,
+			"cooldown": 1.0,
+			"reach": 0.0,
+			"radius": 16.0,
+			"bounty": 15,
+			"buffs": {
+				"night": {
+					"hp": 0.2,
+					"damage": 0.15,
+					"speed": 0.03,
+					"armor": 0.12
+				},
+				"level": {
+					"hp": 0.08,
+					"damage": 0.06,
+					"speed": 0.0,
+					"armor": 0.05
+				}
+			}
+		},
+		"stalker": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "stalker",
+			"armor": 4.0,
+			"hp": 96.0,
+			"speed": 88.0,
+			"damage": 10.0,
+			"cooldown": 0.8,
+			"reach": 0.0,
+			"radius": 13.0,
+			"bounty": 10,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"ravager": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "ravager",
+			"armor": 6.0,
+			"hp": 180.0,
+			"speed": 76.0,
+			"damage": 22.0,
+			"cooldown": 0.8,
+			"reach": 0.0,
+			"radius": 15.0,
+			"bounty": 16,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"spitter": {
+			"class": "ranged",
+			"faction": "nest",
+			"look": "spitter",
+			"armor": 0.0,
+			"hp": 64.0,
+			"speed": 55.0,
+			"damage": 7.0,
+			"cooldown": 1.2,
+			"reach": 110.0,
+			"radius": 12.0,
+			"bounty": 7,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"slinger": {
+			"class": "ranged",
+			"faction": "nest",
+			"look": "slinger",
+			"armor": 2.0,
+			"hp": 70.0,
+			"speed": 50.0,
+			"damage": 9.0,
+			"cooldown": 1.4,
+			"reach": 140.0,
+			"radius": 12.0,
+			"bounty": 8,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"wasp": {
+			"class": "air",
+			"faction": "nest",
+			"look": "wasp",
+			"armor": 0.0,
+			"hp": 36.0,
+			"speed": 95.0,
+			"damage": 5.0,
+			"cooldown": 0.6,
+			"reach": 0.0,
+			"radius": 9.0,
+			"bounty": 6,
+			"buffs": {
+				"night": {
+					"hp": 0.1,
+					"damage": 0.1,
+					"speed": 0.05,
+					"armor": 0.0
+				},
+				"level": {
+					"hp": 0.05,
+					"damage": 0.04,
+					"speed": 0.01,
+					"armor": 0.0
+				}
+			}
+		},
+		"gnat": {
+			"class": "air",
+			"faction": "nest",
+			"look": "gnat",
+			"armor": 0.0,
+			"hp": 20.0,
+			"speed": 125.0,
+			"damage": 2.0,
+			"cooldown": 0.5,
+			"reach": 0.0,
+			"radius": 7.0,
+			"bounty": 3,
+			"buffs": {
+				"night": {
+					"hp": 0.1,
+					"damage": 0.1,
+					"speed": 0.05,
+					"armor": 0.0
+				},
+				"level": {
+					"hp": 0.05,
+					"damage": 0.04,
+					"speed": 0.01,
+					"armor": 0.0
+				}
+			}
+		},
+		"nightwing": {
+			"class": "air",
+			"faction": "nest",
+			"look": "nightwing",
+			"armor": 2.0,
+			"hp": 96.0,
+			"speed": 105.0,
+			"damage": 8.0,
+			"cooldown": 0.7,
+			"reach": 0.0,
+			"radius": 12.0,
+			"bounty": 9,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"behemoth": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "behemoth",
+			"armor": 60.0,
+			"hp": 1440.0,
+			"speed": 26.0,
+			"damage": 80.0,
+			"cooldown": 1.6,
+			"reach": 0.0,
+			"radius": 26.0,
+			"bounty": 105,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"juggernaut": {
+			"class": "melee",
+			"faction": "nest",
+			"look": "juggernaut",
+			"armor": 40.0,
+			"hp": 1900.0,
+			"speed": 34.0,
+			"damage": 70.0,
+			"cooldown": 1.2,
+			"reach": 0.0,
+			"radius": 26.0,
+			"bounty": 130,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"broodmother": {
+			"class": "ranged",
+			"faction": "nest",
+			"look": "broodmother",
+			"armor": 25.0,
+			"hp": 900.0,
+			"speed": 28.0,
+			"damage": 24.0,
+			"cooldown": 1.6,
+			"reach": 220.0,
+			"radius": 24.0,
+			"bounty": 100,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"dreadwing": {
+			"class": "air",
+			"faction": "nest",
+			"look": "dreadwing",
+			"armor": 15.0,
+			"hp": 800.0,
+			"speed": 70.0,
+			"damage": 40.0,
+			"cooldown": 1.0,
+			"reach": 0.0,
+			"radius": 22.0,
+			"bounty": 110,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"soldier": {
+			"class": "ranged",
+			"faction": "camp",
+			"look": "soldier",
+			"armor": 6.0,
+			"hp": 80.0,
+			"speed": 52.0,
+			"damage": 8.0,
+			"cooldown": 1.1,
+			"reach": 120.0,
+			"radius": 11.0,
+			"bounty": 8,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"raider": {
+			"class": "ranged",
+			"faction": "camp",
+			"look": "raider",
+			"armor": 10.0,
+			"hp": 136.0,
+			"speed": 58.0,
+			"damage": 12.0,
+			"cooldown": 1.1,
+			"reach": 125.0,
+			"radius": 12.0,
+			"bounty": 11,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"sniper": {
+			"class": "ranged",
+			"faction": "camp",
+			"look": "sniper",
+			"armor": 4.0,
+			"hp": 100.0,
+			"speed": 40.0,
+			"damage": 26.0,
+			"cooldown": 2.2,
+			"reach": 230.0,
+			"radius": 12.0,
+			"bounty": 14,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"sprinter": {
+			"class": "melee",
+			"faction": "camp",
+			"look": "sprinter",
+			"armor": 0.0,
+			"hp": 50.0,
+			"speed": 120.0,
+			"damage": 6.0,
+			"cooldown": 0.5,
+			"reach": 0.0,
+			"radius": 9.0,
+			"bounty": 6,
+			"buffs": {
+				"night": {
+					"hp": 0.1,
+					"damage": 0.1,
+					"speed": 0.05,
+					"armor": 0.0
+				},
+				"level": {
+					"hp": 0.05,
+					"damage": 0.04,
+					"speed": 0.01,
+					"armor": 0.0
+				}
+			}
+		},
+		"saboteur": {
+			"class": "melee",
+			"faction": "camp",
+			"look": "saboteur",
+			"armor": 4.0,
+			"hp": 96.0,
+			"speed": 80.0,
+			"damage": 5.0,
+			"cooldown": 1.5,
+			"reach": 0.0,
+			"radius": 10.0,
+			"bounty": 17,
+			"sabotage": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"breacher": {
+			"class": "melee",
+			"faction": "camp",
+			"look": "breacher",
+			"armor": 8.0,
+			"hp": 220.0,
+			"speed": 56.0,
+			"damage": 60.0,
+			"cooldown": 2.0,
+			"reach": 0.0,
+			"radius": 14.0,
+			"bounty": 20,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"brute": {
+			"class": "melee",
+			"faction": "camp",
+			"look": "brute",
+			"armor": 30.0,
+			"hp": 420.0,
+			"speed": 34.0,
+			"damage": 40.0,
+			"cooldown": 1.4,
+			"reach": 0.0,
+			"radius": 19.0,
+			"bounty": 24,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.2,
+					"damage": 0.15,
+					"speed": 0.03,
+					"armor": 0.12
+				},
+				"level": {
+					"hp": 0.08,
+					"damage": 0.06,
+					"speed": 0.0,
+					"armor": 0.05
+				}
+			}
+		},
+		"drone": {
+			"class": "air",
+			"faction": "camp",
+			"look": "drone",
+			"armor": 2.0,
+			"hp": 58.0,
+			"speed": 85.0,
+			"damage": 7.0,
+			"cooldown": 0.9,
+			"reach": 70.0,
+			"radius": 11.0,
+			"bounty": 8,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"phantom": {
+			"class": "air",
+			"faction": "camp",
+			"look": "phantom",
+			"armor": 4.0,
+			"hp": 96.0,
+			"speed": 92.0,
+			"damage": 10.0,
+			"cooldown": 0.8,
+			"reach": 80.0,
+			"radius": 12.0,
+			"bounty": 10,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.15,
+					"damage": 0.12,
+					"speed": 0.05,
+					"armor": 0.1
+				},
+				"level": {
+					"hp": 0.06,
+					"damage": 0.05,
+					"speed": 0.01,
+					"armor": 0.04
+				}
+			}
+		},
+		"tank": {
+			"class": "ranged",
+			"faction": "camp",
+			"look": "tank",
+			"armor": 70.0,
+			"hp": 540.0,
+			"speed": 30.0,
+			"damage": 30.0,
+			"cooldown": 2.2,
+			"reach": 210.0,
+			"radius": 22.0,
+			"bounty": 50,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"artillery": {
+			"class": "ranged",
+			"faction": "camp",
+			"look": "artillery",
+			"armor": 50.0,
+			"hp": 700.0,
+			"speed": 22.0,
+			"damage": 70.0,
+			"cooldown": 3.0,
+			"reach": 320.0,
+			"radius": 22.0,
+			"bounty": 90,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"warlord": {
+			"class": "ranged",
+			"faction": "camp",
+			"look": "warlord",
+			"armor": 45.0,
+			"hp": 1200.0,
+			"speed": 36.0,
+			"damage": 36.0,
+			"cooldown": 1.4,
+			"reach": 240.0,
+			"radius": 22.0,
+			"bounty": 110,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"colossus": {
+			"class": "melee",
+			"faction": "camp",
+			"look": "colossus",
+			"armor": 90.0,
+			"hp": 2600.0,
+			"speed": 22.0,
+			"damage": 120.0,
+			"cooldown": 2.0,
+			"reach": 0.0,
+			"radius": 30.0,
+			"bounty": 160,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"reaper": {
+			"class": "melee",
+			"faction": "camp",
+			"look": "reaper",
+			"armor": 20.0,
+			"hp": 1100.0,
+			"speed": 70.0,
+			"damage": 90.0,
+			"cooldown": 1.0,
+			"reach": 0.0,
+			"radius": 22.0,
+			"bounty": 120,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		},
+		"gunship": {
+			"class": "air",
+			"faction": "camp",
+			"look": "gunship",
+			"armor": 35.0,
+			"hp": 1000.0,
+			"speed": 50.0,
+			"damage": 30.0,
+			"cooldown": 1.0,
+			"reach": 150.0,
+			"radius": 24.0,
+			"bounty": 120,
+			"boss": true,
+			"nocturnal": true,
+			"buffs": {
+				"night": {
+					"hp": 0.25,
+					"damage": 0.2,
+					"speed": 0.02,
+					"armor": 0.15
+				},
+				"level": {
+					"hp": 0.1,
+					"damage": 0.08,
+					"speed": 0.0,
+					"armor": 0.06
+				}
+			}
+		}
+	},
+	"levels": [
+		{
+			"id": "dawn",
+			"cells": [
+				52,
+				64
+			],
+			"money": 320,
+			"day": 80.0,
+			"night": 60.0,
+			"seed": 11,
+			"drop": [
+				0.5,
+				0.84
+			],
+			"structures": [
+				[
+					"nest",
+					[
+						0.5,
+						0.1
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 3,
+				"chasms": 1,
+				"ponds": 3,
+				"groves": 1,
+				"forests": 11,
+				"rocks": 12,
+				"spots": [
+					[
+						[
+							0.36,
+							0.72
+						],
+						6,
+						[
+							[
+								1,
+								0
+							]
+						]
+					],
+					[
+						[
+							0.72,
+							0.62
+						],
+						5,
+						[
+							[
+								0,
+								1
+							],
+							[
+								-1,
+								0
+							]
+						]
+					]
+				]
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 1.3,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"crawler",
+						0,
+						1.0
+					],
+					[
+						"larva",
+						0,
+						0.6
+					],
+					[
+						"spitter",
+						1,
+						0.3
+					]
+				],
+				"night_roster": [
+					[
+						"stalker",
+						0,
+						1.0
+					]
+				]
+			},
+			"world": [
+				0.5,
+				0.9
+			],
+			"challenges": [
+				[
+					"core",
+					80
+				],
+				[
+					"survive",
+					5
+				]
+			]
+		},
+		{
+			"id": "beetle_hill",
+			"cells": [
+				56,
+				70
+			],
+			"money": 360,
+			"day": 80.0,
+			"night": 60.0,
+			"seed": 23,
+			"drop": [
+				0.5,
+				0.86
+			],
+			"structures": [
+				[
+					"nest",
+					[
+						0.25,
+						0.1
+					]
+				],
+				[
+					"nest",
+					[
+						0.75,
+						0.18
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 5,
+				"chasms": 1,
+				"ponds": 4,
+				"groves": 1,
+				"forests": 13,
+				"rocks": 13,
+				"spots": [
+					[
+						[
+							0.5,
+							0.66
+						],
+						6,
+						[
+							[
+								0,
+								-1
+							],
+							[
+								1,
+								0
+							]
+						]
+					]
+				]
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 1.0,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"crawler",
+						0,
+						1.0
+					],
+					[
+						"larva",
+						0,
+						0.5
+					],
+					[
+						"beetle",
+						1,
+						0.5
+					],
+					[
+						"spitter",
+						1,
+						0.4
+					],
+					[
+						"mauler",
+						2,
+						0.3
+					]
+				],
+				"night_roster": [
+					[
+						"stalker",
+						0,
+						1.0
+					],
+					[
+						"ravager",
+						3,
+						0.3
+					],
+					[
+						"behemoth",
+						4,
+						0.04
+					]
+				]
+			},
+			"world": [
+				0.24,
+				0.74
+			],
+			"challenges": [
+				[
+					"lost",
+					3
+				],
+				[
+					"survive",
+					5
+				]
+			]
+		},
+		{
+			"id": "swarm_night",
+			"cells": [
+				58,
+				74
+			],
+			"money": 400,
+			"day": 75.0,
+			"night": 70.0,
+			"seed": 37,
+			"drop": [
+				0.5,
+				0.86
+			],
+			"structures": [
+				[
+					"nest",
+					[
+						0.2,
+						0.12
+					]
+				],
+				[
+					"nest",
+					[
+						0.8,
+						0.1
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 5,
+				"chasms": 2,
+				"ponds": 4,
+				"groves": 1,
+				"forests": 14,
+				"rocks": 13,
+				"spots": []
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 1.0,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"crawler",
+						0,
+						1.0
+					],
+					[
+						"larva",
+						0,
+						0.8
+					],
+					[
+						"spitter",
+						1,
+						0.4
+					],
+					[
+						"slinger",
+						2,
+						0.3
+					],
+					[
+						"mauler",
+						2,
+						0.3
+					]
+				],
+				"night_roster": [
+					[
+						"stalker",
+						0,
+						0.6
+					],
+					[
+						"ravager",
+						2,
+						0.4
+					],
+					[
+						"behemoth",
+						4,
+						0.05
+					]
+				]
+			},
+			"world": [
+				0.76,
+				0.72
+			],
+			"challenges": [
+				[
+					"combo",
+					20
+				],
+				[
+					"survive",
+					5
+				]
+			]
+		},
+		{
+			"id": "outpost",
+			"cells": [
+				60,
+				76
+			],
+			"money": 420,
+			"day": 80.0,
+			"night": 60.0,
+			"seed": 41,
+			"drop": [
+				0.5,
+				0.86
+			],
+			"structures": [
+				[
+					"camp",
+					[
+						0.5,
+						0.08
+					]
+				],
+				[
+					"turret",
+					[
+						0.38,
+						0.2
+					]
+				],
+				[
+					"turret",
+					[
+						0.62,
+						0.2
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 6,
+				"chasms": 2,
+				"ponds": 4,
+				"groves": 2,
+				"forests": 13,
+				"rocks": 15,
+				"spots": []
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 1.45,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"soldier",
+						0,
+						1.0
+					],
+					[
+						"sprinter",
+						0,
+						0.5
+					]
+				],
+				"night_roster": [
+					[
+						"raider",
+						0,
+						1.0
+					],
+					[
+						"sniper",
+						2,
+						0.3
+					],
+					[
+						"breacher",
+						3,
+						0.2
+					]
+				]
+			},
+			"world": [
+				0.42,
+				0.56
+			],
+			"challenges": [
+				[
+					"core",
+					70
+				],
+				[
+					"survive",
+					6
+				]
+			]
+		},
+		{
+			"id": "sabotage",
+			"cells": [
+				64,
+				80
+			],
+			"money": 440,
+			"day": 80.0,
+			"night": 65.0,
+			"seed": 53,
+			"drop": [
+				0.5,
+				0.87
+			],
+			"structures": [
+				[
+					"camp",
+					[
+						0.25,
+						0.08
+					]
+				],
+				[
+					"camp",
+					[
+						0.75,
+						0.12
+					]
+				],
+				[
+					"turret",
+					[
+						0.5,
+						0.22
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 6,
+				"chasms": 3,
+				"ponds": 5,
+				"groves": 1,
+				"forests": 15,
+				"rocks": 16,
+				"spots": []
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 1.0,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"soldier",
+						0,
+						1.0
+					],
+					[
+						"sprinter",
+						0,
+						0.6
+					]
+				],
+				"night_roster": [
+					[
+						"raider",
+						0,
+						1.0
+					],
+					[
+						"saboteur",
+						0,
+						0.8
+					],
+					[
+						"sniper",
+						2,
+						0.4
+					],
+					[
+						"breacher",
+						3,
+						0.3
+					],
+					[
+						"brute",
+						4,
+						0.15
+					]
+				]
+			},
+			"world": [
+				0.8,
+				0.47
+			],
+			"challenges": [
+				[
+					"lost",
+					4
+				],
+				[
+					"survive",
+					6
+				]
+			]
+		},
+		{
+			"id": "tank_front",
+			"cells": [
+				66,
+				84
+			],
+			"money": 580,
+			"day": 85.0,
+			"night": 65.0,
+			"seed": 67,
+			"drop": [
+				0.5,
+				0.88
+			],
+			"structures": [
+				[
+					"camp",
+					[
+						0.3,
+						0.08
+					]
+				],
+				[
+					"camp",
+					[
+						0.7,
+						0.08
+					]
+				],
+				[
+					"turret",
+					[
+						0.2,
+						0.22
+					]
+				],
+				[
+					"turret",
+					[
+						0.8,
+						0.22
+					]
+				],
+				[
+					"turret",
+					[
+						0.5,
+						0.16
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 7,
+				"chasms": 3,
+				"ponds": 5,
+				"groves": 2,
+				"forests": 16,
+				"rocks": 18,
+				"spots": []
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 1.0,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"soldier",
+						0,
+						1.0
+					],
+					[
+						"sprinter",
+						0,
+						0.5
+					]
+				],
+				"night_roster": [
+					[
+						"raider",
+						0,
+						1.0
+					],
+					[
+						"saboteur",
+						1,
+						0.4
+					],
+					[
+						"sniper",
+						1,
+						0.4
+					],
+					[
+						"breacher",
+						2,
+						0.3
+					],
+					[
+						"brute",
+						3,
+						0.25
+					],
+					[
+						"tank",
+						4,
+						0.15
+					],
+					[
+						"artillery",
+						6,
+						0.05
+					]
+				]
+			},
+			"world": [
+				0.28,
+				0.36
+			],
+			"challenges": [
+				[
+					"days",
+					8
+				],
+				[
+					"survive",
+					7
+				]
+			]
+		},
+		{
+			"id": "colossus",
+			"cells": [
+				70,
+				88
+			],
+			"money": 620,
+			"day": 85.0,
+			"night": 70.0,
+			"seed": 79,
+			"drop": [
+				0.5,
+				0.88
+			],
+			"structures": [
+				[
+					"nest",
+					[
+						0.2,
+						0.08
+					]
+				],
+				[
+					"nest",
+					[
+						0.5,
+						0.14
+					]
+				],
+				[
+					"nest",
+					[
+						0.8,
+						0.08
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 7,
+				"chasms": 3,
+				"ponds": 6,
+				"groves": 2,
+				"forests": 18,
+				"rocks": 18,
+				"spots": []
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 0.55,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"crawler",
+						0,
+						1.0
+					],
+					[
+						"larva",
+						0,
+						0.6
+					],
+					[
+						"spitter",
+						0,
+						0.4
+					],
+					[
+						"mauler",
+						1,
+						0.5
+					],
+					[
+						"slinger",
+						1,
+						0.4
+					],
+					[
+						"beetle",
+						1,
+						0.5
+					]
+				],
+				"night_roster": [
+					[
+						"stalker",
+						0,
+						1.0
+					],
+					[
+						"ravager",
+						2,
+						0.5
+					],
+					[
+						"behemoth",
+						4,
+						0.08
+					],
+					[
+						"juggernaut",
+						5,
+						0.05
+					],
+					[
+						"broodmother",
+						6,
+						0.04
+					]
+				]
+			},
+			"world": [
+				0.72,
+				0.25
+			],
+			"challenges": [
+				[
+					"combo",
+					35
+				],
+				[
+					"survive",
+					7
+				]
+			]
+		},
+		{
+			"id": "final_war",
+			"cells": [
+				76,
+				96
+			],
+			"money": 720,
+			"day": 90.0,
+			"night": 75.0,
+			"seed": 97,
+			"drop": [
+				0.5,
+				0.9
+			],
+			"structures": [
+				[
+					"nest",
+					[
+						0.15,
+						0.08
+					]
+				],
+				[
+					"camp",
+					[
+						0.5,
+						0.06
+					]
+				],
+				[
+					"nest",
+					[
+						0.85,
+						0.08
+					]
+				],
+				[
+					"turret",
+					[
+						0.3,
+						0.2
+					]
+				],
+				[
+					"turret",
+					[
+						0.7,
+						0.2
+					]
+				],
+				[
+					"camp",
+					[
+						0.5,
+						0.24
+					]
+				]
+			],
+			"terrain": {
+				"plateaus": 8,
+				"chasms": 4,
+				"ponds": 6,
+				"groves": 2,
+				"forests": 20,
+				"rocks": 20,
+				"spots": []
+			},
+			"waves": {
+				"interval": 9.0,
+				"base": 0.5,
+				"ramp": 1.5,
+				"night": 1.2,
+				"growth": 0.4,
+				"roster": [
+					[
+						"crawler",
+						0,
+						1.0
+					],
+					[
+						"soldier",
+						0,
+						0.8
+					],
+					[
+						"sprinter",
+						0,
+						0.5
+					],
+					[
+						"mauler",
+						1,
+						0.4
+					],
+					[
+						"spitter",
+						1,
+						0.4
+					],
+					[
+						"slinger",
+						1,
+						0.3
+					],
+					[
+						"beetle",
+						1,
+						0.5
+					]
+				],
+				"night_roster": [
+					[
+						"stalker",
+						0,
+						1.0
+					],
+					[
+						"raider",
+						0,
+						0.8
+					],
+					[
+						"saboteur",
+						1,
+						0.4
+					],
+					[
+						"ravager",
+						2,
+						0.5
+					],
+					[
+						"sniper",
+						2,
+						0.4
+					],
+					[
+						"breacher",
+						2,
+						0.3
+					],
+					[
+						"brute",
+						3,
+						0.3
+					],
+					[
+						"tank",
+						3,
+						0.15
+					],
+					[
+						"behemoth",
+						4,
+						0.1
+					],
+					[
+						"warlord",
+						5,
+						0.06
+					],
+					[
+						"juggernaut",
+						5,
+						0.06
+					],
+					[
+						"artillery",
+						5,
+						0.05
+					],
+					[
+						"reaper",
+						6,
+						0.04
+					],
+					[
+						"broodmother",
+						6,
+						0.04
+					],
+					[
+						"colossus",
+						7,
+						0.04
+					]
+				]
+			},
+			"world": [
+				0.48,
+				0.1
+			],
+			"challenges": [
+				[
+					"core",
+					60
+				],
+				[
+					"survive",
+					8
+				]
+			]
+		}
+	],
+	"routes": [
+		[
+			0,
+			1
+		],
+		[
+			0,
+			2
+		],
+		[
+			1,
+			3
+		],
+		[
+			2,
+			3
+		],
+		[
+			2,
+			4
+		],
+		[
+			3,
+			5
+		],
+		[
+			4,
+			5
+		],
+		[
+			4,
+			6
+		],
+		[
+			5,
+			7
+		],
+		[
+			6,
+			7
+		]
+	],
+	"defaults": {
+		"armor": {
+			"constant": 100.0,
+			"max_reduction": 0.9,
+			"min_damage": 1.0
+		},
+		"enemies": {
+			"crawler": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "crawler",
+				"armor": 0.0,
+				"hp": 42.0,
+				"speed": 70.0,
+				"damage": 6.0,
+				"cooldown": 0.8,
+				"reach": 0.0,
+				"radius": 10.0,
+				"bounty": 5,
+				"buffs": {
+					"night": {
+						"hp": 0.1,
+						"damage": 0.1,
+						"speed": 0.05,
+						"armor": 0.0
+					},
+					"level": {
+						"hp": 0.05,
+						"damage": 0.04,
+						"speed": 0.01,
+						"armor": 0.0
+					}
+				}
+			},
+			"larva": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "larva",
+				"armor": 0.0,
+				"hp": 24.0,
+				"speed": 90.0,
+				"damage": 3.0,
+				"cooldown": 0.6,
+				"reach": 0.0,
+				"radius": 7.0,
+				"bounty": 3,
+				"buffs": {
+					"night": {
+						"hp": 0.1,
+						"damage": 0.1,
+						"speed": 0.05,
+						"armor": 0.0
+					},
+					"level": {
+						"hp": 0.05,
+						"damage": 0.04,
+						"speed": 0.01,
+						"armor": 0.0
+					}
+				}
+			},
+			"mauler": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "mauler",
+				"armor": 2.0,
+				"hp": 90.0,
+				"speed": 62.0,
+				"damage": 14.0,
+				"cooldown": 0.9,
+				"reach": 0.0,
+				"radius": 14.0,
+				"bounty": 9,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"beetle": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "beetle",
+				"armor": 12.0,
+				"hp": 290.0,
+				"speed": 40.0,
+				"damage": 18.0,
+				"cooldown": 1.0,
+				"reach": 0.0,
+				"radius": 16.0,
+				"bounty": 15,
+				"buffs": {
+					"night": {
+						"hp": 0.2,
+						"damage": 0.15,
+						"speed": 0.03,
+						"armor": 0.12
+					},
+					"level": {
+						"hp": 0.08,
+						"damage": 0.06,
+						"speed": 0.0,
+						"armor": 0.05
+					}
+				}
+			},
+			"stalker": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "stalker",
+				"armor": 4.0,
+				"hp": 96.0,
+				"speed": 88.0,
+				"damage": 10.0,
+				"cooldown": 0.8,
+				"reach": 0.0,
+				"radius": 13.0,
+				"bounty": 10,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"ravager": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "ravager",
+				"armor": 6.0,
+				"hp": 180.0,
+				"speed": 76.0,
+				"damage": 22.0,
+				"cooldown": 0.8,
+				"reach": 0.0,
+				"radius": 15.0,
+				"bounty": 16,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"spitter": {
+				"class": "ranged",
+				"faction": "nest",
+				"look": "spitter",
+				"armor": 0.0,
+				"hp": 64.0,
+				"speed": 55.0,
+				"damage": 7.0,
+				"cooldown": 1.2,
+				"reach": 110.0,
+				"radius": 12.0,
+				"bounty": 7,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"slinger": {
+				"class": "ranged",
+				"faction": "nest",
+				"look": "slinger",
+				"armor": 2.0,
+				"hp": 70.0,
+				"speed": 50.0,
+				"damage": 9.0,
+				"cooldown": 1.4,
+				"reach": 140.0,
+				"radius": 12.0,
+				"bounty": 8,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"wasp": {
+				"class": "air",
+				"faction": "nest",
+				"look": "wasp",
+				"armor": 0.0,
+				"hp": 36.0,
+				"speed": 95.0,
+				"damage": 5.0,
+				"cooldown": 0.6,
+				"reach": 0.0,
+				"radius": 9.0,
+				"bounty": 6,
+				"buffs": {
+					"night": {
+						"hp": 0.1,
+						"damage": 0.1,
+						"speed": 0.05,
+						"armor": 0.0
+					},
+					"level": {
+						"hp": 0.05,
+						"damage": 0.04,
+						"speed": 0.01,
+						"armor": 0.0
+					}
+				}
+			},
+			"gnat": {
+				"class": "air",
+				"faction": "nest",
+				"look": "gnat",
+				"armor": 0.0,
+				"hp": 20.0,
+				"speed": 125.0,
+				"damage": 2.0,
+				"cooldown": 0.5,
+				"reach": 0.0,
+				"radius": 7.0,
+				"bounty": 3,
+				"buffs": {
+					"night": {
+						"hp": 0.1,
+						"damage": 0.1,
+						"speed": 0.05,
+						"armor": 0.0
+					},
+					"level": {
+						"hp": 0.05,
+						"damage": 0.04,
+						"speed": 0.01,
+						"armor": 0.0
+					}
+				}
+			},
+			"nightwing": {
+				"class": "air",
+				"faction": "nest",
+				"look": "nightwing",
+				"armor": 2.0,
+				"hp": 96.0,
+				"speed": 105.0,
+				"damage": 8.0,
+				"cooldown": 0.7,
+				"reach": 0.0,
+				"radius": 12.0,
+				"bounty": 9,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"behemoth": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "behemoth",
+				"armor": 60.0,
+				"hp": 1440.0,
+				"speed": 26.0,
+				"damage": 80.0,
+				"cooldown": 1.6,
+				"reach": 0.0,
+				"radius": 26.0,
+				"bounty": 105,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"juggernaut": {
+				"class": "melee",
+				"faction": "nest",
+				"look": "juggernaut",
+				"armor": 40.0,
+				"hp": 1900.0,
+				"speed": 34.0,
+				"damage": 70.0,
+				"cooldown": 1.2,
+				"reach": 0.0,
+				"radius": 26.0,
+				"bounty": 130,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"broodmother": {
+				"class": "ranged",
+				"faction": "nest",
+				"look": "broodmother",
+				"armor": 25.0,
+				"hp": 900.0,
+				"speed": 28.0,
+				"damage": 24.0,
+				"cooldown": 1.6,
+				"reach": 220.0,
+				"radius": 24.0,
+				"bounty": 100,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"dreadwing": {
+				"class": "air",
+				"faction": "nest",
+				"look": "dreadwing",
+				"armor": 15.0,
+				"hp": 800.0,
+				"speed": 70.0,
+				"damage": 40.0,
+				"cooldown": 1.0,
+				"reach": 0.0,
+				"radius": 22.0,
+				"bounty": 110,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"soldier": {
+				"class": "ranged",
+				"faction": "camp",
+				"look": "soldier",
+				"armor": 6.0,
+				"hp": 80.0,
+				"speed": 52.0,
+				"damage": 8.0,
+				"cooldown": 1.1,
+				"reach": 120.0,
+				"radius": 11.0,
+				"bounty": 8,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"raider": {
+				"class": "ranged",
+				"faction": "camp",
+				"look": "raider",
+				"armor": 10.0,
+				"hp": 136.0,
+				"speed": 58.0,
+				"damage": 12.0,
+				"cooldown": 1.1,
+				"reach": 125.0,
+				"radius": 12.0,
+				"bounty": 11,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"sniper": {
+				"class": "ranged",
+				"faction": "camp",
+				"look": "sniper",
+				"armor": 4.0,
+				"hp": 100.0,
+				"speed": 40.0,
+				"damage": 26.0,
+				"cooldown": 2.2,
+				"reach": 230.0,
+				"radius": 12.0,
+				"bounty": 14,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"sprinter": {
+				"class": "melee",
+				"faction": "camp",
+				"look": "sprinter",
+				"armor": 0.0,
+				"hp": 50.0,
+				"speed": 120.0,
+				"damage": 6.0,
+				"cooldown": 0.5,
+				"reach": 0.0,
+				"radius": 9.0,
+				"bounty": 6,
+				"buffs": {
+					"night": {
+						"hp": 0.1,
+						"damage": 0.1,
+						"speed": 0.05,
+						"armor": 0.0
+					},
+					"level": {
+						"hp": 0.05,
+						"damage": 0.04,
+						"speed": 0.01,
+						"armor": 0.0
+					}
+				}
+			},
+			"saboteur": {
+				"class": "melee",
+				"faction": "camp",
+				"look": "saboteur",
+				"armor": 4.0,
+				"hp": 96.0,
+				"speed": 80.0,
+				"damage": 5.0,
+				"cooldown": 1.5,
+				"reach": 0.0,
+				"radius": 10.0,
+				"bounty": 17,
+				"sabotage": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"breacher": {
+				"class": "melee",
+				"faction": "camp",
+				"look": "breacher",
+				"armor": 8.0,
+				"hp": 220.0,
+				"speed": 56.0,
+				"damage": 60.0,
+				"cooldown": 2.0,
+				"reach": 0.0,
+				"radius": 14.0,
+				"bounty": 20,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"brute": {
+				"class": "melee",
+				"faction": "camp",
+				"look": "brute",
+				"armor": 30.0,
+				"hp": 420.0,
+				"speed": 34.0,
+				"damage": 40.0,
+				"cooldown": 1.4,
+				"reach": 0.0,
+				"radius": 19.0,
+				"bounty": 24,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.2,
+						"damage": 0.15,
+						"speed": 0.03,
+						"armor": 0.12
+					},
+					"level": {
+						"hp": 0.08,
+						"damage": 0.06,
+						"speed": 0.0,
+						"armor": 0.05
+					}
+				}
+			},
+			"drone": {
+				"class": "air",
+				"faction": "camp",
+				"look": "drone",
+				"armor": 2.0,
+				"hp": 58.0,
+				"speed": 85.0,
+				"damage": 7.0,
+				"cooldown": 0.9,
+				"reach": 70.0,
+				"radius": 11.0,
+				"bounty": 8,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"phantom": {
+				"class": "air",
+				"faction": "camp",
+				"look": "phantom",
+				"armor": 4.0,
+				"hp": 96.0,
+				"speed": 92.0,
+				"damage": 10.0,
+				"cooldown": 0.8,
+				"reach": 80.0,
+				"radius": 12.0,
+				"bounty": 10,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.15,
+						"damage": 0.12,
+						"speed": 0.05,
+						"armor": 0.1
+					},
+					"level": {
+						"hp": 0.06,
+						"damage": 0.05,
+						"speed": 0.01,
+						"armor": 0.04
+					}
+				}
+			},
+			"tank": {
+				"class": "ranged",
+				"faction": "camp",
+				"look": "tank",
+				"armor": 70.0,
+				"hp": 540.0,
+				"speed": 30.0,
+				"damage": 30.0,
+				"cooldown": 2.2,
+				"reach": 210.0,
+				"radius": 22.0,
+				"bounty": 50,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"artillery": {
+				"class": "ranged",
+				"faction": "camp",
+				"look": "artillery",
+				"armor": 50.0,
+				"hp": 700.0,
+				"speed": 22.0,
+				"damage": 70.0,
+				"cooldown": 3.0,
+				"reach": 320.0,
+				"radius": 22.0,
+				"bounty": 90,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"warlord": {
+				"class": "ranged",
+				"faction": "camp",
+				"look": "warlord",
+				"armor": 45.0,
+				"hp": 1200.0,
+				"speed": 36.0,
+				"damage": 36.0,
+				"cooldown": 1.4,
+				"reach": 240.0,
+				"radius": 22.0,
+				"bounty": 110,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"colossus": {
+				"class": "melee",
+				"faction": "camp",
+				"look": "colossus",
+				"armor": 90.0,
+				"hp": 2600.0,
+				"speed": 22.0,
+				"damage": 120.0,
+				"cooldown": 2.0,
+				"reach": 0.0,
+				"radius": 30.0,
+				"bounty": 160,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"reaper": {
+				"class": "melee",
+				"faction": "camp",
+				"look": "reaper",
+				"armor": 20.0,
+				"hp": 1100.0,
+				"speed": 70.0,
+				"damage": 90.0,
+				"cooldown": 1.0,
+				"reach": 0.0,
+				"radius": 22.0,
+				"bounty": 120,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			},
+			"gunship": {
+				"class": "air",
+				"faction": "camp",
+				"look": "gunship",
+				"armor": 35.0,
+				"hp": 1000.0,
+				"speed": 50.0,
+				"damage": 30.0,
+				"cooldown": 1.0,
+				"reach": 150.0,
+				"radius": 24.0,
+				"bounty": 120,
+				"boss": true,
+				"nocturnal": true,
+				"buffs": {
+					"night": {
+						"hp": 0.25,
+						"damage": 0.2,
+						"speed": 0.02,
+						"armor": 0.15
+					},
+					"level": {
+						"hp": 0.1,
+						"damage": 0.08,
+						"speed": 0.0,
+						"armor": 0.06
+					}
+				}
+			}
+		},
+		"levels": [
+			{
+				"id": "dawn",
+				"cells": [
+					52,
+					64
+				],
+				"money": 320,
+				"day": 80.0,
+				"night": 60.0,
+				"seed": 11,
+				"drop": [
+					0.5,
+					0.84
+				],
+				"structures": [
+					[
+						"nest",
+						[
+							0.5,
+							0.1
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 3,
+					"chasms": 1,
+					"ponds": 3,
+					"groves": 1,
+					"forests": 11,
+					"rocks": 12,
+					"spots": [
+						[
+							[
+								0.36,
+								0.72
+							],
+							6,
+							[
+								[
+									1,
+									0
+								]
+							]
+						],
+						[
+							[
+								0.72,
+								0.62
+							],
+							5,
+							[
+								[
+									0,
+									1
+								],
+								[
+									-1,
+									0
+								]
+							]
+						]
+					]
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 1.3,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"crawler",
+							0,
+							1.0
+						],
+						[
+							"larva",
+							0,
+							0.6
+						],
+						[
+							"spitter",
+							1,
+							0.3
+						]
+					],
+					"night_roster": [
+						[
+							"stalker",
+							0,
+							1.0
+						]
+					]
+				},
+				"world": [
+					0.5,
+					0.9
+				],
+				"challenges": [
+					[
+						"core",
+						80
+					],
+					[
+						"survive",
+						5
+					]
+				]
+			},
+			{
+				"id": "beetle_hill",
+				"cells": [
+					56,
+					70
+				],
+				"money": 360,
+				"day": 80.0,
+				"night": 60.0,
+				"seed": 23,
+				"drop": [
+					0.5,
+					0.86
+				],
+				"structures": [
+					[
+						"nest",
+						[
+							0.25,
+							0.1
+						]
+					],
+					[
+						"nest",
+						[
+							0.75,
+							0.18
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 5,
+					"chasms": 1,
+					"ponds": 4,
+					"groves": 1,
+					"forests": 13,
+					"rocks": 13,
+					"spots": [
+						[
+							[
+								0.5,
+								0.66
+							],
+							6,
+							[
+								[
+									0,
+									-1
+								],
+								[
+									1,
+									0
+								]
+							]
+						]
+					]
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 1.0,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"crawler",
+							0,
+							1.0
+						],
+						[
+							"larva",
+							0,
+							0.5
+						],
+						[
+							"beetle",
+							1,
+							0.5
+						],
+						[
+							"spitter",
+							1,
+							0.4
+						],
+						[
+							"mauler",
+							2,
+							0.3
+						]
+					],
+					"night_roster": [
+						[
+							"stalker",
+							0,
+							1.0
+						],
+						[
+							"ravager",
+							3,
+							0.3
+						],
+						[
+							"behemoth",
+							4,
+							0.04
+						]
+					]
+				},
+				"world": [
+					0.24,
+					0.74
+				],
+				"challenges": [
+					[
+						"lost",
+						3
+					],
+					[
+						"survive",
+						5
+					]
+				]
+			},
+			{
+				"id": "swarm_night",
+				"cells": [
+					58,
+					74
+				],
+				"money": 400,
+				"day": 75.0,
+				"night": 70.0,
+				"seed": 37,
+				"drop": [
+					0.5,
+					0.86
+				],
+				"structures": [
+					[
+						"nest",
+						[
+							0.2,
+							0.12
+						]
+					],
+					[
+						"nest",
+						[
+							0.8,
+							0.1
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 5,
+					"chasms": 2,
+					"ponds": 4,
+					"groves": 1,
+					"forests": 14,
+					"rocks": 13,
+					"spots": []
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 1.0,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"crawler",
+							0,
+							1.0
+						],
+						[
+							"larva",
+							0,
+							0.8
+						],
+						[
+							"spitter",
+							1,
+							0.4
+						],
+						[
+							"slinger",
+							2,
+							0.3
+						],
+						[
+							"mauler",
+							2,
+							0.3
+						]
+					],
+					"night_roster": [
+						[
+							"stalker",
+							0,
+							0.6
+						],
+						[
+							"ravager",
+							2,
+							0.4
+						],
+						[
+							"behemoth",
+							4,
+							0.05
+						]
+					]
+				},
+				"world": [
+					0.76,
+					0.72
+				],
+				"challenges": [
+					[
+						"combo",
+						20
+					],
+					[
+						"survive",
+						5
+					]
+				]
+			},
+			{
+				"id": "outpost",
+				"cells": [
+					60,
+					76
+				],
+				"money": 420,
+				"day": 80.0,
+				"night": 60.0,
+				"seed": 41,
+				"drop": [
+					0.5,
+					0.86
+				],
+				"structures": [
+					[
+						"camp",
+						[
+							0.5,
+							0.08
+						]
+					],
+					[
+						"turret",
+						[
+							0.38,
+							0.2
+						]
+					],
+					[
+						"turret",
+						[
+							0.62,
+							0.2
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 6,
+					"chasms": 2,
+					"ponds": 4,
+					"groves": 2,
+					"forests": 13,
+					"rocks": 15,
+					"spots": []
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 1.45,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"soldier",
+							0,
+							1.0
+						],
+						[
+							"sprinter",
+							0,
+							0.5
+						]
+					],
+					"night_roster": [
+						[
+							"raider",
+							0,
+							1.0
+						],
+						[
+							"sniper",
+							2,
+							0.3
+						],
+						[
+							"breacher",
+							3,
+							0.2
+						]
+					]
+				},
+				"world": [
+					0.42,
+					0.56
+				],
+				"challenges": [
+					[
+						"core",
+						70
+					],
+					[
+						"survive",
+						6
+					]
+				]
+			},
+			{
+				"id": "sabotage",
+				"cells": [
+					64,
+					80
+				],
+				"money": 440,
+				"day": 80.0,
+				"night": 65.0,
+				"seed": 53,
+				"drop": [
+					0.5,
+					0.87
+				],
+				"structures": [
+					[
+						"camp",
+						[
+							0.25,
+							0.08
+						]
+					],
+					[
+						"camp",
+						[
+							0.75,
+							0.12
+						]
+					],
+					[
+						"turret",
+						[
+							0.5,
+							0.22
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 6,
+					"chasms": 3,
+					"ponds": 5,
+					"groves": 1,
+					"forests": 15,
+					"rocks": 16,
+					"spots": []
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 1.0,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"soldier",
+							0,
+							1.0
+						],
+						[
+							"sprinter",
+							0,
+							0.6
+						]
+					],
+					"night_roster": [
+						[
+							"raider",
+							0,
+							1.0
+						],
+						[
+							"saboteur",
+							0,
+							0.8
+						],
+						[
+							"sniper",
+							2,
+							0.4
+						],
+						[
+							"breacher",
+							3,
+							0.3
+						],
+						[
+							"brute",
+							4,
+							0.15
+						]
+					]
+				},
+				"world": [
+					0.8,
+					0.47
+				],
+				"challenges": [
+					[
+						"lost",
+						4
+					],
+					[
+						"survive",
+						6
+					]
+				]
+			},
+			{
+				"id": "tank_front",
+				"cells": [
+					66,
+					84
+				],
+				"money": 580,
+				"day": 85.0,
+				"night": 65.0,
+				"seed": 67,
+				"drop": [
+					0.5,
+					0.88
+				],
+				"structures": [
+					[
+						"camp",
+						[
+							0.3,
+							0.08
+						]
+					],
+					[
+						"camp",
+						[
+							0.7,
+							0.08
+						]
+					],
+					[
+						"turret",
+						[
+							0.2,
+							0.22
+						]
+					],
+					[
+						"turret",
+						[
+							0.8,
+							0.22
+						]
+					],
+					[
+						"turret",
+						[
+							0.5,
+							0.16
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 7,
+					"chasms": 3,
+					"ponds": 5,
+					"groves": 2,
+					"forests": 16,
+					"rocks": 18,
+					"spots": []
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 1.0,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"soldier",
+							0,
+							1.0
+						],
+						[
+							"sprinter",
+							0,
+							0.5
+						]
+					],
+					"night_roster": [
+						[
+							"raider",
+							0,
+							1.0
+						],
+						[
+							"saboteur",
+							1,
+							0.4
+						],
+						[
+							"sniper",
+							1,
+							0.4
+						],
+						[
+							"breacher",
+							2,
+							0.3
+						],
+						[
+							"brute",
+							3,
+							0.25
+						],
+						[
+							"tank",
+							4,
+							0.15
+						],
+						[
+							"artillery",
+							6,
+							0.05
+						]
+					]
+				},
+				"world": [
+					0.28,
+					0.36
+				],
+				"challenges": [
+					[
+						"days",
+						8
+					],
+					[
+						"survive",
+						7
+					]
+				]
+			},
+			{
+				"id": "colossus",
+				"cells": [
+					70,
+					88
+				],
+				"money": 620,
+				"day": 85.0,
+				"night": 70.0,
+				"seed": 79,
+				"drop": [
+					0.5,
+					0.88
+				],
+				"structures": [
+					[
+						"nest",
+						[
+							0.2,
+							0.08
+						]
+					],
+					[
+						"nest",
+						[
+							0.5,
+							0.14
+						]
+					],
+					[
+						"nest",
+						[
+							0.8,
+							0.08
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 7,
+					"chasms": 3,
+					"ponds": 6,
+					"groves": 2,
+					"forests": 18,
+					"rocks": 18,
+					"spots": []
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 0.55,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"crawler",
+							0,
+							1.0
+						],
+						[
+							"larva",
+							0,
+							0.6
+						],
+						[
+							"spitter",
+							0,
+							0.4
+						],
+						[
+							"mauler",
+							1,
+							0.5
+						],
+						[
+							"slinger",
+							1,
+							0.4
+						],
+						[
+							"beetle",
+							1,
+							0.5
+						]
+					],
+					"night_roster": [
+						[
+							"stalker",
+							0,
+							1.0
+						],
+						[
+							"ravager",
+							2,
+							0.5
+						],
+						[
+							"behemoth",
+							4,
+							0.08
+						],
+						[
+							"juggernaut",
+							5,
+							0.05
+						],
+						[
+							"broodmother",
+							6,
+							0.04
+						]
+					]
+				},
+				"world": [
+					0.72,
+					0.25
+				],
+				"challenges": [
+					[
+						"combo",
+						35
+					],
+					[
+						"survive",
+						7
+					]
+				]
+			},
+			{
+				"id": "final_war",
+				"cells": [
+					76,
+					96
+				],
+				"money": 720,
+				"day": 90.0,
+				"night": 75.0,
+				"seed": 97,
+				"drop": [
+					0.5,
+					0.9
+				],
+				"structures": [
+					[
+						"nest",
+						[
+							0.15,
+							0.08
+						]
+					],
+					[
+						"camp",
+						[
+							0.5,
+							0.06
+						]
+					],
+					[
+						"nest",
+						[
+							0.85,
+							0.08
+						]
+					],
+					[
+						"turret",
+						[
+							0.3,
+							0.2
+						]
+					],
+					[
+						"turret",
+						[
+							0.7,
+							0.2
+						]
+					],
+					[
+						"camp",
+						[
+							0.5,
+							0.24
+						]
+					]
+				],
+				"terrain": {
+					"plateaus": 8,
+					"chasms": 4,
+					"ponds": 6,
+					"groves": 2,
+					"forests": 20,
+					"rocks": 20,
+					"spots": []
+				},
+				"waves": {
+					"interval": 9.0,
+					"base": 0.5,
+					"ramp": 1.5,
+					"night": 1.2,
+					"growth": 0.4,
+					"roster": [
+						[
+							"crawler",
+							0,
+							1.0
+						],
+						[
+							"soldier",
+							0,
+							0.8
+						],
+						[
+							"sprinter",
+							0,
+							0.5
+						],
+						[
+							"mauler",
+							1,
+							0.4
+						],
+						[
+							"spitter",
+							1,
+							0.4
+						],
+						[
+							"slinger",
+							1,
+							0.3
+						],
+						[
+							"beetle",
+							1,
+							0.5
+						]
+					],
+					"night_roster": [
+						[
+							"stalker",
+							0,
+							1.0
+						],
+						[
+							"raider",
+							0,
+							0.8
+						],
+						[
+							"saboteur",
+							1,
+							0.4
+						],
+						[
+							"ravager",
+							2,
+							0.5
+						],
+						[
+							"sniper",
+							2,
+							0.4
+						],
+						[
+							"breacher",
+							2,
+							0.3
+						],
+						[
+							"brute",
+							3,
+							0.3
+						],
+						[
+							"tank",
+							3,
+							0.15
+						],
+						[
+							"behemoth",
+							4,
+							0.1
+						],
+						[
+							"warlord",
+							5,
+							0.06
+						],
+						[
+							"juggernaut",
+							5,
+							0.06
+						],
+						[
+							"artillery",
+							5,
+							0.05
+						],
+						[
+							"reaper",
+							6,
+							0.04
+						],
+						[
+							"broodmother",
+							6,
+							0.04
+						],
+						[
+							"colossus",
+							7,
+							0.04
+						]
+					]
+				},
+				"world": [
+					0.48,
+					0.1
+				],
+				"challenges": [
+					[
+						"core",
+						60
+					],
+					[
+						"survive",
+						8
+					]
+				]
+			}
+		],
+		"routes": [
+			[
+				0,
+				1
+			],
+			[
+				0,
+				2
+			],
+			[
+				1,
+				3
+			],
+			[
+				2,
+				3
+			],
+			[
+				2,
+				4
+			],
+			[
+				3,
+				5
+			],
+			[
+				4,
+				5
+			],
+			[
+				4,
+				6
+			],
+			[
+				5,
+				7
+			],
+			[
+				6,
+				7
+			]
+		]
 	}
 }

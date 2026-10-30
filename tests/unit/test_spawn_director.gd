@@ -213,7 +213,7 @@ func test_pick_kind_respects_round_night_and_faction() -> void:
 	battle.spawns.start_round()
 	var nest_kinds := battle.spawns.candidates(GameConfig.NEST).map(func(entry: Array) -> String: return entry[0])
 	assert_eq(nest_kinds, ["crawler"])
-	assert_eq(battle.spawns.candidates(GameConfig.CAMP).map(func(entry: Array) -> String: return entry[0]), ["soldier"])
+	assert_eq(battle.spawns.candidates(GameConfig.CAMP).map(func(entry: Array) -> String: return entry[0]), ["soldier", "sprinter"])
 	battle.state.round_time = float(battle.state.level.day) + 1.0
 	assert_eq(battle.spawns.candidates(GameConfig.NEST).map(func(entry: Array) -> String: return entry[0]), ["stalker"])
 	assert_eq(battle.spawns.candidates(GameConfig.CAMP).map(func(entry: Array) -> String: return entry[0]), ["raider"])
@@ -222,7 +222,7 @@ func test_pick_kind_respects_round_night_and_faction() -> void:
 		assert_true(GameConfig.is_nocturnal(entry[0]), entry[0])
 	battle.state.round_time = 0.0
 	battle.state.round_number = 10
-	assert_eq(battle.spawns.candidates(GameConfig.NEST).size(), 3)
+	assert_eq(battle.spawns.candidates(GameConfig.NEST).size(), 5)
 	for i in 50:
 		assert_true(GameConfig.SPAWNER_FACTIONS[GameConfig.CAMP].has(battle.spawns.pick_kind(GameConfig.CAMP)))
 
@@ -259,7 +259,7 @@ func test_enemy_scales() -> void:
 
 
 func test_rosters_contain_no_flyers() -> void:
-	for level: Dictionary in GameConfig.LEVELS:
+	for level: Dictionary in GameConfig.levels():
 		for key in ["roster", "night_roster"]:
 			for entry: Array in level.waves[key]:
 				assert_ne(GameConfig.enemy(entry[0]).get("class", ""), GameConfig.CLASS_AIR, "%s %s" % [level.id, entry[0]])
@@ -306,7 +306,7 @@ func test_raids_are_rare_but_possible() -> void:
 
 
 func test_raid_kinds_follow_faction_and_daytime() -> void:
-	assert_eq(battle.spawns.raid_kinds(false), ["wasp"])
+	assert_eq(battle.spawns.raid_kinds(false), ["wasp", "gnat"])
 	assert_eq(battle.spawns.raid_kinds(true), ["nightwing"])
 	battle = BattleFixtures.battle(3)
 	assert_eq(battle.spawns.raid_kinds(false), ["drone"])

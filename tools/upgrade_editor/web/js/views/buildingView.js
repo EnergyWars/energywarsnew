@@ -1,11 +1,13 @@
 import { h } from "../dom.js";
 import { t, gameName } from "../i18n.js";
-import { number, compact, LENGTH_STATS, cellSize, toCells, fromCells } from "../format.js";
+import { number, compact, signedPercent, LENGTH_STATS, cellSize, toCells, fromCells } from "../format.js";
 import { effectAt, maxLevel, costs, levelCost, totalCost, benefitTotal, snapshotLevels, deriveRowsFromBase } from "../formulas.js";
 import { planEditor } from "./planEditor.js";
-import { numberField, chart, sectionHeading, isCollapsed, toggleKey } from "./components.js";
+import { numberField, chart, flipSeries, sectionHeading, isCollapsed, toggleKey, searchSelect } from "./components.js";
+import { pruneItem } from "../groups.js";
+import { trackGroups } from "./groupsPanel.js";
 import { valueTable } from "./valueTable.js";
-import { METRICS } from "./metrics.js";
+import { METRICS, CHART_METRICS } from "./metrics.js";
 import { buildingIcon } from "./icon.js";
 
 export function trackName(names, track, kind) {
@@ -23,6 +25,10 @@ export function shortName(names, kind) {
 
 export function infoText(names, kind) {
   return gameName(names, `BUILDING_${kind.toUpperCase()}_INFO`, "");
+}
+
+export function descriptionText(names, kind) {
+  return gameName(names, `BUILDING_${kind.toUpperCase()}_DESC`, "");
 }
 
 export function iconFor(entry, size, options) {
@@ -78,11 +84,11 @@ function removeTrack(doc, id, track) {
     delete entry.plans[track];
     if (Object.keys(entry.plans).length === 0) delete entry.plans;
   }
+  pruneItem(doc, `${id}:${track}`);
 }
 
-export function toggleSeries(ctx, key) {
-  if (ctx.view.hidden.has(key)) ctx.view.hidden.delete(key);
-  else ctx.view.hidden.add(key);
+export function toggleSeries(ctx, key, soloKeys = null) {
+  flipSeries(ctx.view.hidden, key, soloKeys);
   ctx.render();
 }
 
@@ -91,7 +97,7 @@ export function detailPairs(row, hidden = new Set()) {
 }
 
 export function chartSeries(rows) {
-  return METRICS.map((metric) => ({
+  return CHART_METRICS.map((metric) => ({
     key: metric.key,
     label: t(`values.col.${metric.key}`),
     desc: t(`values.desc.${metric.key}`),
@@ -106,12 +112,14 @@ function trackDetail(ctx, entry, track, index) {
   const max = maxLevel(doc, entry, track);
   const rows = deriveRowsFromBase(entry, snapshotLevels(doc, entry, track));
   return h("div", { class: "track-detail" },
-    chart(chartSeries(rows), { hidden: ctx.view.hidden, onToggle: (key) => toggleSeries(ctx, key), detail: (index) => detailPairs(rows[index], ctx.view.hidden) }),
+    chart(chartSeries(rows), { hidden: ctx.view.hidden, onToggle: (key, solo) => toggleSeries(ctx, key, solo), detail: (index) => detailPairs(rows[index], ctx.view.hidden) }),
     h("dl", { class: "stats" },
       h("div", {}, h("dt", {}, t("stat.first")), h("dd", {}, levelCost(doc, entry, track, 0))),
       h("div", {}, h("dt", {}, t("stat.total")), h("dd", {}, compact(totalCost(doc, entry, track)))),
       h("div", {}, h("dt", {}, t("stat.max")), h("dd", {}, `×${number(effectAt(entry, track, max, doc), 2)}`)),
+      h("div", {}, h("dt", {}, t("stat.totalEffect")), h("dd", {}, signedPercent((effectAt(entry, track, max, doc) - 1) * 100))),
       h("div", {}, h("dt", {}, t("stat.benefit")), h("dd", {}, number(benefitTotal(doc, entry, track), 2)))),
+    trackGroups(ctx, entry, track),
     planEditor(ctx, entry, track),
     valueTable(ctx, entry, track),
     h("div", { class: "actions" },
@@ -142,14 +150,19 @@ function trackRow(ctx, entry, track, index) {
 export function buildingPanel(ctx, entry) {
   const { doc, names, store } = ctx;
   const available = Object.keys(doc.tracks).filter((track) => !entry.tracks.includes(track));
-  const select = h("select", {}, h("option", { value: "" }, t("action.addTrack")), available.map((track) => h("option", { value: track }, trackName(names, track, entry.id))));
-  select.addEventListener("change", () => {
-    if (select.value) store.update((d) => d.buildings.find((item) => item.id === entry.id).tracks.push(select.value));
+  const select = searchSelect({
+    options: available.map((track) => ({ value: track, label: trackName(names, track, entry.id), hint: track })),
+    value: null,
+    label: t("action.addTrack"),
+    prompt: t("action.addTrack"),
+    disabled: available.length === 0,
+    onChange: (track) => store.update((d) => { d.buildings.find((item) => item.id === entry.id).tracks.push(track); }),
   });
   return h("section", { class: "building-panel" },
     h("header", { class: "panel-head" },
       iconFor(entry, 88, { scale: 1 }),
-      h("div", {}, h("h2", {}, buildingName(names, entry.id)), h("p", { class: "caption" }, infoText(names, entry.id)))),
+      h("div", {}, h("h2", {}, buildingName(names, entry.id)), h("p", { class: "caption" }, infoText(names, entry.id)),
+        descriptionText(names, entry.id) ? h("p", { class: "caption building-desc" }, descriptionText(names, entry.id)) : null)),
     statsCard(ctx, entry),
     h("section", { class: "panel-card" },
       sectionHeading(ctx, `upgrades:${entry.id}`, t("section.upgrades")),

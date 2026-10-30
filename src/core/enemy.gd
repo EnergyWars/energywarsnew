@@ -26,6 +26,8 @@ var patrol_turn := 1.0
 var _class := ""
 var _radius := 0.0
 var _speed := 0.0
+var _speed_factor := 1.0
+var _armor := 0.0
 var _reach := 0.0
 var _saboteur := false
 var _boss := false
@@ -33,21 +35,23 @@ var _nocturnal := false
 var _definition: Dictionary
 
 
-func _init(p_id: int, p_kind: String, p_position: Vector2, hp_scale: float = 1.0, p_damage_scale: float = 1.0, bounty_scale: float = 1.0) -> void:
+func _init(p_id: int, p_kind: String, p_position: Vector2, hp_scale: float = 1.0, p_damage_scale: float = 1.0, bounty_scale: float = 1.0, is_night: bool = false, level_index: int = 0) -> void:
 	id = p_id
 	kind = p_kind
 	position = p_position
 	_definition = GameConfig.enemy(kind)
 	_class = str(_definition.get("class", GameConfig.CLASS_MELEE))
 	_radius = float(_definition.radius)
-	_speed = float(_definition.speed)
+	_speed_factor = Formulas.enemy_buff(kind, "speed", is_night, level_index)
+	_speed = float(_definition.speed) * _speed_factor
+	_armor = float(_definition.get("armor", 0.0)) * Formulas.enemy_buff(kind, "armor", is_night, level_index)
 	_reach = float(_definition.reach)
 	_saboteur = bool(_definition.get("sabotage", false))
 	_boss = bool(_definition.get("boss", false))
 	_nocturnal = bool(_definition.get("nocturnal", false))
-	max_hp = float(_definition.hp) * maxf(hp_scale, 0.01)
+	max_hp = float(_definition.hp) * maxf(hp_scale, 0.01) * Formulas.enemy_buff(kind, "hp", is_night, level_index)
 	hp = max_hp
-	damage_scale = maxf(p_damage_scale, 0.0)
+	damage_scale = maxf(p_damage_scale, 0.0) * Formulas.enemy_buff(kind, "damage", is_night, level_index)
 	bounty = maxi(int(round(float(_definition.bounty) * bounty_scale)), 1)
 
 
@@ -57,6 +61,10 @@ func definition() -> Dictionary:
 
 func damage() -> float:
 	return float(_definition.damage) * damage_scale
+
+
+func armor() -> float:
+	return _armor
 
 
 func is_alive() -> bool:
@@ -111,7 +119,7 @@ func make_guard(post_id: int, angle: float, turn: float) -> void:
 	post = post_id
 	patrol_angle = angle
 	patrol_turn = 1.0 if turn >= 0.0 else -1.0
-	_speed = float(_definition.speed) * GameConfig.GUARD_SPEED
+	_speed = float(_definition.speed) * _speed_factor * GameConfig.GUARD_SPEED
 
 
 func reach() -> float:

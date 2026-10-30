@@ -1,6 +1,8 @@
 class_name SpawnDirector
 extends RefCounted
 
+const FALLBACK_KIND := "crawler"
+
 var state: BattleState
 var events: BattleEvents
 
@@ -121,7 +123,7 @@ func spawn_guard(spawner: Building) -> Enemy:
 	var round_number := state.round_number
 	var hp_scale := float(config.hp) * Formulas.enemy_hp_scale(round_number)
 	var bounty_scale := GameConfig.GUARD_BOUNTY * Formulas.enemy_bounty_scale(round_number)
-	var enemy := Enemy.new(state.next_id(), kind, point, hp_scale, Formulas.enemy_damage_scale(round_number), bounty_scale)
+	var enemy := Enemy.new(state.next_id(), kind, point, hp_scale, Formulas.enemy_damage_scale(round_number), bounty_scale, state.is_night(), state.level_index)
 	enemy.make_guard(spawner.id, angle, 1.0 if state.rng.randf() < 0.5 else -1.0)
 	state.enemies.append(enemy)
 	events.emit("spawn", {"position": enemy.position, "kind": kind, "boss": false, "guard": true})
@@ -158,11 +160,42 @@ func send_wave() -> int:
 		spawner.spawn_heading = state.rng.randf() * TAU
 		spawner.spawn_timer = 0.0
 		total += whole
+	total += send_extras(state.waves_sent)
 	state.waves_sent += 1
 	if raid_due():
 		total += air_raid(night)
 	events.emit("wave", {"index": state.waves_sent, "total": Formulas.wave_times(state.level), "night": night, "round": state.round_number, "count": total})
 	return total
+
+
+func send_extras(index: int) -> int:
+	var spawned := 0
+	for entry: Dictionary in Formulas.extra_waves(state.level, state.round_number, index):
+		spawned += spawn_extra(str(entry.kind), int(entry.count))
+	return spawned
+
+
+func spawn_extra(kind: String, count: int) -> int:
+	if GameConfig.enemy(kind).is_empty():
+		return 0
+	var spawners := extra_spawners(kind)
+	if spawners.is_empty():
+		return 0
+	for i in count:
+		spawn(spawners[i % spawners.size()], INF, kind)
+	return count
+
+
+func extra_spawners(kind: String) -> Array:
+	var all := []
+	var matching := []
+	for spawner in state.enemy_buildings():
+		if not spawner.spawner or not spawner.is_alive():
+			continue
+		all.append(spawner)
+		if GameConfig.faction_kinds(spawner.kind).has(kind):
+			matching.append(spawner)
+	return matching if not matching.is_empty() else all
 
 
 func _release(spawner: Building, delta: float) -> void:
@@ -174,8 +207,8 @@ func _release(spawner: Building, delta: float) -> void:
 	spawn(spawner, spawner.spawn_heading + (state.rng.randf() - 0.5) * GameConfig.PACK_SPREAD * TAU)
 
 
-func spawn(spawner: Building, angle: float = INF) -> Enemy:
-	var kind := pick_kind(spawner.kind)
+func spawn(spawner: Building, angle: float = INF, forced_kind: String = "") -> Enemy:
+	var kind := forced_kind if not forced_kind.is_empty() else pick_kind(spawner.kind)
 	if is_inf(angle):
 		angle = state.rng.randf() * TAU
 	var distance := spawner.half_extent() + GameConfig.CELL * (0.5 + state.rng.randf() * GameConfig.SPAWN_RING)
@@ -185,7 +218,7 @@ func spawn(spawner: Building, angle: float = INF) -> Enemy:
 		if cell != Vector2i(-1, -1):
 			point = state.map.center_of(cell)
 	var round_number := state.round_number
-	var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number) * _damage_bonus(kind), Formulas.enemy_bounty_scale(round_number))
+	var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number) * _damage_bonus(kind), Formulas.enemy_bounty_scale(round_number), state.is_night(), state.level_index)
 	enemy.approach = Vector2.from_angle(state.rng.randf() * TAU) * state.rng.randf()
 	state.enemies.append(enemy)
 	events.emit("spawn", {"position": enemy.position, "kind": kind, "boss": enemy.is_boss()})
@@ -205,13 +238,19 @@ func raid_due() -> bool:
 
 
 func raid_kinds(night: bool) -> Array:
-	var kinds := []
+	var spawners := []
 	for spawner in state.enemy_buildings():
-		if not spawner.spawner:
-			continue
-		for kind: String in GameConfig.SPAWNER_FACTIONS.get(spawner.kind, []):
+		if spawner.spawner:
+			spawners.append(spawner.kind)
+	return air_kinds(spawners, night)
+
+
+static func air_kinds(spawner_kinds: Array, night: bool) -> Array:
+	var kinds := []
+	for spawner_kind: String in spawner_kinds:
+		for kind: String in GameConfig.faction_kinds(spawner_kind):
 			var definition := GameConfig.enemy(kind)
-			if definition.get("class", "") == GameConfig.CLASS_AIR and GameConfig.is_nocturnal(kind) == night and not kinds.has(kind):
+			if definition.get("class", "") == GameConfig.CLASS_AIR and not definition.get("boss", false) and GameConfig.is_nocturnal(kind) == night and not kinds.has(kind):
 				kinds.append(kind)
 	return kinds
 
@@ -246,7 +285,7 @@ func air_raid(night: bool) -> int:
 	for index in size:
 		var kind: String = kinds[state.rng.randi_range(0, kinds.size() - 1)]
 		var point := origin + Vector2.from_angle(state.rng.randf() * TAU) * state.rng.randf() * GameConfig.AIR_RAID_SPREAD
-		var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number), Formulas.enemy_bounty_scale(round_number))
+		var enemy := Enemy.new(state.next_id(), kind, point, Formulas.enemy_hp_scale(round_number), Formulas.enemy_damage_scale(round_number), Formulas.enemy_bounty_scale(round_number), night, state.level_index)
 		enemy.approach = Vector2.from_angle(state.rng.randf() * TAU) * state.rng.randf()
 		state.enemies.append(enemy)
 		events.emit("spawn", {"position": enemy.position, "kind": kind, "boss": false})
@@ -255,10 +294,14 @@ func air_raid(night: bool) -> int:
 
 
 func candidates(spawner_kind: String) -> Array:
-	var faction: Array = GameConfig.SPAWNER_FACTIONS.get(spawner_kind, [])
-	var tier := Formulas.wave_tier(state.round_number)
+	return eligible(roster(), spawner_kind, state.round_number)
+
+
+static func eligible(entries: Array, spawner_kind: String, round_number: int) -> Array:
+	var faction: Array = GameConfig.faction_kinds(spawner_kind)
+	var tier := Formulas.wave_tier(round_number)
 	var result := []
-	for entry: Array in roster():
+	for entry: Array in entries:
 		if faction.has(entry[0]) and tier >= int(entry[1]):
 			result.append(entry)
 	return result
@@ -284,9 +327,12 @@ func pick_kind(spawner_kind: String) -> String:
 
 
 func fallback_kind(spawner_kind: String) -> String:
-	var faction: Array = GameConfig.SPAWNER_FACTIONS.get(spawner_kind, ["crawler"])
-	var night := state.is_night()
+	return fallback_for(spawner_kind, state.is_night())
+
+
+static func fallback_for(spawner_kind: String, night: bool) -> String:
+	var faction: Array = GameConfig.faction_kinds(spawner_kind)
 	for kind: String in faction:
 		if GameConfig.is_nocturnal(kind) == night:
 			return kind
-	return str(faction[0])
+	return str(faction[0]) if not faction.is_empty() else FALLBACK_KIND

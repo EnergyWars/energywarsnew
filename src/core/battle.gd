@@ -16,6 +16,7 @@ var mobility: MobileControl
 var lighting: Lighting
 var fuel: FuelControl
 var creeping: CreepControl
+var sightings: Sightings
 var checkpoint: BattleCheckpoint
 var history := PlanHistory.new()
 var _accumulator := 0.0
@@ -36,6 +37,7 @@ func _init(p_state: BattleState) -> void:
 	lighting = Lighting.new(state)
 	fuel = FuelControl.new(state, events)
 	creeping = CreepControl.new(state, events)
+	sightings = Sightings.new(state, events, lighting)
 	combat.lighting = lighting
 	_was_night = state.is_night()
 	if state.is_planning():
@@ -81,6 +83,7 @@ func tick(delta: float) -> void:
 	network.flow(delta)
 	lighting.update(delta)
 	combat.update(delta)
+	sightings.update(delta)
 	ai.update(delta)
 	_sweep()
 	economy.update(delta)

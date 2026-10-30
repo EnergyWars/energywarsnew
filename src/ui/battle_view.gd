@@ -191,6 +191,7 @@ func set_build_kind(kind: String) -> void:
 func set_mode(value: Mode, announce: bool = true) -> void:
 	mode = value
 	gesture = Gesture.NONE
+	release_stick()
 	trail.clear()
 	if announce:
 		mode_changed.emit(mode)

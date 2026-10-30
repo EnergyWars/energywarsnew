@@ -700,6 +700,8 @@ func test_map_button_opens_the_map_and_marks_structures() -> void:
 	var count := state.enemy_buildings().size()
 	assert_eq(count, GameConfig.level(0).structures.size())
 	assert_eq(hud.map_panel._summary.text, Texts.format("MAP_STRUCTURES", [count]))
+	assert_eq(hud._toast_label.text, Texts.format("TOAST_CREEP_SPAWNED", [state.creep.alive_nests().size()]))
+	hud.announce_structures(count)
 	assert_eq(hud._toast_label.text, Texts.format("MAP_SPAWNED", [count]))
 	await wait_process_frames(2)
 
@@ -775,6 +777,21 @@ func test_upgrade_list_shows_every_track_without_inner_scroll() -> void:
 	screen.view.select(nest.id)
 	_frames(screen, 1)
 	assert_false(screen.panel._tracks.visible)
+
+
+func test_tower_panel_lists_health_and_armour_separately() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -150))
+	screen.view.select(zapper.id)
+	_frames(screen, 2)
+	assert_true(screen.panel._track_rows.has(GameConfig.TRACK_HULL))
+	assert_true(screen.panel._track_rows.has(GameConfig.TRACK_ARMOR))
+	var detail: Label = screen.panel._track_rows[GameConfig.TRACK_ARMOR].detail
+	assert_string_contains(detail.text, StatText.track_value(zapper, GameConfig.TRACK_ARMOR))
+	screen.view.select(core.id)
+	_frames(screen, 2)
+	assert_false(screen.panel._track_rows.has(GameConfig.TRACK_ARMOR))
 
 
 func test_holding_an_upgrade_button_repeats_upgrades() -> void:
@@ -2386,3 +2403,35 @@ func test_main_starts_and_retries_creative() -> void:
 	assert_true(main.screen is BattleScreen)
 	assert_eq(main.last_rules.start_day, 2)
 	assert_eq((main.screen as BattleScreen).battle.state.round_number, 2)
+
+
+func test_every_player_building_has_a_description_in_both_languages() -> void:
+	for locale in ["en", "de"]:
+		TranslationServer.set_locale(locale)
+		for kind: String in GameConfig.BUILDINGS:
+			if GameConfig.BUILDINGS[kind].team == GameConfig.TEAM_PLAYER:
+				assert_ne(Texts.building_desc(kind), "", "%s %s" % [locale, kind])
+	TranslationServer.set_locale("en")
+	assert_ne(Texts.building_desc(GameConfig.ZAPPER), Texts.building_info(GameConfig.ZAPPER))
+	assert_eq(Texts.building_desc(GameConfig.NEST), "")
+
+
+func test_building_panel_shows_description_in_collapsible_info() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	var zapper := BattleFixtures.add(screen.battle, GameConfig.ZAPPER, core.position + Vector2(0, -168))
+	screen.view.select(zapper.id)
+	_frames(screen, 1)
+	var panel := screen.panel
+	assert_true(panel._desc_toggle.visible)
+	assert_false(panel._desc.visible)
+	panel._desc_toggle.pressed.emit()
+	assert_true(panel._desc.visible)
+	assert_eq(panel._desc.text, Texts.building_desc(GameConfig.ZAPPER))
+	panel.toggle_description()
+	assert_false(panel._desc.visible)
+	var nest: Building = screen.battle.state.enemy_buildings()[0]
+	screen.view.select(nest.id)
+	_frames(screen, 1)
+	assert_false(panel._desc_toggle.visible)
+	assert_false(panel._desc.visible)

@@ -5,6 +5,10 @@ const DEFAULT_PATH := "user://progress.json"
 const VERSION := 2
 const LEGACY_VERSION := 1
 const MAX_STARS := 3
+const MAX_BYTES := 1048576
+const MAX_NUMBER := 1e15
+const MAX_RETAINED := 256
+const MAX_ID_LENGTH := 48
 
 var path: String
 var regions := {}
@@ -12,6 +16,8 @@ var techs: Array[String] = []
 var location := 0
 var total_kills := 0
 var best_combo := 0
+var seen: Array[String] = []
+var _retained := {}
 
 
 func _init(p_path: String = DEFAULT_PATH) -> void:
@@ -19,29 +25,39 @@ func _init(p_path: String = DEFAULT_PATH) -> void:
 
 
 func load_progress() -> Progress:
-	if not FileAccess.file_exists(path):
-		return self
-	var json := JSON.new()
-	if json.parse(FileAccess.get_file_as_string(path)) == OK and json.data is Dictionary:
-		apply(json.data)
+	var data: Variant = SafeFile.read_json(path, MAX_BYTES)
+	if data is Dictionary:
+		apply(data)
 	return self
+
+
+static func _int(value: Variant) -> int:
+	if value is int:
+		return value
+	if value is float and is_finite(value):
+		return int(clampf(value, -MAX_NUMBER, MAX_NUMBER))
+	if value is String and value.is_valid_float():
+		return _int(value.to_float())
+	return 0
 
 
 func apply(data: Dictionary) -> void:
 	regions = {}
+	_retained = {}
 	techs = []
 	location = 0
 	total_kills = 0
 	best_combo = 0
-	var version := int(data.get("version", 0))
+	seen = []
+	var version := _int(data.get("version", 0))
 	if version == LEGACY_VERSION:
 		_apply_legacy(data)
 	elif version == VERSION:
 		_apply_current(data)
 	else:
 		return
-	total_kills = maxi(int(data.get("total_kills", 0)), 0)
-	best_combo = maxi(int(data.get("best_combo", 0)), 0)
+	total_kills = maxi(_int(data.get("total_kills", 0)), 0)
+	best_combo = maxi(_int(data.get("best_combo", 0)), 0)
 
 
 func _apply_legacy(data: Dictionary) -> void:
@@ -50,7 +66,7 @@ func _apply_legacy(data: Dictionary) -> void:
 		return
 	for id: Variant in stored:
 		var index := GameConfig.level_index(str(id))
-		if index >= 0 and int(stored[id]) > 0:
+		if index >= 0 and _int(stored[id]) > 0:
 			mark_conquered(index)
 			location = maxi(location, index)
 
@@ -60,8 +76,12 @@ func _apply_current(data: Dictionary) -> void:
 	if stored is Dictionary:
 		for id: Variant in stored:
 			var index := GameConfig.level_index(str(id))
-			if index >= 0 and stored[id] is Dictionary:
+			if not stored[id] is Dictionary:
+				continue
+			if index >= 0:
 				regions[str(id)] = _sanitize_region(index, stored[id])
+			elif _retained.size() < MAX_RETAINED and str(id).length() <= MAX_ID_LENGTH:
+				_retained[str(id)] = _sanitize_retained(stored[id])
 	var owned: Variant = data.get("techs", [])
 	if owned is Array:
 		for id: Variant in owned:
@@ -70,7 +90,20 @@ func _apply_current(data: Dictionary) -> void:
 	_prune_techs()
 	if spent_points() > earned_points():
 		techs = []
-	location = clampi(int(data.get("location", 0)), 0, GameConfig.level_count() - 1)
+	var located := GameConfig.level_index(str(data.get("location_id", "")))
+	location = located if located >= 0 else clampi(_int(data.get("location", 0)), 0, GameConfig.level_count() - 1)
+	seen = _sanitize_seen(data.get("seen", []))
+
+
+static func _sanitize_seen(raw: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if not raw is Array:
+		return result
+	var known := GameConfig.enemy_kinds()
+	for kind: Variant in raw:
+		if known.has(str(kind)) and not result.has(str(kind)):
+			result.append(str(kind))
+	return result
 
 
 func _prune_techs() -> void:
@@ -97,34 +130,47 @@ static func _sanitize_region(index: int, raw: Dictionary) -> Dictionary:
 		done.push_front(Challenges.CONQUER)
 	return {
 		"conquered": conquered,
-		"stars": clampi(int(raw.get("stars", 0)), 0, MAX_STARS),
-		"best_days": maxi(int(raw.get("best_days", 0)), 0),
+		"stars": clampi(_int(raw.get("stars", 0)), 0, MAX_STARS),
+		"best_days": maxi(_int(raw.get("best_days", 0)), 0),
+		"done": done,
+	}
+
+
+static func _sanitize_retained(raw: Dictionary) -> Dictionary:
+	var done: Array[String] = []
+	var stored: Variant = raw.get("done", [])
+	if stored is Array:
+		for id: Variant in stored.slice(0, MAX_RETAINED):
+			if id is String and id.length() <= MAX_ID_LENGTH and not done.has(id):
+				done.append(id)
+	var flag: Variant = raw.get("conquered", false)
+	return {
+		"conquered": flag is bool and flag,
+		"stars": clampi(_int(raw.get("stars", 0)), 0, MAX_STARS),
+		"best_days": maxi(_int(raw.get("best_days", 0)), 0),
 		"done": done,
 	}
 
 
 func to_dict() -> Dictionary:
-	return {"version": VERSION, "regions": regions.duplicate(true), "techs": techs.duplicate(), "location": location,
-		"total_kills": total_kills, "best_combo": best_combo}
+	var stored := _retained.duplicate(true)
+	stored.merge(regions.duplicate(true), true)
+	return {"version": VERSION, "regions": stored, "techs": techs.duplicate(), "location": location, "location_id": str(GameConfig.level(location).id),
+		"total_kills": total_kills, "best_combo": best_combo, "seen": seen.duplicate()}
 
 
 func save() -> bool:
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	if file == null:
-		return false
-	file.store_string(JSON.stringify(to_dict()))
-	file.close()
-	return true
+	return SafeFile.write_text(path, JSON.stringify(to_dict()))
 
 
 func _region(index: int) -> Dictionary:
 	if index < 0 or index >= GameConfig.level_count():
 		return GameConfig.EMPTY
-	return regions.get(GameConfig.LEVELS[index].id, GameConfig.EMPTY)
+	return regions.get(GameConfig.level(index).id, GameConfig.EMPTY)
 
 
 func _writable(index: int) -> Dictionary:
-	var id := str(GameConfig.LEVELS[index].id)
+	var id := str(GameConfig.level(index).id)
 	if not regions.has(id):
 		regions[id] = {"conquered": false, "stars": 0, "best_days": 0, "done": [] as Array[String]}
 	return regions[id]
@@ -201,16 +247,36 @@ func reset_techs() -> int:
 
 func reset_all() -> void:
 	regions = {}
+	_retained = {}
 	techs = []
 	location = 0
 	total_kills = 0
 	best_combo = 0
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
+	seen = []
+	SafeFile.remove(path)
 
 
 func arsenal() -> Arsenal:
 	return Arsenal.from_techs(techs)
+
+
+func mark_seen(kind: String) -> bool:
+	if seen.has(kind) or GameConfig.enemy(kind).is_empty():
+		return false
+	seen.append(kind)
+	return true
+
+
+func has_seen(kind: String) -> bool:
+	return seen.has(kind)
+
+
+func seen_count() -> int:
+	var count := 0
+	for kind: String in GameConfig.enemy_kinds():
+		if seen.has(kind):
+			count += 1
+	return count
 
 
 func record(report: BattleReport) -> BattleReport:

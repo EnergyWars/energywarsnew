@@ -67,7 +67,7 @@ func test_laser_drains_energy_continuously() -> void:
 	var beetle := BattleFixtures.enemy(battle, "beetle", laser.position + Vector2(0, -150))
 	for i in 10:
 		battle.combat.update(0.1)
-	assert_almost_eq(beetle.hp, beetle.max_hp - Formulas.damage(laser), 0.01)
+	assert_almost_eq(beetle.hp, beetle.max_hp - Formulas.mitigate(Formulas.damage(laser), beetle.armor()), 0.01)
 	assert_almost_eq(laser.energy, Formulas.capacity(laser) - Formulas.shot_energy(laser), 0.01)
 	assert_true(laser.firing)
 	assert_gt(BattleFixtures.of_type(battle.events.drain(), "hit").size(), 0)
@@ -146,10 +146,10 @@ func test_enemy_turret_shoots_player_buildings() -> void:
 	var turret := BattleFixtures.add(battle, GameConfig.TURRET, core.position + Vector2(0, -200))
 	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -100))
 	battle.combat.update(0.1)
-	assert_almost_eq(relay.hp, relay.max_hp() - Formulas.damage(turret), 0.001)
+	assert_almost_eq(relay.hp, relay.max_hp() - Formulas.mitigate(Formulas.damage(turret), Formulas.armor(relay)), 0.001)
 	assert_almost_eq(turret.cooldown, Formulas.cooldown(turret), 0.001)
 	battle.combat.update(0.1)
-	assert_almost_eq(relay.hp, relay.max_hp() - Formulas.damage(turret), 0.001)
+	assert_almost_eq(relay.hp, relay.max_hp() - Formulas.mitigate(Formulas.damage(turret), Formulas.armor(relay)), 0.001)
 	assert_true(BattleFixtures.types(battle).has("enemy_shot"))
 
 
@@ -163,7 +163,7 @@ func test_shield_absorbs_damage() -> void:
 	var shield := _tower(GameConfig.SHIELD, Vector2(100, 0))
 	shield.energy = 10.0
 	battle.combat.damage_building(core, 30.0)
-	assert_almost_eq(core.hp, core.max_hp() - 10.0, 0.001)
+	assert_almost_eq(core.hp, core.max_hp() - (Formulas.mitigate(30.0, Formulas.armor(core)) - 20.0), 0.001)
 	assert_almost_eq(shield.energy, 0.0, 0.001)
 	assert_true(BattleFixtures.types(battle).has("shielded"))
 
@@ -172,13 +172,13 @@ func test_full_absorb_leaves_building_untouched() -> void:
 	var shield := _tower(GameConfig.SHIELD, Vector2(100, 0))
 	battle.combat.damage_building(core, 10.0)
 	assert_eq(core.hp, core.max_hp())
-	assert_almost_eq(shield.energy, Formulas.capacity(shield) - 5.0, 0.001)
+	assert_almost_eq(shield.energy, Formulas.capacity(shield) - Formulas.mitigate(10.0, Formulas.armor(core)) / GameConfig.SHIELD_RATIO, 0.001)
 
 
 func test_shield_out_of_range_does_nothing() -> void:
 	_tower(GameConfig.SHIELD, Vector2(600, 0))
 	battle.combat.damage_building(core, 10.0)
-	assert_eq(core.hp, core.max_hp() - 10.0)
+	assert_almost_eq(core.hp, core.max_hp() - Formulas.mitigate(10.0, Formulas.armor(core)), 0.001)
 
 
 func test_destroying_player_building() -> void:
