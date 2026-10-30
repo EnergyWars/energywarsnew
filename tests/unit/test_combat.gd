@@ -362,6 +362,69 @@ func test_walls_soak_disproportionate_damage() -> void:
 	assert_eq(battle.state.nav.occupant_at(battle.state.map.cell_of(zapper.position)), NavGrid.FREE)
 
 
+func test_powered_bulwark_repairs_itself_slowly() -> void:
+	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
+	wall.energy = Formulas.capacity(wall)
+	wall.hp = 1000.0
+	var healed := battle.combat.repair(wall, 1.0)
+	assert_almost_eq(healed, Formulas.repair_rate(wall), 0.0001)
+	assert_almost_eq(wall.hp, 1000.0 + Formulas.repair_rate(wall), 0.0001)
+	assert_almost_eq(wall.energy, Formulas.capacity(wall) - Formulas.repair_draw(wall), 0.0001)
+
+
+func test_repair_needs_energy_and_damage() -> void:
+	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
+	wall.hp = 1000.0
+	assert_eq(battle.combat.repair(wall, 1.0), 0.0)
+	assert_eq(wall.hp, 1000.0)
+	wall.hp = wall.max_hp()
+	wall.energy = Formulas.capacity(wall)
+	assert_eq(battle.combat.repair(wall, 1.0), 0.0)
+	assert_eq(wall.energy, Formulas.capacity(wall))
+	var zapper := _tower(GameConfig.ZAPPER)
+	zapper.hp = 10.0
+	assert_eq(battle.combat.repair(zapper, 1.0), 0.0)
+	assert_eq(zapper.hp, 10.0)
+
+
+func test_repair_stops_at_full_hp_and_at_empty_storage() -> void:
+	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
+	wall.energy = Formulas.capacity(wall)
+	wall.hp = wall.max_hp() - 2.0
+	assert_almost_eq(battle.combat.repair(wall, 1.0), 2.0, 0.0001)
+	assert_eq(wall.hp, wall.max_hp())
+	assert_almost_eq(wall.energy, Formulas.capacity(wall) - 2.0 * Formulas.repair_cost(wall), 0.0001)
+	wall.hp = 100.0
+	wall.energy = Formulas.repair_draw(wall) * 0.25
+	assert_almost_eq(battle.combat.repair(wall, 1.0), Formulas.repair_rate(wall) * 0.25, 0.0001)
+	assert_almost_eq(wall.energy, 0.0, 0.0001)
+
+
+func test_combat_update_repairs_powered_walls_only() -> void:
+	var powered := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
+	var empty := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(56, -150))
+	powered.energy = Formulas.capacity(powered)
+	powered.hp = 500.0
+	empty.hp = 500.0
+	assert_true(battle.state.repairers().has(powered))
+	for i in 30:
+		battle.combat.update(GameConfig.TICK)
+	assert_almost_eq(powered.hp, 500.0 + Formulas.repair_rate(powered) * GameConfig.TICK * 30, 0.01)
+	assert_eq(empty.hp, 500.0)
+
+
+func test_wall_receives_energy_over_a_beam_and_spends_it_on_repair() -> void:
+	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
+	core.energy = Formulas.capacity(core)
+	wall.hp = 100.0
+	assert_true(battle.network.connect_buildings(core.id, wall.id))
+	for i in 60:
+		battle.network.flow(GameConfig.TICK)
+		battle.combat.update(GameConfig.TICK)
+	assert_almost_eq(wall.hp, 100.0 + Formulas.repair_rate(wall) * GameConfig.TICK * 60, 0.01)
+	assert_gt(wall.energy, 0.0)
+
+
 func test_idle_towers_pause_scanning() -> void:
 	var zapper := _tower(GameConfig.ZAPPER)
 	battle.combat.update(GameConfig.TICK)

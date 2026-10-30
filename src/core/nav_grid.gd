@@ -47,7 +47,7 @@ func _refresh(cell: Vector2i) -> void:
 	var blocked := not walkable or occupant[index] != FREE
 	_blocked[index] = 1 if blocked else 0
 	ground.set_point_solid(cell, blocked)
-	walker.set_point_solid(cell, not walkable or hostile[index] == 1)
+	walker.set_point_solid(cell, not walkable or hostile[index] == 1 or map.is_sealed(cell))
 
 
 func occupy(building: Building) -> void:

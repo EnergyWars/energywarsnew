@@ -113,3 +113,14 @@ func test_blocked_queries() -> void:
 	assert_true(nav.is_blocked_at(map.center_of(Vector2i(2, 2))))
 	assert_false(nav.is_blocked_at(map.center_of(Vector2i(3, 2))))
 	assert_eq(nav.occupant_at(Vector2i(-1, 0)), NavGrid.FREE)
+
+
+func test_sealed_cells_block_the_walker_only() -> void:
+	var cell := Vector2i(4, 4)
+	map.sealed[map.index(cell)] = 1
+	nav = NavGrid.new(map)
+	assert_true(nav.walker.is_point_solid(cell))
+	assert_false(nav.ground.is_point_solid(cell))
+	map.sealed[map.index(cell)] = 0
+	nav.terrain_changed(cell)
+	assert_false(nav.walker.is_point_solid(cell))

@@ -33,6 +33,8 @@ func update(delta: float) -> void:
 				_healer(building, delta)
 		else:
 			_turret(building, delta)
+	for building in state.repairers():
+		repair(building, delta)
 	_garrison(delta, groups)
 	_projectiles(delta)
 
@@ -175,6 +177,17 @@ func _healer(healer: Building, delta: float) -> void:
 	healer.cooldown = Formulas.heal_cooldown(healer)
 	healer.target_id = patient.id
 	events.emit("heal", {"from": healer.position, "to": patient.position, "amount": amount})
+
+
+func repair(building: Building, delta: float) -> float:
+	var missing := building.max_hp() - building.hp
+	var cost := Formulas.repair_cost(building)
+	if not building.is_alive() or missing <= 0.0 or building.energy <= 0.0 or cost <= 0.0:
+		return 0.0
+	var amount := minf(minf(Formulas.repair_rate(building) * delta, missing), building.energy / cost)
+	building.hp += amount
+	building.energy = maxf(building.energy - amount * cost, 0.0)
+	return amount
 
 
 func heal_target(healer: Building) -> Building:

@@ -99,11 +99,11 @@ func test_crit_chain_and_splash_tracks() -> void:
 func test_towers_can_grow_much_stronger() -> void:
 	var zapper := _building(GameConfig.ZAPPER)
 	for track: String in zapper.definition().tracks:
-		zapper.set_level(track, Formulas.max_level(track))
+		zapper.set_level(track, Formulas.max_level(zapper, track))
 	assert_almost_eq(Formulas.damage(zapper), 26.0 * 5.0 * Formulas.multiplier(zapper, GameConfig.TRACK_OVERCLOCK), 0.001)
 	assert_gt(1.0 / Formulas.cooldown(zapper), 2.4 / 0.45)
 	assert_gt(zapper.max_hp(), 90.0 * 5.0)
-	assert_gte(Formulas.max_level(GameConfig.TRACK_POWER), 30)
+	assert_gte(Formulas.max_level(zapper, GameConfig.TRACK_POWER), 30)
 
 
 func test_enemy_turret_ignores_levels() -> void:
@@ -140,16 +140,22 @@ func test_upgrade_cost_grows_in_small_steps() -> void:
 	relay.set_level(GameConfig.TRACK_LINKS, 2)
 	assert_eq(Formulas.upgrade_cost(relay, GameConfig.TRACK_LINKS), int(round(30 * 0.8 * pow(1.6, 2))))
 	var wall := _building(GameConfig.BULWARK)
-	assert_gte(Formulas.upgrade_cost(wall, GameConfig.TRACK_HULL), 1)
+	assert_eq(Formulas.upgrade_cost(wall, GameConfig.TRACK_HULL), 5)
+	wall.set_level(GameConfig.TRACK_HULL, 3)
+	assert_eq(Formulas.upgrade_cost(wall, GameConfig.TRACK_HULL), int(round(40 * 0.125 * pow(1.75, 3))))
 	assert_eq(Formulas.upgrade_base(GameConfig.CORE), 120)
 
 
 func test_maxed() -> void:
 	var relay := _building(GameConfig.RELAY)
 	assert_false(Formulas.is_maxed(relay, GameConfig.TRACK_LINKS))
-	relay.set_level(GameConfig.TRACK_LINKS, Formulas.max_level(GameConfig.TRACK_LINKS))
+	relay.set_level(GameConfig.TRACK_LINKS, Formulas.max_level(relay, GameConfig.TRACK_LINKS))
 	assert_true(Formulas.is_maxed(relay, GameConfig.TRACK_LINKS))
-	assert_eq(Formulas.max_level(GameConfig.TRACK_LINKS), 5)
+	assert_eq(Formulas.max_level(relay, GameConfig.TRACK_LINKS), 5)
+	var wall := _building(GameConfig.BULWARK)
+	assert_eq(Formulas.max_level(wall, GameConfig.TRACK_HULL), int(GameConfig.WALL_HULL.max))
+	wall.set_level(GameConfig.TRACK_HULL, int(GameConfig.WALL_HULL.max))
+	assert_true(Formulas.is_maxed(wall, GameConfig.TRACK_HULL))
 
 
 func test_sell_value_is_half_of_spent_scaled_by_health() -> void:
@@ -222,12 +228,62 @@ func test_healer_values() -> void:
 func test_bulwark_is_cheap_and_disproportionately_tough() -> void:
 	var bulwark := _building(GameConfig.BULWARK)
 	var zapper := _building(GameConfig.ZAPPER)
-	assert_eq(bulwark.max_hp(), 2000.0)
+	assert_eq(bulwark.max_hp(), 1600.0)
 	assert_gt(bulwark.max_hp() / float(GameConfig.building(GameConfig.BULWARK).cost), 50.0 * zapper.max_hp() / float(GameConfig.building(GameConfig.ZAPPER).cost))
+	bulwark.levels = {GameConfig.TRACK_HULL: 1}
+	assert_almost_eq(bulwark.max_hp(), 1600.0 * 3.0, 0.001)
 	bulwark.levels = {GameConfig.TRACK_HULL: 2}
-	assert_almost_eq(bulwark.max_hp(), 2000.0 * 1.3, 0.001)
-	assert_eq(Formulas.capacity(bulwark), 0.0)
+	assert_almost_eq(bulwark.max_hp(), 1600.0 * (1.0 + 2.0 * (1.0 + 1.85)), 0.001)
+	assert_eq(Formulas.capacity(bulwark), 12.0)
 	assert_eq(Formulas.build_radius(bulwark), 0.0)
+
+
+func test_bulwark_upgrades_beat_new_blocks_and_grow_ever_more_efficient() -> void:
+	var bulwark := _building(GameConfig.BULWARK)
+	var fresh := bulwark.max_hp() / float(GameConfig.building(GameConfig.BULWARK).cost)
+	var gains := PackedFloat64Array()
+	var total := 0
+	for level in Formulas.max_level(bulwark, GameConfig.TRACK_HULL):
+		var before := bulwark.max_hp()
+		var cost := Formulas.upgrade_cost(bulwark, GameConfig.TRACK_HULL)
+		bulwark.set_level(GameConfig.TRACK_HULL, level + 1)
+		gains.append((bulwark.max_hp() - before) / float(cost))
+		total += cost
+	assert_gt(gains[0], fresh * 1.5)
+	for i in range(1, gains.size()):
+		assert_gt(gains[i], gains[i - 1], "level %d" % (i + 1))
+	assert_gt(bulwark.max_hp(), 1600.0 * 100.0)
+	assert_gt(total, 100 * int(GameConfig.building(GameConfig.BULWARK).cost))
+
+
+func test_boosts_scale_the_whole_bulwark_curve() -> void:
+	var bulwark := _building(GameConfig.BULWARK)
+	bulwark.boosts = {GameConfig.BOOST_HP: 1.25}
+	bulwark.set_level(GameConfig.TRACK_HULL, 3)
+	assert_almost_eq(bulwark.max_hp(), 1600.0 * 1.25 * Formulas.multiplier(bulwark, GameConfig.TRACK_HULL), 0.01)
+
+
+func test_track_config_prefers_kind_curves() -> void:
+	assert_eq(Formulas.track_config(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), GameConfig.WALL_HULL)
+	assert_eq(Formulas.track_config(_building(GameConfig.ZAPPER), GameConfig.TRACK_HULL), GameConfig.TRACKS[GameConfig.TRACK_HULL])
+	var zapper := _building(GameConfig.ZAPPER)
+	zapper.set_level(GameConfig.TRACK_HULL, 2)
+	assert_almost_eq(Formulas.multiplier(zapper, GameConfig.TRACK_HULL), 1.0 + 2.0 * float(GameConfig.TRACKS[GameConfig.TRACK_HULL].step), 0.0001)
+	assert_eq(Formulas.multiplier(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), 1.0)
+
+
+func test_repair_values() -> void:
+	var bulwark := _building(GameConfig.BULWARK)
+	assert_eq(Formulas.repair_rate(bulwark), 5.0)
+	assert_almost_eq(Formulas.repair_draw(bulwark), 0.4, 0.0001)
+	assert_almost_eq(Formulas.repair_cost(bulwark), 0.08, 0.0001)
+	var healer := _building(GameConfig.HEALER)
+	assert_lt(Formulas.repair_rate(bulwark), Formulas.heal_amount(healer) / Formulas.heal_cooldown(healer))
+	assert_lt(Formulas.repair_draw(bulwark), Formulas.heal_energy(healer) / Formulas.heal_cooldown(healer))
+	var zapper := _building(GameConfig.ZAPPER)
+	assert_eq(Formulas.repair_rate(zapper), 0.0)
+	assert_eq(Formulas.repair_draw(zapper), 0.0)
+	assert_eq(Formulas.repair_cost(zapper), 0.0)
 
 
 func test_bulwark_cost_grows_slowly_with_count() -> void:

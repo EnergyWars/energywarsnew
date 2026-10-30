@@ -44,8 +44,16 @@ static func tier(building: Building) -> int:
 	return base
 
 
+static func lures(candidates: Array[Building]) -> Array[Building]:
+	var result: Array[Building] = []
+	for building in candidates:
+		if building.is_alive() and building.definition().has("lure"):
+			result.append(building)
+	return result
+
+
 static func is_idle(building: Building) -> bool:
-	if Formulas.capacity(building) <= 0.0:
+	if building.repairing or Formulas.capacity(building) <= 0.0:
 		return false
 	return building.energy < needed_energy(building)
 
@@ -93,3 +101,34 @@ static func best_ranked(origin: Vector2, ranked: Array) -> Building:
 			best_tier = rank_value
 			best_distance = distance
 	return result
+
+
+static func peers(ranked: Array) -> Array[Building]:
+	var result: Array[Building] = []
+	var top := -1
+	for entry: Array in ranked:
+		var building: Building = entry[0]
+		if not building.is_alive():
+			continue
+		var rank_value: int = entry[1]
+		if top < 0:
+			top = rank_value
+		elif rank_value < top:
+			break
+		result.append(building)
+	return result
+
+
+static func spread(origin: Vector2, best: Building, candidates: Array[Building], loads: Dictionary, rng: RandomNumberGenerator) -> Building:
+	var limit := best.edge_distance(origin) + GameConfig.SPREAD_REACH * GameConfig.CELL
+	var options := []
+	for building in candidates:
+		if building == best or not building.is_alive() or int(loads.get(building.id, 0)) >= GameConfig.SPREAD_CROWD:
+			continue
+		var distance := building.edge_distance(origin)
+		if distance <= limit:
+			options.append([distance, building])
+	if options.is_empty():
+		return null
+	options.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	return options[rng.randi_range(0, mini(options.size(), GameConfig.SPREAD_OPTIONS) - 1)][1]

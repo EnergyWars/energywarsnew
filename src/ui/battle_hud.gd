@@ -36,6 +36,8 @@ var _legend: PanelContainer
 var stats_panel: EnergyStatsPanel
 var map_panel: MapPanel
 var map_button: Button
+var creative_bar: CreativeBar
+var _infinite: Label
 var _hint: PanelContainer
 var _hint_label: Label
 var _combo: VBoxContainer
@@ -53,9 +55,10 @@ var _combo_timer := 0.0
 var _night := false
 
 
-func setup(p_safe_top: float, p_map: MapPanel = null) -> BattleHud:
+func setup(p_safe_top: float, p_map: MapPanel = null, p_creative: CreativeBar = null) -> BattleHud:
 	safe_top = p_safe_top
 	map_panel = p_map
+	creative_bar = p_creative
 	return self
 
 
@@ -64,6 +67,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_top()
 	_build_prep()
+	_build_creative()
 	_build_stats()
 	_build_map()
 	_build_legend()
@@ -88,6 +92,10 @@ func _build_top() -> void:
 	_money = UiKit.label("0", "Money")
 	_money.custom_minimum_size = Vector2(96, 0)
 	row.add_child(_money)
+	_infinite = UiKit.icon(Icons.INFINITY, AppTheme.GOLD, 34)
+	_infinite.custom_minimum_size = Vector2(96, 0)
+	_infinite.visible = false
+	row.add_child(_infinite)
 	var energy := UiKit.vbox(2)
 	energy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var energy_row := UiKit.hbox(4)
@@ -136,6 +144,11 @@ func _build_prep() -> void:
 	_start = UiKit.button("", "PrimaryButton", func() -> void: start_pressed.emit())
 	row.add_child(_start)
 	_prep.add_child(row)
+
+
+func _build_creative() -> void:
+	if creative_bar != null:
+		add_child(creative_bar)
 
 
 func _build_stats() -> void:
@@ -296,7 +309,7 @@ func top_height() -> float:
 
 
 func money_anchor() -> Vector2:
-	return _money.get_global_rect().get_center()
+	return (_infinite if _infinite.visible else _money).get_global_rect().get_center()
 
 
 func pulse_money() -> void:
@@ -305,6 +318,12 @@ func pulse_money() -> void:
 
 func refresh(state: BattleState, speed: float, tutorial_text: String, shown_money: int, history: PlanHistory = null, audit: EnergyAudit = null) -> void:
 	money_roll.set_target(shown_money)
+	var unlimited := state.has_unlimited_money()
+	_money.visible = not unlimited
+	_infinite.visible = unlimited
+	if creative_bar != null:
+		creative_bar.visible = not state.is_over()
+		creative_bar.refresh(state)
 	var capacity := maxf(state.storage_capacity(), 1.0)
 	var stored := state.stored_energy()
 	_energy_bar.value = stored / capacity
@@ -378,6 +397,10 @@ func _layout() -> void:
 	var top := top_height()
 	_prep.position = Vector2((width - _prep.size.x) * 0.5, top + AppTheme.SPACING_MD)
 	var below := top + AppTheme.SPACING_MD + (_prep.size.y + AppTheme.SPACING_SM if _prep.visible else 0.0)
+	if creative_bar != null:
+		creative_bar.position = Vector2((width - creative_bar.size.x) * 0.5, below)
+		if creative_bar.visible:
+			below += creative_bar.size.y + AppTheme.SPACING_SM
 	_legend.position = Vector2((width - _legend.size.x) * 0.5, below)
 	if _legend.visible:
 		below += _legend.size.y + AppTheme.SPACING_SM

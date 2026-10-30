@@ -46,6 +46,17 @@ func test_blocked_by_terrain() -> void:
 	assert_eq(BuildRules.reason(battle.state, GameConfig.SOLAR, spot), BuildRules.OK)
 
 
+func test_water_wheel_needs_pond() -> void:
+	var spot := core.position + Vector2(150, 0)
+	var cell := battle.state.map.cell_of(spot)
+	assert_eq(BuildRules.reason(battle.state, GameConfig.WATER, spot), BuildRules.WATER_ONLY)
+	battle.state.map.set_tile(cell, LevelMap.Tile.POND)
+	assert_eq(BuildRules.reason(battle.state, GameConfig.WATER, spot), BuildRules.OK)
+	assert_eq(BuildRules.reason(battle.state, GameConfig.SOLAR, spot), BuildRules.BLOCKED)
+	battle.state.map.set_tile(cell, LevelMap.Tile.TREE)
+	assert_eq(BuildRules.reason(battle.state, GameConfig.WATER, spot), BuildRules.WATER_ONLY)
+
+
 func test_overlap_uses_grid_cells() -> void:
 	assert_eq(BuildRules.reason(battle.state, GameConfig.SOLAR, core.position + Vector2(20, 0)), BuildRules.OVERLAP)
 	BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(84, 0))

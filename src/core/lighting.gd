@@ -9,19 +9,22 @@ var sources := PackedVector3Array()
 var glow := PackedByteArray()
 var glow_version := 0
 var _glowing := PackedInt32Array()
+var _halo := PackedInt32Array()
+var _kernel: Array[Vector3i] = []
 var _key := Vector2i(-1, -1)
 
 
 func _init(p_state: BattleState) -> void:
 	state = p_state
 	glow.resize(state.map.width * state.map.height)
+	_kernel = halo_kernel()
 
 
 func update(delta: float) -> void:
-	var night := state.is_night()
+	var dim := is_dim()
 	for lamp in state.of_kind(GameConfig.LAMP):
 		var cost := Formulas.lamp_draw(lamp) * delta
-		lamp.lit = night and lamp.is_alive() and lamp.energy + EPSILON >= cost
+		lamp.lit = dim and lamp.is_alive() and lamp.energy + EPSILON >= cost
 		if lamp.lit:
 			lamp.energy = maxf(lamp.energy - cost, 0.0)
 	refresh()
@@ -49,13 +52,40 @@ func refresh_glow() -> bool:
 					fresh.append(map.index(cell))
 	if fresh == _glowing:
 		return false
-	for index in _glowing:
+	for index in _halo:
 		glow[index] = 0
+	_halo.clear()
 	for index in fresh:
-		glow[index] = GLOW_ON
+		_stamp(map.cell_at(index))
 	_glowing = fresh
 	glow_version += 1
 	return true
+
+
+static func halo_kernel() -> Array[Vector3i]:
+	var kernel: Array[Vector3i] = []
+	var reach := GameConfig.GLOW_REACH
+	var limit := ceili(reach)
+	for y in range(-limit, limit + 1):
+		for x in range(-limit, limit + 1):
+			var gap := Vector2(maxf(absf(x) - 0.5, 0.0), maxf(absf(y) - 0.5, 0.0)).length()
+			var value := roundi(GLOW_ON * clampf(1.0 - gap / reach, 0.0, 1.0))
+			if value > 0:
+				kernel.append(Vector3i(x, y, value))
+	return kernel
+
+
+func _stamp(cell: Vector2i) -> void:
+	var map := state.map
+	for entry in _kernel:
+		var target := cell + Vector2i(entry.x, entry.y)
+		if not map.has_cell(target):
+			continue
+		var index := map.index(target)
+		if entry.z > glow[index]:
+			if glow[index] == 0:
+				_halo.append(index)
+			glow[index] = entry.z
 
 
 func current() -> PackedVector3Array:
@@ -66,6 +96,10 @@ func current() -> PackedVector3Array:
 
 func _source(building: Building) -> Vector3:
 	return Vector3(building.position.x, building.position.y, Formulas.lit_reach(building))
+
+
+func is_dim() -> bool:
+	return state.light() < 1.0
 
 
 func is_dark() -> bool:
@@ -94,7 +128,7 @@ func is_glowing(position: Vector2, radius: float = 0.0) -> bool:
 	for y in range(maxi(low.y, 0), mini(high.y, map.height - 1) + 1):
 		for x in range(maxi(low.x, 0), mini(high.x, map.width - 1) + 1):
 			var cell := Vector2i(x, y)
-			if glow[map.index(cell)] == 0:
+			if glow[map.index(cell)] != GLOW_ON:
 				continue
 			var corner := Vector2(cell) * GameConfig.CELL
 			var dx := maxf(maxf(corner.x - position.x, position.x - corner.x - GameConfig.CELL), 0.0)

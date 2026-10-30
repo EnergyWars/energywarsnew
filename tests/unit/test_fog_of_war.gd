@@ -128,3 +128,20 @@ func test_reveal_is_settled_on_next_refresh() -> void:
 	state.fog.refresh(state)
 	assert_false(state.fog.is_visible(far))
 	assert_true(state.fog.is_explored_at(far))
+
+
+func test_lift_reveals_everything_for_good() -> void:
+	var state := _state()
+	var version := state.fog.version
+	state.fog.lift()
+	assert_true(state.fog.lifted)
+	assert_gt(state.fog.version, version)
+	assert_eq(state.fog.cells.count(FogOfWar.VISIBLE), state.fog.cells.size())
+	state.scout.position = state.map.drop + Vector2(0, -1200)
+	state.fog.invalidate()
+	var lifted_version := state.fog.version
+	state.fog.refresh(state)
+	state.fog.update(state, GameConfig.FOG_INTERVAL)
+	assert_eq(state.fog.version, lifted_version)
+	assert_eq(state.fog.cells.count(FogOfWar.VISIBLE), state.fog.cells.size())
+	assert_true(state.fog.is_visible(state.map.structures[0].position))

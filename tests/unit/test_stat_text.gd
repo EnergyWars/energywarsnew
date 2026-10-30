@@ -5,37 +5,44 @@ func _building(kind: String) -> Building:
 	return Building.new(1, kind, Vector2.ZERO)
 
 
+func test_cells_converts_pixels_to_field_widths() -> void:
+	assert_eq(StatText.cells(GameConfig.CELL), "1")
+	assert_eq(StatText.cells(GameConfig.CELL * 1.5), "1.5")
+	assert_eq(StatText.cells(0.0), "0")
+	assert_eq(StatText.cells(GameConfig.CELL * 3.25), "3.25")
+
+
 func test_track_values() -> void:
 	var relay := _building(GameConfig.RELAY)
 	assert_eq(StatText.track_value(relay, GameConfig.TRACK_RATE), "30/s")
-	assert_eq(StatText.track_value(relay, GameConfig.TRACK_RANGE), "330")
+	assert_eq(StatText.track_value(relay, GameConfig.TRACK_RANGE), "5.89")
 	assert_eq(StatText.track_value(relay, GameConfig.TRACK_LINKS), "3")
 	assert_eq(StatText.next_value(relay, GameConfig.TRACK_LINKS), "4")
 	assert_eq(relay.level(GameConfig.TRACK_LINKS), 0)
 	assert_eq(StatText.track_value(_building(GameConfig.SOLAR), GameConfig.TRACK_OUTPUT), "8.0/s")
 	assert_eq(StatText.track_value(_building(GameConfig.BATTERY), GameConfig.TRACK_CAPACITY), "400")
 	assert_eq(StatText.track_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_POWER), "26")
-	assert_eq(StatText.track_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_RANGE), "230")
+	assert_eq(StatText.track_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_RANGE), "4.11")
 	assert_eq(StatText.track_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_SPEED), "2.22/s")
-	assert_eq(StatText.track_value(_building(GameConfig.SHIELD), GameConfig.TRACK_RANGE), "210")
+	assert_eq(StatText.track_value(_building(GameConfig.SHIELD), GameConfig.TRACK_RANGE), "3.75")
 	assert_eq(StatText.track_value(_building(GameConfig.SHIELD), GameConfig.TRACK_POWER), "2.0")
 	assert_eq(StatText.track_value(_building(GameConfig.EXPORTER), GameConfig.TRACK_RATE), "8/s")
-	assert_eq(StatText.track_value(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), "2000")
-	assert_eq(StatText.next_value(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), "2300")
+	assert_eq(StatText.track_value(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), "1,600")
+	assert_eq(StatText.next_value(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), "4,800")
 	assert_eq(StatText.track_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_EFFICIENCY), "100%")
 	assert_eq(StatText.next_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_EFFICIENCY), "105%")
 	assert_eq(StatText.track_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_CRIT), "12%")
 	assert_eq(StatText.next_value(_building(GameConfig.ZAPPER), GameConfig.TRACK_CRIT), "13%")
 	assert_eq(StatText.track_value(_building(GameConfig.TESLA), GameConfig.TRACK_CHAIN), "5")
 	assert_eq(StatText.next_value(_building(GameConfig.TESLA), GameConfig.TRACK_CHAIN), "6")
-	assert_eq(StatText.track_value(_building(GameConfig.PLASMA), GameConfig.TRACK_SPLASH), "85")
+	assert_eq(StatText.track_value(_building(GameConfig.PLASMA), GameConfig.TRACK_SPLASH), "1.52")
 	assert_eq(StatText.track_value(relay, "unknown"), "")
 
 
 func test_level_text() -> void:
 	var relay := _building(GameConfig.RELAY)
 	relay.set_level(GameConfig.TRACK_LINKS, 1)
-	assert_eq(StatText.level_text(relay, GameConfig.TRACK_LINKS), Texts.format("PANEL_LEVEL", [1, Formulas.max_level(GameConfig.TRACK_LINKS)]))
+	assert_eq(StatText.level_text(relay, GameConfig.TRACK_LINKS), Texts.format("PANEL_LEVEL", [1, Formulas.max_level(relay, GameConfig.TRACK_LINKS)]))
 
 
 func test_stats_for_each_kind() -> void:
@@ -55,7 +62,12 @@ func test_stats_for_each_kind() -> void:
 	assert_true(exporter.any(func(row: Array) -> bool: return row[0] == "STAT_EXPORT_CYCLE" and row[1] == Texts.format("STAT_EXPORT_CYCLE_VALUE", [StatText.coins(8.0 * GameConfig.EXPORT_CYCLE / GameConfig.ENERGY_PER_COIN), int(GameConfig.EXPORT_CYCLE)])))
 	var wall := StatText.stats(_building(GameConfig.BULWARK), battle.state)
 	assert_true(wall.any(func(row: Array) -> bool: return row[0] == "STAT_BLOCKS"))
-	assert_false(wall.any(func(row: Array) -> bool: return row[0] == "STAT_ENERGY"))
+	assert_true(wall.any(func(row: Array) -> bool: return row[0] == "STAT_ENERGY" and row[1] == "0 / 12"))
+	assert_true(wall.any(func(row: Array) -> bool: return row[0] == "STAT_REPAIR" and row[1] == "5/s"))
+	assert_true(wall.any(func(row: Array) -> bool: return row[0] == "STAT_REPAIR_DRAW" and row[1] == "0.4/s"))
+	assert_false(zapper.any(func(row: Array) -> bool: return row[0] == "STAT_REPAIR"))
+	assert_eq(wall[0][1], "1,600 / 1,600")
+	assert_eq(StatText.level_text(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), Texts.format("PANEL_LEVEL", [0, int(GameConfig.WALL_HULL.max)]))
 	var high := _building(GameConfig.ZAPPER)
 	high.elevation = 1
 	assert_true(StatText.stats(high, battle.state).any(func(row: Array) -> bool: return row[0] == "STAT_HIGH_GROUND"))

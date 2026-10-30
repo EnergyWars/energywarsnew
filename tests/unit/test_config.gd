@@ -35,6 +35,29 @@ func test_every_track_allows_many_small_steps() -> void:
 	assert_lt(GameConfig.TRACK_GROWTH, 1.2)
 
 
+func test_kind_curves_replace_existing_tracks_and_reward_each_level_more() -> void:
+	for kind: String in GameConfig.BUILDINGS:
+		var definition: Dictionary = GameConfig.BUILDINGS[kind]
+		var curves: Dictionary = definition.get("curves", {})
+		for track: String in curves:
+			var curve: Dictionary = curves[track]
+			assert_true(definition.tracks.has(track), "%s %s" % [kind, track])
+			assert_gte(int(curve.max), 1, kind)
+			assert_gt(float(curve.gain), 0.0, kind)
+			assert_gt(float(curve.price), 0.0, kind)
+			assert_gt(float(curve.growth), 1.0, kind)
+			assert_gt(float(curve.gain_growth), float(curve.growth), kind)
+	assert_true(GameConfig.building(GameConfig.BULWARK).has("curves"))
+
+
+func test_spread_settings() -> void:
+	assert_eq(GameConfig.SPREAD_CROWD, 3)
+	assert_gt(GameConfig.SPREAD_CHANCE, 0.0)
+	assert_lt(GameConfig.SPREAD_CHANCE, 1.0)
+	assert_gte(GameConfig.SPREAD_OPTIONS, 1)
+	assert_gt(GameConfig.SPREAD_REACH, 0.0)
+
+
 func test_every_player_building_can_upgrade_its_armour() -> void:
 	for kind: String in GameConfig.BUILDINGS:
 		if int(GameConfig.BUILDINGS[kind].team) == GameConfig.TEAM_PLAYER:
@@ -228,6 +251,14 @@ func test_structure_placement_settings_are_sane() -> void:
 	assert_gt(GameConfig.STRUCTURE_SPACING, 0.0)
 	assert_gte(GameConfig.STRUCTURE_MARGIN, 1)
 	assert_lt(GameConfig.TURRET_POST_RING.x, GameConfig.TURRET_POST_RING.y)
+
+
+func test_creep_settings_are_sane() -> void:
+	assert_gt(GameConfig.CREEP_RADIUS, 0.0)
+	assert_gt(GameConfig.CREEP_CORE_CLEAR, GameConfig.CREEP_RADIUS)
+	assert_gt(GameConfig.CREEP_FRINGE, 0.0)
+	assert_lt(GameConfig.CREEP_FRINGE, GameConfig.CREEP_RADIUS)
+	assert_gte(GameConfig.CREEP_STRIDE, 1)
 
 
 func test_water_wheel_lamp_and_fire_pit_definitions() -> void:

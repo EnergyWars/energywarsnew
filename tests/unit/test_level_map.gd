@@ -85,6 +85,11 @@ func test_cell_helpers() -> void:
 	assert_false(map.is_walkable(Vector2i(99, 99)))
 	assert_true(map.contains(Vector2(5, 5)))
 	assert_false(map.contains(Vector2(5, 5), 10.0))
+	assert_eq(map.edge_distance(Vector2i(0, 4)), 0)
+	assert_eq(map.edge_distance(Vector2i(9, 4)), 0)
+	assert_eq(map.edge_distance(Vector2i(4, 7)), 0)
+	assert_eq(map.edge_distance(Vector2i(3, 2)), 2)
+	assert_eq(map.edge_distance(Vector2i(5, 4)), 3)
 
 
 func test_footprint_snapping() -> void:
@@ -226,3 +231,25 @@ func test_footprint_center_and_clearable() -> void:
 	assert_true(map.is_clearable(Vector2i(2, 1)))
 	assert_false(map.is_clearable(Vector2i(3, 1)))
 	assert_false(map.is_clearable(Vector2i(-1, 1)))
+
+
+func test_slime_blocks_building_but_not_walking() -> void:
+	var map := LevelMap.blank(Vector2i(6, 6))
+	var cell := Vector2i(2, 3)
+	assert_true(map.is_buildable(cell))
+	assert_false(map.is_slimed(cell))
+	map.slime[map.index(cell)] = 1
+	assert_true(map.is_slimed(cell))
+	assert_false(map.is_buildable(cell))
+	assert_true(map.is_walkable(cell))
+	assert_false(map.is_slimed(Vector2i(-1, 0)))
+
+
+func test_sealed_cells_are_reported_inside_the_map_only() -> void:
+	var map := LevelMap.blank(Vector2i(6, 6))
+	map.sealed[map.index(Vector2i(1, 1))] = 1
+	assert_true(map.is_sealed(Vector2i(1, 1)))
+	assert_false(map.is_sealed(Vector2i(2, 1)))
+	assert_false(map.is_sealed(Vector2i(9, 9)))
+	assert_false(LevelMap.new().is_sealed(Vector2i.ZERO))
+	assert_false(LevelMap.new().is_slimed(Vector2i.ZERO))

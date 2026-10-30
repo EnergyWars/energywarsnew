@@ -6,6 +6,7 @@ var setup: BattleSetup
 var rng_seed := 0
 var rng_state := 0
 var money := 0
+var unlimited_money := true
 var earned := 0
 var kills := 0
 var lost := 0
@@ -21,6 +22,7 @@ var tiles := PackedByteArray()
 var fog := PackedByteArray()
 var obstacles: Array[Dictionary] = []
 var buildings: Array[Building] = []
+var creep: Array[Dictionary] = []
 var focus := {}
 var links: Array[Vector2i] = []
 
@@ -32,6 +34,7 @@ static func capture(state: BattleState) -> BattleCheckpoint:
 	checkpoint.rng_seed = state.rng.seed
 	checkpoint.rng_state = state.rng.state
 	checkpoint.money = state.money
+	checkpoint.unlimited_money = state.unlimited_money
 	checkpoint.earned = state.earned
 	checkpoint.kills = state.kills
 	checkpoint.lost = state.lost
@@ -44,6 +47,7 @@ static func capture(state: BattleState) -> BattleCheckpoint:
 	checkpoint.next_id = state.id_counter()
 	checkpoint.tiles = state.map.tiles.duplicate()
 	checkpoint.fog = state.fog.cells.duplicate()
+	checkpoint.creep = state.creep.export()
 	for cell: Vector2i in state.obstacles:
 		var obstacle: Obstacle = state.obstacles[cell]
 		if obstacle.is_alive():
@@ -67,10 +71,15 @@ func restore() -> Battle:
 	state.nav = NavGrid.new(state.map)
 	state.fog = FogOfWar.new(state.map)
 	state.fog.cells = fog.duplicate()
+	state.creep.release_rim()
+	state.creep.restore(creep)
+	if state.is_creative():
+		state.fog.lift()
 	state.rng.seed = rng_seed
 	state.rng.state = rng_state
 	state.phase = BattleState.Phase.PLAN
 	state.money = money
+	state.unlimited_money = unlimited_money
 	state.earned = earned
 	state.kills = kills
 	state.lost = lost

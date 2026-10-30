@@ -15,6 +15,7 @@ var scouting: ScoutControl
 var mobility: MobileControl
 var lighting: Lighting
 var fuel: FuelControl
+var creeping: CreepControl
 var checkpoint: BattleCheckpoint
 var history := PlanHistory.new()
 var _accumulator := 0.0
@@ -34,6 +35,7 @@ func _init(p_state: BattleState) -> void:
 	mobility = MobileControl.new(state, events)
 	lighting = Lighting.new(state)
 	fuel = FuelControl.new(state, events)
+	creeping = CreepControl.new(state, events)
 	combat.lighting = lighting
 	_was_night = state.is_night()
 	if state.is_planning():
@@ -62,6 +64,7 @@ func tick(delta: float) -> void:
 		return
 	scouting.update(delta)
 	state.fog.update(state, delta)
+	creeping.update(delta)
 	if state.phase != BattleState.Phase.FIGHT:
 		economy.update_pickups(delta)
 		if state.is_planning() and not state.enemies.is_empty():
@@ -110,6 +113,10 @@ func _check_daylight() -> void:
 func _check_round() -> void:
 	if state.phase != BattleState.Phase.FIGHT or not state.night_over or state.has_attackers():
 		return
+	_finish_round()
+
+
+func _finish_round() -> void:
 	state.projectiles.clear()
 	economy.reset_combo()
 	economy.collect_all()
@@ -124,6 +131,7 @@ func _check_round() -> void:
 	state.round_time = 0.0
 	state.waves_sent = 0
 	_was_night = false
+	lighting.update(0.0)
 	spawns.ignite_guards()
 	history.begin(state)
 	events.emit("round_cleared", {"round": survived, "next": state.round_number})
@@ -195,7 +203,7 @@ func _check_end() -> void:
 		state.phase = BattleState.Phase.LOST
 		events.emit("defeat")
 		return
-	if not state.is_survival() and state.enemy_buildings().is_empty():
+	if state.setup.is_campaign() and state.enemy_buildings().is_empty():
 		state.phase = BattleState.Phase.WON
 		for enemy in state.enemies:
 			enemy.hp = 0.0
@@ -217,7 +225,46 @@ func deploy_core(position: Vector2) -> String:
 	history.begin(state)
 	events.emit("core_deployed", {"id": core.id, "position": core.position})
 	events.emit("structures_spawned", {"count": state.enemy_buildings().size()})
+	var nests := state.creep.spawn(core.position)
+	events.emit("creep_spawned", {"count": nests.size()})
 	return reason
+
+
+func set_day(day: int) -> bool:
+	if not state.day_editable():
+		return false
+	var value := BattleSetup.clamp_day(day)
+	if value == state.round_number:
+		return false
+	state.round_number = value
+	events.emit("day_changed", {"day": value})
+	return true
+
+
+func clear_enemies() -> int:
+	if not state.is_creative() or state.is_over():
+		return 0
+	var units: Array[Dictionary] = []
+	for enemy in state.enemies:
+		if enemy.is_alive():
+			units.append({"position": enemy.position, "kind": enemy.kind})
+		enemy.hp = 0.0
+	state.enemies.clear()
+	for spawner in state.enemy_buildings():
+		spawner.spawn_queue = 0
+	if not units.is_empty():
+		events.emit("enemies_cleared", {"count": units.size(), "units": units})
+	if state.is_fighting():
+		_finish_round()
+	return units.size()
+
+
+func set_unlimited_money(enabled: bool) -> bool:
+	if not state.is_creative() or state.is_over() or state.unlimited_money == enabled:
+		return false
+	state.unlimited_money = enabled
+	events.emit("money_mode_changed", {"unlimited": enabled})
+	return true
 
 
 func steer_scout(direction: Vector2) -> String:
@@ -240,7 +287,7 @@ func place(kind: String, position: Vector2) -> String:
 		return reason
 	var before := _checkpoint()
 	var cost := Formulas.build_cost(state, kind)
-	state.money -= cost
+	state.pay(cost)
 	var building := state.add_building(kind, position)
 	building.spent = cost
 	building.plan_spent = cost if state.is_planning() else 0
@@ -257,7 +304,7 @@ func relocate(id: int, position: Vector2) -> String:
 	var before := _checkpoint()
 	var cost := Formulas.relocate_cost(building, state.is_planning())
 	var from := building.position
-	state.money -= cost
+	state.pay(cost)
 	state.move_building(building, position)
 	network.drop_out_of_range(id)
 	_commit(before)
@@ -324,7 +371,7 @@ func can_upgrade(id: int, track: String) -> bool:
 	var building := state.building(id)
 	if building == null or not building.is_player() or not building.has_track(track) or Formulas.is_maxed(building, track):
 		return false
-	return state.money >= Formulas.upgrade_cost(building, track) and not state.is_over()
+	return state.can_afford(Formulas.upgrade_cost(building, track)) and not state.is_over()
 
 
 func upgrade(id: int, track: String) -> bool:
@@ -333,7 +380,7 @@ func upgrade(id: int, track: String) -> bool:
 	var building := state.building(id)
 	_commit(_checkpoint())
 	var cost := Formulas.upgrade_cost(building, track)
-	state.money -= cost
+	state.pay(cost)
 	building.spent += cost
 	if state.is_planning():
 		building.plan_spent += cost

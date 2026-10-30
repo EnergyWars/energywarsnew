@@ -19,7 +19,7 @@ void vertex() {
 }
 
 void fragment() {
-	float lit = glow_light * smoothstep(0.0, 0.5, texture(glow_mask, world / world_size).r);
+	float lit = glow_light * smoothstep(0.0, 1.0, texture(glow_mask, world / world_size).r);
 	for (int i = 0; i < MAX_LIGHTS; i++) {
 		if (i >= light_count) {
 			break;

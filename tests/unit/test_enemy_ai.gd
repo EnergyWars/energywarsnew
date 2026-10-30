@@ -310,3 +310,128 @@ func test_saboteur_replans_when_switching_links() -> void:
 	assert_eq(map.cell_of(saboteur.path[saboteur.path.size() - 1]), saboteur.link_cell)
 	_run(8.0)
 	assert_false(battle.state.links.any(func(link: EnergyLink) -> bool: return link.target == right.id))
+
+
+func _crowd(target: Building, count: int, kind: String = "crawler") -> void:
+	for i in count:
+		var unit := BattleFixtures.enemy(battle, kind, _cell(Vector2i(0, -9)))
+		unit.target_id = target.id
+
+
+func _picks(enemy: Enemy, tries: int) -> Dictionary:
+	var picks := {}
+	for i in tries:
+		var target := battle.ai.choose_target(enemy)
+		picks[target.id] = int(picks.get(target.id, 0)) + 1
+	return picks
+
+
+func test_crowded_target_sends_further_attackers_to_equal_peers() -> void:
+	var near := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	var side := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(2, -5)))
+	var relay := _powered(GameConfig.RELAY, Vector2i(-1, -7))
+	_crowd(near, GameConfig.SPREAD_CROWD)
+	var picks := _picks(BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9))), 60)
+	assert_gt(int(picks.get(near.id, 0)), 0)
+	assert_gt(int(picks.get(side.id, 0)), 0)
+	assert_false(picks.has(relay.id))
+	assert_false(picks.has(core.id))
+
+
+func test_below_the_crowd_limit_everyone_takes_the_best_target() -> void:
+	var near := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(2, -5)))
+	_crowd(near, GameConfig.SPREAD_CROWD - 1)
+	var picks := _picks(BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9))), 30)
+	assert_eq(picks, {near.id: 30})
+
+
+func test_spreading_never_drops_to_a_lower_priority() -> void:
+	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	_powered(GameConfig.RELAY, Vector2i(1, -6))
+	_crowd(wall, GameConfig.SPREAD_CROWD + 2)
+	var picks := _picks(BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9))), 30)
+	assert_eq(picks, {wall.id: 30})
+
+
+func test_spreading_ignores_unreachable_peers() -> void:
+	_enclose(Vector2i(-3, -3), Vector2i(4, 4))
+	var inner := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(-1, -2)))
+	var crawler := BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9)))
+	var best := battle.ai.choose_target(crawler)
+	_crowd(best, GameConfig.SPREAD_CROWD)
+	var picks := _picks(crawler, 60)
+	assert_false(picks.has(inner.id))
+	assert_gt(picks.size(), 1)
+	for id: int in picks:
+		assert_eq(battle.state.building(id).kind, GameConfig.BULWARK)
+
+
+func test_spreading_stays_close_to_the_crowded_target() -> void:
+	var near := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	var far := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(int(GameConfig.SPREAD_REACH) + 6, -5)))
+	_crowd(near, GameConfig.SPREAD_CROWD)
+	var picks := _picks(BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9))), 30)
+	assert_false(picks.has(far.id))
+
+
+func test_committed_and_diverted_attackers_keep_their_targets() -> void:
+	var near := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	var side := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(2, -5)))
+	_crowd(near, GameConfig.SPREAD_CROWD)
+	var committed := BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9)))
+	committed.target_id = near.id
+	assert_eq(_picks(committed, 20), {near.id: 20})
+	var diverted := BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9)))
+	diverted.target_id = side.id
+	assert_eq(_picks(diverted, 20), {side.id: 20})
+
+
+func test_diverted_attackers_return_once_the_crowd_thins() -> void:
+	var near := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	var side := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(2, -5)))
+	_crowd(near, GameConfig.SPREAD_CROWD - 1)
+	var diverted := BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9)))
+	diverted.target_id = side.id
+	assert_eq(battle.ai.choose_target(diverted), near)
+
+
+func test_flyers_spread_between_bastions() -> void:
+	var first := _powered(GameConfig.BASTION, Vector2i(0, -4))
+	var second := _powered(GameConfig.BASTION, Vector2i(3, -4))
+	var zapper := _powered(GameConfig.ZAPPER, Vector2i(0, -2))
+	_crowd(first, GameConfig.SPREAD_CROWD, "wasp")
+	var picks := _picks(BattleFixtures.enemy(battle, "wasp", _cell(Vector2i(0, -9))), 60)
+	assert_gt(int(picks.get(first.id, 0)), 0)
+	assert_gt(int(picks.get(second.id, 0)), 0)
+	assert_false(picks.has(zapper.id))
+
+
+func test_update_tracks_the_load_and_splits_a_wave() -> void:
+	var near := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	var side := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(2, -5)))
+	var wave: Array[Enemy] = []
+	for i in 30:
+		wave.append(BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9))))
+	battle.ai.update(GameConfig.TICK)
+	assert_gte(battle.ai.load_of(near.id), GameConfig.SPREAD_CROWD)
+	assert_gt(battle.ai.load_of(side.id), 0)
+	assert_eq(battle.ai.load_of(near.id) + battle.ai.load_of(side.id), wave.size())
+	for enemy in wave:
+		assert_true(enemy.target_id == near.id or enemy.target_id == side.id)
+	assert_eq(battle.ai.load_of(near.id), wave.filter(func(enemy: Enemy) -> bool: return enemy.target_id == near.id).size())
+
+
+func test_guards_and_link_hunters_do_not_count_as_load() -> void:
+	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, _cell(Vector2i(0, -5)))
+	var guard := BattleFixtures.enemy(battle, "beetle", _cell(Vector2i(0, -12)))
+	guard.make_guard(core.id, 0.0, 1.0)
+	guard.target_id = wall.id
+	var hunter := BattleFixtures.enemy(battle, "saboteur", _cell(Vector2i(0, -12)))
+	hunter.target_id = wall.id
+	hunter.target_link = "1-2"
+	var crawler := BattleFixtures.enemy(battle, "crawler", _cell(Vector2i(0, -9)))
+	crawler.target_id = wall.id
+	battle.ai.choose_target(crawler)
+	assert_eq(battle.ai.load_of(wall.id), 1)
+	assert_eq(battle.ai.load_of(4242), 0)

@@ -42,6 +42,12 @@ static func dock_bottom(control: Control) -> void:
 	control.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
 
+static func clear(parent: Node) -> void:
+	for child in parent.get_children():
+		parent.remove_child(child)
+		child.queue_free()
+
+
 static func spacer(height: float = 0.0, expand: bool = false) -> Control:
 	var item := Control.new()
 	item.custom_minimum_size = Vector2(0, height)

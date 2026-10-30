@@ -321,6 +321,22 @@ static func _nest(ci: CanvasItem, center: Vector2, radius: float, time: float) -
 		ci.draw_circle(spot, radius * (0.09 + 0.04 * pulse), AppTheme.NEST_SPOT.lightened(pulse * 0.3))
 
 
+static func creep_nest(ci: CanvasItem, center: Vector2, radius: float, time: float) -> void:
+	shadow(ci, center, radius)
+	var points := PackedVector2Array()
+	for i in 20:
+		var angle := TAU * i / 20.0
+		var wobble := 1.0 + 0.1 * sin(angle * 4.0 + time * 2.4) + 0.06 * sin(angle * 7.0 - time * 1.7)
+		points.append(center + Vector2.from_angle(angle) * radius * wobble)
+	ci.draw_colored_polygon(points, AppTheme.SLIME_DEEP)
+	ci.draw_circle(center, radius * 0.68, AppTheme.SLIME.darkened(0.25))
+	ci.draw_circle(center, radius * 0.36, AppTheme.SLIME_DEEP.darkened(0.5))
+	for i in 5:
+		var angle := TAU * i / 5.0 + 0.3
+		var pulse := 0.5 + 0.5 * sin(time * 3.2 + i * 1.3)
+		ci.draw_circle(center + Vector2.from_angle(angle) * radius * 0.62, radius * (0.1 + 0.04 * pulse), AppTheme.SLIME.lightened(0.25 * pulse))
+
+
 static func _camp(ci: CanvasItem, center: Vector2, radius: float, time: float) -> void:
 	shadow(ci, center, radius)
 	for i in 14:

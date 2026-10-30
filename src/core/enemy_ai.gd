@@ -16,6 +16,7 @@ var _rank_timer := 0.0
 var _by_component := {}
 var _cut_cells := {}
 var _cut_version := -1
+var _load := {}
 
 
 func _init(p_state: BattleState, p_events: BattleEvents, p_combat: Combat, p_network: EnergyNetwork) -> void:
@@ -30,6 +31,7 @@ func update(delta: float) -> void:
 	_rank_timer -= delta
 	if _rank_timer <= 0.0 or _ranked_version != state.nav.version:
 		_ranked_valid = false
+	_count_load()
 	for enemy in state.enemies:
 		if enemy.is_alive():
 			_update(enemy, delta)
@@ -46,7 +48,7 @@ func _update(enemy: Enemy, delta: float) -> void:
 	var target := state.building(enemy.target_id)
 	if target == null or not target.is_alive() or enemy.retarget_timer <= 0.0:
 		target = _choose(enemy)
-		enemy.target_id = target.id if target != null else -1
+		_assign(enemy, target)
 		enemy.retarget_timer = GameConfig.RETARGET_TIME + state.rng.randf() * GameConfig.RETARGET_JITTER
 	if target == null:
 		return
@@ -65,7 +67,30 @@ func _update(enemy: Enemy, delta: float) -> void:
 
 func choose_target(enemy: Enemy) -> Building:
 	_ranked_valid = false
+	_count_load()
 	return _choose(enemy)
+
+
+func load_of(id: int) -> int:
+	return int(_load.get(id, 0))
+
+
+func _count_load() -> void:
+	_load.clear()
+	for enemy in state.enemies:
+		if enemy.is_attacker() and enemy.target_id >= 0 and enemy.target_link.is_empty():
+			_load[enemy.target_id] = load_of(enemy.target_id) + 1
+
+
+func _assign(enemy: Enemy, target: Building) -> void:
+	var id := target.id if target != null else -1
+	if id == enemy.target_id:
+		return
+	if load_of(enemy.target_id) > 0:
+		_load[enemy.target_id] = load_of(enemy.target_id) - 1
+	if id >= 0:
+		_load[id] = load_of(id) + 1
+	enemy.target_id = id
 
 
 func _choose(enemy: Enemy) -> Building:
@@ -76,15 +101,30 @@ func _choose(enemy: Enemy) -> Building:
 		_ranked = Targeting.rank(state.player_buildings())
 		_by_component = {}
 	if enemy.is_air():
-		var lure := Targeting.lure(enemy.position, state.player_buildings())
+		var players := state.player_buildings()
+		var lure := Targeting.lure(enemy.position, players)
 		if lure != null:
-			return lure
-		return Targeting.best_ranked(enemy.position, _ranked)
+			return _settle(enemy, lure, func() -> Array[Building]: return Targeting.lures(players))
+		return _settle(enemy, Targeting.best_ranked(enemy.position, _ranked), func() -> Array[Building]: return Targeting.peers(_ranked))
 	var component := state.nav.component_at(enemy.position)
 	if not _by_component.has(component):
 		var reachable := state.nav.reachable(component)
 		_by_component[component] = _ranked.filter(func(entry: Array) -> bool: return reachable.has(entry[0].id))
-	return Targeting.best_ranked(enemy.position, _by_component[component])
+	var ranked: Array = _by_component[component]
+	return _settle(enemy, Targeting.best_ranked(enemy.position, ranked), func() -> Array[Building]: return Targeting.peers(ranked))
+
+
+func _settle(enemy: Enemy, best: Building, peers: Callable) -> Building:
+	if best == null or enemy.target_id == best.id or load_of(best.id) < GameConfig.SPREAD_CROWD:
+		return best
+	var candidates: Array[Building] = peers.call()
+	var current := state.building(enemy.target_id)
+	if current != null and current.is_alive() and candidates.has(current):
+		return current
+	if state.rng.randf() >= GameConfig.SPREAD_CHANCE:
+		return best
+	var choice := Targeting.spread(enemy.position, best, candidates, _load, state.rng)
+	return choice if choice != null else best
 
 
 static func reach_distance(enemy: Enemy) -> float:

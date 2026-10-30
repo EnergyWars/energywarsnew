@@ -17,6 +17,10 @@ func _keys() -> Array[String]:
 		keys.append("BUILDING_%s_INFO" % kind.to_upper())
 	for kind in GameConfig.BUILD_ORDER:
 		keys.append("BUILDING_%s_SHORT" % kind.to_upper())
+	for key: String in [BuildBar.ALL, BuildBar.OTHER]:
+		keys.append("BUILD_CATEGORY_%s" % key.to_upper())
+	for entry: Dictionary in GameConfig.BUILD_CATEGORIES:
+		keys.append("BUILD_CATEGORY_%s" % str(entry.key).to_upper())
 	for kind: String in GameConfig.ENEMIES:
 		keys.append("ENEMY_%s" % kind.to_upper())
 	for track: String in GameConfig.TRACKS:
@@ -24,7 +28,7 @@ func _keys() -> Array[String]:
 	for level: Dictionary in GameConfig.LEVELS:
 		keys.append("LEVEL_%s" % str(level.id).to_upper())
 		keys.append("LEVEL_%s_INFO" % str(level.id).to_upper())
-	for code in [BuildRules.INVALID, BuildRules.LOCKED, BuildRules.MONEY, BuildRules.BOUNDS, BuildRules.BLOCKED, BuildRules.OVERLAP, BuildRules.ENEMY_NEAR, BuildRules.ENEMY_ZONE, BuildRules.TOO_FAR]:
+	for code in [BuildRules.INVALID, BuildRules.LOCKED, BuildRules.MONEY, BuildRules.BOUNDS, BuildRules.BLOCKED, BuildRules.OVERLAP, BuildRules.ENEMY_NEAR, BuildRules.ENEMY_ZONE, BuildRules.TOO_FAR, BuildRules.SLIME]:
 		keys.append("REASON_BUILD_%s" % code.to_upper())
 	for code in [EnergyNetwork.MISSING, EnergyNetwork.SAME, EnergyNetwork.NO_SEND, EnergyNetwork.NO_RECEIVE, EnergyNetwork.EXISTS, EnergyNetwork.FULL, EnergyNetwork.RANGE]:
 		keys.append("REASON_LINK_%s" % code.to_upper())
@@ -50,7 +54,9 @@ func _keys() -> Array[String]:
 	keys.append_array(["BUILD_OPEN", "BUILD_ONCE", "BUILD_MULTI", "BUILD_CANCEL", "RESULT_CHECKPOINT", "TOAST_SCOUT_WALKS",
 		"TOAST_PICK_FUEL", "TOAST_FUEL_EMPTY", "PANEL_LIGHT", "PANEL_LIGHT_VALUE", "PANEL_LIGHT_HINT", "PANEL_FUEL", "STAT_FUEL",
 		"STAT_FUEL_TIME", "STAT_LIGHT_RADIUS", "STAT_LIGHT_RADIUS_VALUE", "STAT_LIGHT_DRAW", "STAT_LIGHT_STATE", "STAT_LIGHT_ON_VALUE", "STATUS_LINK_OUT",
-		"STAT_LIGHT_OFF", "STAT_EXPORT_PROGRESS", "TRACK_EFFICIENCY_LAMP"] as Array[String])
+		"STAT_LIGHT_OFF", "STAT_EXPORT_PROGRESS", "TRACK_EFFICIENCY_LAMP", "STAT_REPAIR", "STAT_REPAIR_DRAW", "REGION_CREATIVE",
+		"REGION_CREATIVE_INFO", "CREATIVE_CLEAR", "TOAST_ENEMIES_CLEARED", "TOAST_CREEP_SPAWNED", "TOAST_NEST_KILLED", "CREATIVE_MONEY_ON",
+		"CREATIVE_MONEY_OFF"] as Array[String])
 	for code in [FuelControl.INVALID, FuelControl.NOT_TREE, FuelControl.RANGE, FuelControl.UNEXPLORED]:
 		keys.append("REASON_FUEL_%s" % code.to_upper())
 	for code in [ScoutControl.MISSING, ScoutControl.LANDING, ScoutControl.BOARDED, ScoutControl.NOTHING, ScoutControl.TOO_FAR]:
@@ -94,6 +100,11 @@ func test_german_differs_where_expected() -> void:
 	assert_eq(Texts.building_name(GameConfig.WATER), "Wasserrad")
 	assert_eq(Texts.track_name(GameConfig.TRACK_EFFICIENCY, GameConfig.LAMP), "Lichteffizienz")
 	assert_eq(Texts.format("BUILD_CANCEL", [Texts.building_name(GameConfig.FIRE)]), "Abbrechen: Feuerstelle")
+	assert_eq(Texts.t("BUILD_CATEGORY_ALL"), "Alle")
 	assert_eq(Texts.format("PANEL_LIGHT_VALUE", [3.0, 3.31]), "3.0 Felder · 3.3/s")
+	assert_eq(Texts.t("CREATIVE_CLEAR"), "Gegner entfernen")
+	assert_eq(Texts.format("TOAST_ENEMIES_CLEARED", [4]), "4 Gegner entfernt")
+	assert_eq(Texts.t("CREATIVE_MONEY_ON"), "Unbegrenztes Geld an")
+	assert_eq(Texts.t("CREATIVE_MONEY_OFF"), "Unbegrenztes Geld aus")
 	TranslationServer.set_locale("en")
 	assert_eq(Texts.building_name(GameConfig.BATTERY), "Storage")

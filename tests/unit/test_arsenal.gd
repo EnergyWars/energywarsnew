@@ -64,3 +64,14 @@ func test_default_state_uses_the_starter_arsenal() -> void:
 	assert_false(state.is_survival())
 	assert_eq(state.available_kinds(), GameConfig.STARTER_KINDS)
 	assert_eq(state.money, int(GameConfig.level(0).money))
+
+
+func test_with_all_kinds_copies_the_research() -> void:
+	var research := Arsenal.from_techs(["zapper_power", "funding_1"])
+	var full := research.with_all_kinds()
+	assert_eq(full.kinds(), GameConfig.BUILD_ORDER)
+	assert_eq(full.money_bonus, research.money_bonus)
+	assert_almost_eq(full.boost(GameConfig.ZAPPER, GameConfig.BOOST_DAMAGE), research.boost(GameConfig.ZAPPER, GameConfig.BOOST_DAMAGE), 0.0001)
+	assert_false(is_same(full.boosts_for(GameConfig.ZAPPER), research.boosts_for(GameConfig.ZAPPER)))
+	assert_false(research.has(GameConfig.LASER))
+	assert_eq(research.kinds(), GameConfig.STARTER_KINDS)

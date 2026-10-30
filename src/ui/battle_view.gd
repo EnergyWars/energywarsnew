@@ -71,9 +71,14 @@ var _coverage_key := ""
 var _terrain_painter: TerrainPainter
 var _fog_texture: FogTexture
 var _coverage_texture: CoverageTexture
+var _slime_texture: SlimeTexture
+var _rim_texture: SlimeTexture
+var _slime_version := -1
 var _terrain: Node2D
 var _chunks := {}
 var _coverage: DrawLayer
+var _slime: DrawLayer
+var _rim: DrawLayer
 var _walls: DrawLayer
 var _walls_version := -1
 var _view_rect := Rect2()
@@ -90,6 +95,8 @@ func setup(p_battle: Battle) -> BattleView:
 	_terrain_painter = TerrainPainter.new(battle.state.map)
 	_fog_texture = FogTexture.new(battle.state.fog)
 	_coverage_texture = CoverageTexture.new(battle.state.map)
+	_slime_texture = SlimeTexture.new(battle.state.map)
+	_rim_texture = SlimeTexture.new(battle.state.map)
 	_night_shade.bind(battle.lighting)
 	return self
 
@@ -106,6 +113,9 @@ func _ready() -> void:
 			_chunks[chunk] = layer
 			_terrain.add_child(layer)
 	_terrain.add_child(DrawLayer.new().setup(_terrain_painter.paint_frame))
+	_slime = DrawLayer.new().setup(_paint_slime)
+	_slime.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(_slime)
 	_coverage = DrawLayer.new().setup(_paint_coverage)
 	_coverage.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(_coverage)
@@ -119,7 +129,9 @@ func _ready() -> void:
 	_night.material = _night_shade.material
 	_glow = DrawLayer.new().setup(_paint_glow)
 	_overlay = DrawLayer.new().setup(_paint_overlay)
-	for layer in [_world, _fog, _night, _glow, _overlay]:
+	_rim = DrawLayer.new().setup(_paint_rim)
+	_rim.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	for layer in [_world, _fog, _rim, _night, _glow, _overlay]:
 		add_child(layer)
 	add_child(camera)
 	camera.make_current()
@@ -301,6 +313,9 @@ func advance(delta: float) -> void:
 	_night_shade.refresh_glow()
 	if _fog_texture.refresh():
 		_fog.queue_redraw()
+	if _slime_version != battle.state.creep.version:
+		_slime_version = battle.state.creep.version
+		sync_slime()
 	_apply_camera()
 	if _walls_version != battle.state.roster_version:
 		_walls_version = battle.state.roster_version
@@ -659,7 +674,7 @@ func place_at(world: Vector2) -> void:
 		return
 	if build_kind.is_empty() or build_kind == GameConfig.CORE:
 		return
-	if not build_repeat or battle.state.money < Formulas.build_cost(battle.state, build_kind):
+	if not build_repeat or not battle.state.can_afford(Formulas.build_cost(battle.state, build_kind)):
 		set_build_kind("")
 
 
@@ -710,6 +725,7 @@ func _paint_world(ci: CanvasItem) -> void:
 			continue
 		var bob := sin(clock * 8.0 + pickup.position.x) * 2.0
 		Painter.coin(ci, pickup.position + Vector2(0, bob), 7.0, clock + pickup.position.y)
+	_paint_nests(ci)
 	_paint_rest(ci, light)
 
 
@@ -750,10 +766,17 @@ func _paint_rest(ci: CanvasItem, light: float) -> void:
 			elif enemy.is_guard():
 				Painter.guard(ci, enemy.position, enemy.radius(), clock + enemy.id * 0.29)
 	for building in state.enemy_buildings():
-		if building.immune and is_on_screen(building.position, building.half_extent() + 20.0):
-			var pulse := 0.5 + 0.5 * sin(clock * 2.5 + building.id)
-			ci.draw_arc(building.position, building.half_extent() + 14.0 + pulse * 4.0, 0.0, TAU, 48, Color(AppTheme.IMMUNE, 0.35 + 0.3 * pulse), 4.0, true)
+		_paint_immune(ci, building)
+	var core := state.core()
+	if core != null:
+		_paint_immune(ci, core)
 	_paint_scout(ci)
+
+
+func _paint_immune(ci: CanvasItem, building: Building) -> void:
+	if building.immune and is_on_screen(building.position, building.half_extent() + 20.0):
+		var pulse := 0.5 + 0.5 * sin(clock * 2.5 + building.id)
+		ci.draw_arc(building.position, building.half_extent() + 14.0 + pulse * 4.0, 0.0, TAU, 48, Color(AppTheme.IMMUNE, 0.35 + 0.3 * pulse), 4.0, true)
 
 
 func _paint_scout(ci: CanvasItem) -> void:
@@ -799,6 +822,28 @@ func _paint_clearable(ci: CanvasItem, scout: Scout) -> void:
 			var cell := origin + Vector2i(x, y)
 			if cell != scout.clear_cell and map.is_clearable(cell) and battle.scouting.in_reach(cell):
 				ci.draw_arc(map.center_of(cell), GameConfig.CELL * 0.45, 0.0, TAU, 24, Color(AppTheme.GOLD, 0.35 + 0.15 * sin(clock * 5.0)), 2.0, true)
+
+
+func sync_slime() -> void:
+	_slime_texture.update(battle.state.map.slime)
+	_rim_texture.update(battle.state.map.sealed)
+	_slime.queue_redraw()
+	_rim.queue_redraw()
+
+
+func _paint_slime(ci: CanvasItem) -> void:
+	ci.draw_texture_rect(_slime_texture.texture, Rect2(Vector2.ZERO, battle.state.map.size), false)
+
+
+func _paint_rim(ci: CanvasItem) -> void:
+	ci.draw_texture_rect(_rim_texture.texture, Rect2(Vector2.ZERO, battle.state.map.size), false)
+
+
+func _paint_nests(ci: CanvasItem) -> void:
+	var fog := battle.state.fog
+	for nest in battle.state.creep.alive_nests():
+		if is_on_screen(nest.position, GameConfig.CELL) and fog.is_explored_at(nest.position):
+			Painter.creep_nest(ci, nest.position, GameConfig.CELL * 0.8, clock)
 
 
 func _paint_fog(ci: CanvasItem) -> void:

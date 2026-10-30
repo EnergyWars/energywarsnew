@@ -9,6 +9,7 @@ const SCOUT_MARK := -1
 var map: LevelMap
 var cells := PackedByteArray()
 var version := 0
+var lifted := false
 var _timer := 0.0
 var _seen := PackedInt32Array()
 var _marks := {}
@@ -53,7 +54,15 @@ func invalidate() -> void:
 	_full = true
 
 
+func lift() -> void:
+	lifted = true
+	cells.fill(VISIBLE)
+	version += 1
+
+
 func refresh(state: BattleState) -> void:
+	if lifted:
+		return
 	var changed := false
 	if _static_key != state.nav.version:
 		_static_key = state.nav.version

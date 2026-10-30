@@ -55,7 +55,7 @@ func setup(p_level: int, p_progress: Progress, p_settings: AppSettings, p_sfx: S
 func _ready() -> void:
 	battle = resume.restore() if resume != null else Battle.start(level_index, 0, rules)
 	elapsed = resume.elapsed if resume != null else 0.0
-	tutorial = Tutorial.new(resume == null and level_index == 0 and not rules.is_survival() and not progress.is_conquered(0))
+	tutorial = Tutorial.new(resume == null and level_index == 0 and rules.is_campaign() and not progress.is_conquered(0))
 	view = BattleView.new().setup(battle)
 	add_child(view)
 	var layer := CanvasLayer.new()
@@ -65,7 +65,7 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.theme = AppTheme.build()
 	layer.add_child(root)
-	hud = BattleHud.new().setup(safe_top, MapPanel.new().setup(battle.state))
+	hud = BattleHud.new().setup(safe_top, MapPanel.new().setup(battle.state), CreativeBar.new() if battle.state.is_creative() else null)
 	root.add_child(hud)
 	build_bar = BuildBar.new().setup(bar_kinds(), not battle.state.is_scouting())
 	root.add_child(build_bar)
@@ -99,6 +99,10 @@ func _ready() -> void:
 	hud.reset_pressed.connect(confirm_reset)
 	hud.status_pressed.connect(toggle_status)
 	hud.map_focus_requested.connect(func(world: Vector2) -> void: view.focus(world))
+	if hud.creative_bar != null:
+		hud.creative_bar.day_requested.connect(set_day)
+		hud.creative_bar.clear_pressed.connect(clear_enemies)
+		hud.creative_bar.money_toggled.connect(set_unlimited_money)
 	build_bar.kind_pressed.connect(choose_kind)
 	build_bar.cancel_pressed.connect(cancel_build)
 	build_bar.repeat_changed.connect(func(repeat: bool) -> void: view.build_repeat = repeat)
@@ -359,6 +363,18 @@ func start_round() -> void:
 	view.cancel_pick()
 
 
+func set_day(day: int) -> void:
+	battle.set_day(day)
+
+
+func clear_enemies() -> void:
+	battle.clear_enemies()
+
+
+func set_unlimited_money(enabled: bool) -> void:
+	battle.set_unlimited_money(enabled)
+
+
 func undo_plan() -> void:
 	if battle.undo():
 		_after_restore("TOAST_UNDO")
@@ -395,7 +411,7 @@ func choose_kind(kind: String) -> void:
 	if view.build_kind == kind:
 		view.set_build_kind("")
 		return
-	if battle.state.money < Formulas.build_cost(battle.state, kind):
+	if not battle.state.can_afford(Formulas.build_cost(battle.state, kind)):
 		_on_failed(Texts.reason("build_money"), Vector2.INF)
 		return
 	view.set_build_kind(kind)
@@ -454,7 +470,7 @@ func start_relocate(id: int) -> void:
 	var building := battle.state.building(id)
 	if building == null:
 		return
-	if battle.state.money < Formulas.relocate_cost(building, battle.state.is_planning()):
+	if not battle.state.can_afford(Formulas.relocate_cost(building, battle.state.is_planning())):
 		_on_failed(Texts.reason("build_money"), Vector2.INF)
 		return
 	panel.set_minimized(true)

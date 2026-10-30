@@ -66,6 +66,8 @@ static func draw(building: Building) -> float:
 		return Formulas.export_rate(building)
 	if building.lighting:
 		return Formulas.lamp_draw(building)
+	if building.repairing:
+		return Formulas.repair_draw(building)
 	return EnergyStats.fire_draw(building)
 
 
@@ -280,8 +282,13 @@ func _saturated(key: String, scenario: int) -> bool:
 
 func _collect(state: BattleState) -> void:
 	var night := maxf(float(state.level.get("night", 1.0)), 1.0)
+	var linked := {}
+	for link in state.links:
+		linked[link.target] = true
 	for building in state.player_buildings():
 		if Formulas.capacity(building) <= 0.0 and Formulas.output(building) <= 0.0:
+			continue
+		if building.repairing and not linked.has(building.id):
 			continue
 		var id := building.id
 		_buildings[id] = building

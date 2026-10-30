@@ -3,13 +3,17 @@ extends PanelContainer
 
 signal campaign_pressed(index: int)
 signal survival_pressed(index: int, days: int)
+signal creative_pressed(index: int, day: int)
 
 var progress: Progress
 var index := 0
 var ready_to_start := true
 var survival_days := -1
+var creative_day := 1
 var campaign_button: Button
 var survival_button: Button
+var creative_button: Button
+var day_stepper: DayStepper
 var option_buttons: Array[Button] = []
 var _column: VBoxContainer
 
@@ -55,12 +59,12 @@ func status_key() -> String:
 
 
 func _rebuild() -> void:
-	for child in _column.get_children():
-		_column.remove_child(child)
-		child.queue_free()
+	UiKit.clear(_column)
 	option_buttons = []
 	campaign_button = null
 	survival_button = null
+	creative_button = null
+	day_stepper = null
 	var conquered := progress.is_conquered(index)
 	var unlocked := Campaign.is_unlocked(progress, index)
 	var header := UiKit.hbox(AppTheme.SPACING_SM)
@@ -91,6 +95,7 @@ func _rebuild() -> void:
 		survival_button.disabled = not ready_to_start
 		actions.add_child(survival_button)
 	_column.add_child(actions)
+	_column.add_child(_creative_section())
 
 
 func _challenge_row(challenge: Dictionary) -> HBoxContainer:
@@ -127,6 +132,23 @@ func _survival_section() -> VBoxContainer:
 		option_buttons.append(option)
 		options.add_child(option)
 	box.add_child(options)
+	return box
+
+
+func _creative_section() -> VBoxContainer:
+	var box := UiKit.vbox(AppTheme.SPACING_XS)
+	var info := UiKit.label(Texts.t("REGION_CREATIVE_INFO"), "Caption")
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(info)
+	var row := UiKit.hbox(AppTheme.SPACING_SM)
+	day_stepper = DayStepper.new().setup(creative_day)
+	day_stepper.day_changed.connect(func(day: int) -> void: creative_day = day)
+	row.add_child(day_stepper)
+	creative_button = UiKit.button("%s  %s" % [Icons.PALETTE, Texts.t("REGION_CREATIVE")], "Button", func() -> void: creative_pressed.emit(index, creative_day))
+	creative_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	creative_button.disabled = not ready_to_start
+	row.add_child(creative_button)
+	box.add_child(row)
 	return box
 
 

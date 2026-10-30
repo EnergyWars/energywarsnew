@@ -418,6 +418,18 @@ func test_water_fill_splits_fairly_within_limits() -> void:
 	assert_true(EnergyAudit.water_fill(5.0, PackedFloat64Array()).is_empty())
 
 
+func test_linked_walls_need_their_repair_draw() -> void:
+	var wall := _add(GameConfig.BULWARK, core.position + Vector2(0, -224))
+	_link(core, wall)
+	var audit := EnergyAudit.measure(state)
+	assert_true(audit.has(wall.id))
+	assert_true(audit.shows(wall.id))
+	assert_almost_eq(audit.need_of(wall.id), Formulas.repair_draw(wall), 0.0001)
+	assert_almost_eq(EnergyAudit.draw(wall), Formulas.repair_draw(wall), 0.0001)
+	assert_eq(audit.verdict(wall.id), EnergyAudit.Verdict.OK)
+	assert_eq(audit.reserve_rate(wall.id), 0.0)
+
+
 func test_unknown_ids_and_walls_are_ignored() -> void:
 	var wall := _add(GameConfig.BULWARK, core.position + Vector2(0, -224))
 	var audit := EnergyAudit.measure(state)

@@ -30,8 +30,29 @@ static func compute_stats(building: Building) -> PackedFloat64Array:
 	return stats
 
 
+static func track_config(building: Building, track: String) -> Dictionary:
+	var table := UpgradeOverrides.table(building.kind, track)
+	if not table.is_empty():
+		return table
+	return building.definition().get("curves", GameConfig.EMPTY).get(track, GameConfig.TRACKS[track])
+
+
 static func multiplier(building: Building, track: String) -> float:
-	return 1.0 + float(GameConfig.TRACKS[track].step) * building.level(track)
+	var config := track_config(building, track)
+	var level := building.level(track)
+	if config.has("levels"):
+		return 1.0 if level <= 0 else float(config.levels[mini(level, config.levels.size()) - 1].effect)
+	if config.has("gain"):
+		var growth := float(config.gain_growth)
+		return 1.0 + float(config.gain) * (pow(growth, level) - 1.0) / (growth - 1.0)
+	return 1.0 + float(config.step) * level
+
+
+static func gain(building: Building, track: String) -> float:
+	var config := track_config(building, track)
+	if config.has("levels"):
+		return multiplier(building, track) - 1.0
+	return float(GameConfig.TRACKS[track].step) * building.level(track)
 
 
 static func efficiency(building: Building) -> float:
@@ -43,7 +64,7 @@ static func overclock_energy(building: Building) -> float:
 
 
 static func transfer_factor(building: Building) -> float:
-	return maxf(1.0 - float(GameConfig.TRACKS[GameConfig.TRACK_TRANSFER].step) * building.level(GameConfig.TRACK_TRANSFER), 0.0)
+	return maxf(1.0 - gain(building, GameConfig.TRACK_TRANSFER), 0.0)
 
 
 static func beam_span(source: Building, target: Building) -> float:
@@ -214,7 +235,7 @@ static func is_overloaded(building: Building) -> bool:
 
 
 static func crit_chance(building: Building) -> float:
-	return GameConfig.CRIT_CHANCE + float(GameConfig.TRACKS[GameConfig.TRACK_CRIT].step) * building.level(GameConfig.TRACK_CRIT)
+	return GameConfig.CRIT_CHANCE + gain(building, GameConfig.TRACK_CRIT)
 
 
 static func chain_count(building: Building) -> int:
@@ -253,23 +274,38 @@ static func heal_energy(building: Building) -> float:
 	return float(heal(building).get("energy", 0.0)) / efficiency(building)
 
 
+static func repair_rate(building: Building) -> float:
+	return float(building.definition().get("repair", GameConfig.EMPTY).get("rate", 0.0))
+
+
+static func repair_draw(building: Building) -> float:
+	return float(building.definition().get("repair", GameConfig.EMPTY).get("energy", 0.0))
+
+
+static func repair_cost(building: Building) -> float:
+	var rate := repair_rate(building)
+	return repair_draw(building) / rate if rate > 0.0 else 0.0
+
+
 static func upgrade_base(kind: String) -> int:
 	var definition := GameConfig.building(kind)
 	return int(definition.get("upgrade_base", definition.get("cost", 0)))
 
 
 static func upgrade_cost(building: Building, track: String) -> int:
-	var config: Dictionary = GameConfig.TRACKS[track]
+	var config := track_config(building, track)
+	if config.has("levels"):
+		return int(config.levels[clampi(building.level(track), 0, config.levels.size() - 1)].cost)
 	var growth := float(config.get("growth", GameConfig.TRACK_GROWTH))
 	return maxi(int(round(upgrade_base(building.kind) * float(config.price) * pow(growth, building.level(track)))), 1)
 
 
-static func max_level(track: String) -> int:
-	return int(GameConfig.TRACKS[track].max)
+static func max_level(building: Building, track: String) -> int:
+	return int(track_config(building, track).max)
 
 
 static func is_maxed(building: Building, track: String) -> bool:
-	return building.level(track) >= max_level(track)
+	return building.level(track) >= max_level(building, track)
 
 
 static func is_fresh(building: Building) -> bool:

@@ -18,6 +18,11 @@ func test_send_and_receive_capabilities() -> void:
 	assert_true(EnergyNetwork.can_receive(zapper))
 	assert_true(EnergyNetwork.can_send(core))
 	assert_true(EnergyNetwork.can_receive(core))
+	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
+	assert_false(EnergyNetwork.can_send(wall))
+	assert_true(EnergyNetwork.can_receive(wall))
+	assert_eq(battle.network.link_reason(wall.id, core.id), EnergyNetwork.NO_SEND)
+	assert_eq(battle.network.link_reason(core.id, wall.id), EnergyNetwork.OK)
 
 
 func test_link_reasons() -> void:

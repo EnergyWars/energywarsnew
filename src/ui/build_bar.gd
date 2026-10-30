@@ -5,8 +5,11 @@ signal kind_pressed(kind: String)
 signal cancel_pressed
 signal repeat_changed(repeat: bool)
 
-const BUTTON_SIZE := Vector2(84, 108)
+const BUTTON_HEIGHT := 108.0
+const COLUMNS := 4
 const ACTION_HEIGHT := 72.0
+const ALL := "all"
+const OTHER := "other"
 
 var kinds: Array[String] = []
 var selected := ""
@@ -19,11 +22,14 @@ var once_button: Button
 var multi_button: Button
 var collapse_button: Button
 var _options: HBoxContainer
-var _scroll: ScrollContainer
-var _row: HBoxContainer
+var category := ""
+var _tabs: HBoxContainer
+var _grid: GridContainer
+var _tab_buttons := {}
 var _buttons := {}
 var _costs := {}
 var _icons := {}
+var _groups := []
 
 
 func setup(p_kinds: Array[String], p_collapsible: bool = true) -> BuildBar:
@@ -45,15 +51,13 @@ func _ready() -> void:
 	collapse_button = UiKit.icon_button(Icons.EXPAND_MORE, collapse, 56.0)
 	_options.add_child(collapse_button)
 	column.add_child(_options)
-	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.custom_minimum_size = Vector2(0, BUTTON_SIZE.y + 4)
-	column.add_child(_scroll)
-	_row = UiKit.hbox(AppTheme.SPACING_XS)
-	_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_row)
+	_tabs = UiKit.hbox(AppTheme.SPACING_XS)
+	column.add_child(_tabs)
+	_grid = GridContainer.new()
+	_grid.columns = COLUMNS
+	_grid.add_theme_constant_override(&"h_separation", AppTheme.SPACING_XS)
+	_grid.add_theme_constant_override(&"v_separation", AppTheme.SPACING_XS)
+	column.add_child(_grid)
 	build_button = UiKit.button("%s  %s" % [Icons.BUILD, Texts.t("BUILD_OPEN")], "PrimaryButton", expand)
 	build_button.custom_minimum_size = Vector2(0, ACTION_HEIGHT)
 	column.add_child(build_button)
@@ -70,17 +74,73 @@ func _option(glyph: String, key: String, value: bool) -> Button:
 	return button
 
 
+static func groups(p_kinds: Array[String]) -> Array:
+	var result := []
+	var placed := {}
+	for entry: Dictionary in GameConfig.BUILD_CATEGORIES:
+		var members: Array[String] = []
+		for kind: String in entry.kinds:
+			if p_kinds.has(kind):
+				members.append(kind)
+				placed[kind] = true
+		if not members.is_empty():
+			result.append({"key": entry.key, "kinds": members})
+	var rest: Array[String] = []
+	for kind in p_kinds:
+		if not placed.has(kind):
+			rest.append(kind)
+	if not rest.is_empty():
+		result.append({"key": OTHER, "kinds": rest})
+	return result
+
+
+static func tabs(p_kinds: Array[String]) -> Array:
+	var result := groups(p_kinds)
+	if result.size() > 1:
+		var every: Array[String] = []
+		for group: Dictionary in result:
+			every.append_array(group.kinds)
+		result.push_front({"key": ALL, "kinds": every})
+	return result
+
+
 func set_kinds(p_kinds: Array[String]) -> void:
 	kinds = p_kinds
-	if _row == null:
+	if _grid == null:
 		return
-	for child in _row.get_children():
-		child.queue_free()
+	_groups = tabs(kinds)
+	if not _groups.any(func(group: Dictionary) -> bool: return group.key == category):
+		category = _groups[0].key if not _groups.is_empty() else ""
+	UiKit.clear(_tabs)
+	_tab_buttons.clear()
+	for group: Dictionary in _groups:
+		var key: String = group.key
+		var tab := UiKit.button(Texts.t("BUILD_CATEGORY_%s" % key.to_upper()), "Button", func() -> void: select_category(key))
+		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_tabs.add_child(tab)
+		_tab_buttons[key] = tab
+	_fill_grid()
+	_layout()
+
+
+func select_category(key: String) -> void:
+	if key == category or not _tab_buttons.has(key):
+		return
+	category = key
+	_fill_grid()
+	_layout()
+
+
+func _fill_grid() -> void:
+	UiKit.clear(_grid)
 	_buttons.clear()
 	_costs.clear()
 	_icons.clear()
-	for kind in kinds:
-		_row.add_child(_make_button(kind))
+	for group: Dictionary in _groups:
+		if group.key != category:
+			continue
+		for kind: String in group.kinds:
+			_grid.add_child(_make_button(kind))
 
 
 func set_collapsible(value: bool) -> void:
@@ -115,10 +175,13 @@ func shows_cards() -> bool:
 
 
 func _layout() -> void:
-	if _scroll == null:
+	if _grid == null:
 		return
 	var cards := shows_cards()
-	_scroll.visible = cards
+	_grid.visible = cards
+	_tabs.visible = cards and _groups.size() > 1
+	for key: String in _tab_buttons:
+		(_tab_buttons[key] as Button).theme_type_variation = "PrimaryButton" if key == category else "Button"
 	_options.visible = cards and collapsible
 	build_button.visible = selected.is_empty() and collapsible and not expanded
 	cancel_button.visible = not selected.is_empty()
@@ -131,7 +194,8 @@ func _layout() -> void:
 func _make_button(kind: String) -> Button:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = BUTTON_SIZE
+	button.custom_minimum_size = Vector2(0, BUTTON_HEIGHT)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.theme_type_variation = "Button"
 	button.pressed.connect(func() -> void: kind_pressed.emit(kind))
 	var column := UiKit.vbox(0)
@@ -160,7 +224,7 @@ func refresh(state: BattleState, p_selected: String) -> void:
 		return
 	for kind: String in _buttons:
 		var cost := Formulas.build_cost(state, kind)
-		var affordable := state.money >= cost
+		var affordable := state.can_afford(cost)
 		(_costs[kind] as Label).text = str(cost)
 		var button: Button = _buttons[kind]
 		button.modulate = Color(1, 1, 1, 1.0 if affordable else 0.45)

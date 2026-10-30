@@ -39,6 +39,7 @@ func show_menu() -> void:
 	menu = WorldMapScreen.new().setup(progress, settings, safe_top())
 	menu.campaign_chosen.connect(start_campaign)
 	menu.survival_chosen.connect(start_survival)
+	menu.creative_chosen.connect(start_creative)
 	menu.locale_changed.connect(show_menu)
 	menu.progress_reset.connect(show_menu)
 	layer.add_child(menu)
@@ -55,9 +56,14 @@ func start_survival(index: int, days: int) -> void:
 		_start(index, BattleSetup.survival(days, progress.arsenal()))
 
 
+func start_creative(index: int, day: int) -> void:
+	if Campaign.is_unlocked(progress, index):
+		_start(index, BattleSetup.creative(day, progress.arsenal()))
+
+
 func retry() -> void:
 	if last_rules != null:
-		_start(last_index, BattleSetup.new(last_rules.mode, last_rules.days, progress.arsenal()))
+		_start(last_index, last_rules.renewed(progress.arsenal()))
 
 
 func resume(checkpoint: BattleCheckpoint) -> void:

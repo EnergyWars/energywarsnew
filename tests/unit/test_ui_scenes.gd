@@ -777,6 +777,40 @@ func test_upgrade_list_shows_every_track_without_inner_scroll() -> void:
 	assert_false(screen.panel._tracks.visible)
 
 
+func test_holding_an_upgrade_button_repeats_upgrades() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	screen.battle.state.money = 1000000000
+	screen.view.select(core.id)
+	_frames(screen, 2)
+	var panel: BuildingPanel = screen.panel
+	var track: String = panel._track_rows.keys()[0]
+	var button: Button = panel._track_rows[track].button
+	var before := core.level(track)
+	button.button_down.emit()
+	panel._process(BuildingPanel.HOLD_DELAY - 0.01)
+	assert_eq(core.level(track), before)
+	panel._process(0.01 + BuildingPanel.HOLD_REPEAT * 2.0)
+	assert_gt(core.level(track), before)
+	var held_level := core.level(track)
+	button.button_up.emit()
+	panel._process(5.0)
+	assert_eq(core.level(track), held_level)
+	button.pressed.emit()
+	assert_eq(core.level(track), held_level)
+	button.button_down.emit()
+	button.pressed.emit()
+	assert_eq(core.level(track), held_level + 1)
+	button.button_up.emit()
+	button.button_down.emit()
+	panel._process(60.0)
+	assert_true(Formulas.is_maxed(core, track))
+	assert_eq(panel._held_track, "")
+	panel.begin_hold(track)
+	panel.show_building(-1)
+	assert_eq(panel._held_track, "")
+
+
 func test_panel_fits_its_content_and_stops_below_the_top_bar() -> void:
 	var screen := _deployed()
 	var core := screen.battle.state.core()
@@ -1084,6 +1118,8 @@ func test_reward_director_handles_every_event() -> void:
 		{"type": "unlink", "source": 1, "target": 2, "from": position, "to": position, "cause": "sabotage"},
 		{"type": "upgraded", "id": 1, "track": GameConfig.TRACK_RATE, "level": 2, "position": position},
 		{"type": "sold", "id": 1, "kind": GameConfig.RELAY, "position": position, "refund": 15},
+		{"type": "enemies_cleared", "count": 2, "units": [{"position": position, "kind": "crawler"}, {"position": Vector2(-90000, -90000), "kind": "beetle"}]},
+		{"type": "day_changed", "day": 3},
 		{"type": "victory", "stars": 3},
 		{"type": "defeat"},
 		{"type": "unknown_event"},
@@ -2068,6 +2104,30 @@ func test_night_shade_uploads_the_building_glow() -> void:
 	assert_false(shade.refresh_glow())
 
 
+func test_view_paints_the_slime_and_the_nests() -> void:
+	var screen := _deployed()
+	var state := screen.battle.state
+	assert_gt(state.creep.nests.size(), 0)
+	await wait_process_frames(2)
+	assert_eq(screen.view._slime_version, state.creep.version)
+	assert_eq(screen.view._slime_texture.covered, state.map.slime.count(1))
+	assert_eq(screen.view._rim_texture.covered, 0)
+	state.creep.kill(state.creep.nests[0])
+	screen.battle.creeping.update(GameConfig.CREEP_RECEDE_TIME + 1.0)
+	await wait_process_frames(2)
+	assert_eq(screen.view._slime_version, state.creep.version)
+	assert_eq(screen.view._slime_texture.covered, state.map.slime.count(1))
+
+
+func test_view_shows_the_sealed_rim_while_scouting() -> void:
+	var screen := _screen()
+	await wait_process_frames(2)
+	var state := screen.battle.state
+	assert_true(state.creep.is_sealed())
+	assert_gt(screen.view._rim_texture.covered, 0)
+	assert_eq(screen.view._rim_texture.covered, state.map.sealed.count(1))
+
+
 func test_darkness_hides_enemies_outside_the_light() -> void:
 	var screen := _deployed()
 	var battle := screen.battle
@@ -2149,3 +2209,180 @@ func test_every_buildable_kind_has_an_icon() -> void:
 		assert_ne(Texts.t("BUILDING_%s_SHORT" % kind.to_upper()), "BUILDING_%s_SHORT" % kind.to_upper())
 	await wait_process_frames(2)
 	assert_eq(row.get_child_count(), GameConfig.BUILD_ORDER.size())
+
+
+func test_creative_glyphs_exist_in_the_icon_font() -> void:
+	for glyph in [Icons.PALETTE, Icons.ADD, Icons.REMOVE, Icons.SWEEP, Icons.INFINITY, Icons.PAID]:
+		assert_true(AppTheme.FONT_ICONS.has_char(glyph.unicode_at(0)), glyph)
+
+
+func test_day_stepper_steps_clamps_and_repeats_while_held() -> void:
+	var stepper := DayStepper.new().setup(GameConfig.CREATIVE_MAX_DAY + 3)
+	assert_eq(stepper.value, GameConfig.CREATIVE_MAX_DAY)
+	stepper.set_value(1)
+	add_child_autofree(stepper)
+	assert_true(stepper.minus_button.disabled)
+	assert_false(stepper.plus_button.disabled)
+	assert_eq(stepper.value_label.text, Texts.format("HUD_DAY", [1]))
+	watch_signals(stepper)
+	assert_false(stepper.step(-1))
+	stepper.plus_button.button_down.emit()
+	assert_eq(stepper.value, 2)
+	assert_signal_emitted_with_parameters(stepper, "day_changed", [2])
+	assert_false(stepper.minus_button.disabled)
+	stepper._process(DayStepper.HOLD_DELAY - 0.01)
+	assert_eq(stepper.value, 2)
+	stepper._process(0.01 + DayStepper.HOLD_REPEAT * 2.5)
+	assert_eq(stepper.value, 5)
+	stepper.plus_button.button_up.emit()
+	stepper._process(1.0)
+	assert_eq(stepper.value, 5)
+	assert_eq(stepper.value_label.text, Texts.format("HUD_DAY", [5]))
+	stepper.set_value(GameConfig.CREATIVE_MAX_DAY - 1)
+	stepper.begin_hold(1)
+	assert_eq(stepper.value, GameConfig.CREATIVE_MAX_DAY)
+	assert_true(stepper.plus_button.disabled)
+	stepper._process(5.0)
+	assert_eq(stepper._held, 0)
+	assert_false(stepper.step(1))
+	stepper.minus_button.button_down.emit()
+	assert_eq(stepper.value, GameConfig.CREATIVE_MAX_DAY - 1)
+	stepper.set_enabled(false)
+	assert_eq(stepper._held, 0)
+	assert_true(stepper.minus_button.disabled)
+	assert_true(stepper.plus_button.disabled)
+	stepper.set_enabled(false)
+	assert_false(stepper.step(-1))
+	stepper.begin_hold(-1)
+	stepper._process(5.0)
+	assert_eq(stepper._held, 0)
+	assert_eq(stepper.value, GameConfig.CREATIVE_MAX_DAY - 1)
+	stepper.set_enabled(true)
+	assert_false(stepper.minus_button.disabled)
+
+
+func test_region_panel_starts_creative_with_a_day() -> void:
+	var menu := _world()
+	watch_signals(menu)
+	var panel := menu.panel
+	assert_not_null(panel.creative_button)
+	assert_not_null(panel.day_stepper)
+	assert_null(panel.survival_button)
+	assert_false(panel.creative_button.disabled)
+	panel.day_stepper.step(1)
+	panel.day_stepper.step(1)
+	assert_eq(panel.creative_day, 3)
+	panel.creative_button.pressed.emit()
+	assert_signal_emitted_with_parameters(menu, "creative_chosen", [0, 3])
+	panel.show_region(0)
+	assert_eq(panel.day_stepper.value, 3)
+	panel.show_region(0, false)
+	assert_true(panel.creative_button.disabled)
+	panel.show_region(5)
+	assert_null(panel.creative_button)
+	assert_null(panel.day_stepper)
+	progress.mark_conquered(0)
+	panel.show_region(0)
+	assert_not_null(panel.survival_button)
+	assert_not_null(panel.creative_button)
+
+
+func test_creative_battle_screen() -> void:
+	var screen := BattleScreen.new().setup(0, progress, settings, sfx, 0.0, BattleSetup.creative(4, progress.arsenal()))
+	add_child_autofree(screen)
+	assert_false(screen.tutorial.is_active())
+	var state := screen.battle.state
+	var hud := screen.hud
+	var bar := hud.creative_bar
+	assert_not_null(bar)
+	assert_true(state.fog.lifted)
+	_frames(screen, 1)
+	assert_true(bar.visible)
+	assert_eq(bar.stepper.value, 4)
+	assert_false(bar.stepper.minus_button.disabled)
+	assert_true(bar.clear_button.disabled)
+	assert_true(hud._infinite.visible)
+	assert_false(hud._money.visible)
+	assert_true(bar.unlimited)
+	assert_eq(bar.money_button.theme_type_variation, &"PrimaryButton")
+	assert_eq(bar.money_button.text, "%s  %s" % [Icons.INFINITY, Texts.t("CREATIVE_MONEY_ON")])
+	bar.stepper.step(1)
+	assert_eq(state.round_number, 5)
+	BattleFixtures.open_terrain(state)
+	screen.battle.deploy_core(state.map.drop)
+	_frames(screen, 1)
+	assert_eq(screen.bar_kinds(), GameConfig.BUILD_ORDER)
+	assert_true(state.core().immune)
+	bar.stepper.step(-1)
+	assert_eq(state.round_number, 4)
+	await wait_process_frames(2)
+	assert_eq(hud.money_anchor(), hud._infinite.get_global_rect().get_center())
+	assert_gte(bar.position.y, hud.top_height())
+	screen.start_round()
+	_frames(screen, 1)
+	assert_true(bar.stepper.plus_button.disabled)
+	assert_false(bar.clear_button.disabled)
+	bar.stepper.step(1)
+	assert_eq(state.round_number, 4)
+	var nest: Building = state.enemy_buildings()[0]
+	BattleFixtures.enemy(screen.battle, "crawler", nest.position + Vector2(GameConfig.CELL * 3, 0))
+	_frames(screen, 1)
+	assert_false(bar.clear_button.disabled)
+	bar.clear_button.pressed.emit()
+	assert_true(state.enemies.is_empty())
+	assert_true(state.is_planning())
+	assert_eq(state.round_number, 5)
+	var events := screen.battle.events.drain()
+	assert_eq(BattleFixtures.of_type(events, "enemies_cleared").size(), 1)
+	assert_eq(BattleFixtures.of_type(events, "round_cleared").size(), 1)
+	screen.rewards.handle(events)
+	assert_eq(hud._toast_label.text, Texts.format("TOAST_ENEMIES_CLEARED", [1]))
+	_frames(screen, 1)
+	assert_true(bar.clear_button.disabled)
+	assert_false(bar.stepper.plus_button.disabled)
+	assert_eq(bar.stepper.value, 5)
+	assert_true(hud._start.visible)
+	bar.money_button.pressed.emit()
+	assert_false(state.unlimited_money)
+	_frames(screen, 1)
+	assert_false(bar.unlimited)
+	assert_eq(bar.money_button.theme_type_variation, &"Button")
+	assert_eq(bar.money_button.text, "%s  %s" % [Icons.PAID, Texts.t("CREATIVE_MONEY_OFF")])
+	assert_true(hud._money.visible)
+	assert_false(hud._infinite.visible)
+	state.money = 0
+	assert_false(state.can_afford(1))
+	bar.money_button.pressed.emit()
+	assert_true(state.unlimited_money)
+	_frames(screen, 1)
+	assert_true(bar.unlimited)
+	assert_eq(bar.money_button.theme_type_variation, &"PrimaryButton")
+	assert_true(hud._infinite.visible)
+	assert_false(hud._money.visible)
+	screen.view.focus(state.core().position)
+	await wait_process_frames(1)
+	state.phase = BattleState.Phase.LOST
+	_frames(screen, 1)
+	assert_false(bar.visible)
+
+
+func test_main_starts_and_retries_creative() -> void:
+	var main: Node = load("res://src/ui/main.gd").new()
+	add_child_autofree(main)
+	main.progress = progress
+	main.start_creative(5, 3)
+	assert_false(main.screen is BattleScreen)
+	main.start_creative(0, 7)
+	assert_true(main.screen is BattleScreen)
+	assert_true(main.last_rules.is_creative())
+	assert_eq(main.last_rules.start_day, 7)
+	assert_eq((main.screen as BattleScreen).battle.state.round_number, 7)
+	main.retry()
+	assert_true(main.last_rules.is_creative())
+	assert_eq(main.last_rules.start_day, 7)
+	assert_eq(main.last_rules.arsenal.kinds(), GameConfig.BUILD_ORDER)
+	main.show_menu()
+	main.menu.creative_chosen.emit(0, 2)
+	assert_true(main.screen is BattleScreen)
+	assert_eq(main.last_rules.start_day, 2)
+	assert_eq((main.screen as BattleScreen).battle.state.round_number, 2)

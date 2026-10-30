@@ -81,6 +81,15 @@ func _on_purge(event: Dictionary) -> void:
 	view.fx.floater("+%d" % int(event.bounty), position, AppTheme.GOLD)
 
 
+func _on_enemies_cleared(event: Dictionary) -> void:
+	for unit: Dictionary in event.units:
+		var position: Vector2 = unit.position
+		if view.is_on_screen(position):
+			view.fx.burst(position, AppTheme.enemy_color(str(unit.kind)), 10, 220.0, 6.0, 0.5)
+	hud.toast(Texts.format("TOAST_ENEMIES_CLEARED", [int(event.count)]), AppTheme.ENERGY)
+	_play(SoundBank.WHOOSH)
+
+
 func _on_combo(event: Dictionary) -> void:
 	var tier := int(event.tier)
 	var color := AppTheme.combo_color(tier)
@@ -261,6 +270,22 @@ func _on_scout_boarded(event: Dictionary) -> void:
 
 func _on_structures_spawned(event: Dictionary) -> void:
 	hud.announce_structures(int(event.count))
+
+
+func _on_creep_spawned(event: Dictionary) -> void:
+	var count := int(event.count)
+	if count > 0:
+		hud.toast(Texts.format("TOAST_CREEP_SPAWNED", [count]), AppTheme.SLIME)
+
+
+func _on_nest_killed(event: Dictionary) -> void:
+	var position: Vector2 = event.position
+	view.fx.burst(position, AppTheme.SLIME, 16, 180.0, 6.0, 0.7, -120.0)
+	view.fx.burst(position, AppTheme.SLIME_DEEP, 8, 110.0, 5.0, 0.9, -60.0)
+	view.fx.ring(position, 8.0, GameConfig.CELL * 2.0, AppTheme.SLIME, 0.45, 4.0)
+	_play(SoundBank.BOOM, 1.2)
+	_vibrate(20)
+	hud.toast(Texts.t("TOAST_NEST_KILLED"), AppTheme.SLIME)
 
 
 func _on_rifle(event: Dictionary) -> void:

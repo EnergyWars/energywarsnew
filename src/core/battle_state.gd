@@ -10,9 +10,11 @@ var level: Dictionary
 var map: LevelMap
 var nav: NavGrid
 var fog: FogOfWar
+var creep: Creep
 var scout: Scout
 var phase := Phase.SCOUT
 var money := 0
+var unlimited_money := true
 var time := 0.0
 var round_number := 1
 var round_time := 0.0
@@ -46,6 +48,7 @@ var _by_kind := {}
 var _combatants: Array[Building] = []
 var _producers: Array[Building] = []
 var _stores: Array[Building] = []
+var _repairers: Array[Building] = []
 var _beam_counts := {}
 var _beam_version := -1
 
@@ -57,18 +60,25 @@ static func create(index: int, seed_value: int = 0, p_setup: BattleSetup = null)
 	state.level_index = clampi(index, 0, GameConfig.level_count() - 1)
 	state.level = GameConfig.level(state.level_index)
 	state.map = LevelMap.create(state.level)
+	state.creep = Creep.new(state)
+	state.creep.seal_rim()
 	state.nav = NavGrid.new(state.map)
 	state.fog = FogOfWar.new(state.map)
 	state.scout = Scout.new(state.map.drop)
 	state.money = int(state.level.money) + state.setup.arsenal.money_bonus
+	state.round_number = state.setup.start_day
 	state.rng.seed = seed_value if seed_value != 0 else int(state.level.seed) * 7919
+	if state.is_creative():
+		state.fog.lift()
 	state.fog.refresh(state)
 	return state
 
 
 func place_core(position: Vector2) -> Building:
+	creep.release_rim()
 	var core := add_building(GameConfig.CORE, position)
 	core.energy = Formulas.capacity(core) * 0.5
+	core.immune = is_creative()
 	core_id = core.id
 	phase = Phase.PLAN
 	if not structures_spawned:
@@ -229,6 +239,11 @@ func combatants() -> Array[Building]:
 	return _combatants
 
 
+func repairers() -> Array[Building]:
+	_refresh_roster()
+	return _repairers
+
+
 func _refresh_roster() -> void:
 	if _cache_version == roster_version:
 		return
@@ -238,6 +253,7 @@ func _refresh_roster() -> void:
 	_combatants = []
 	_producers = []
 	_stores = []
+	_repairers = []
 	_by_kind = {}
 	for item: Building in buildings.values():
 		if not item.is_alive():
@@ -246,7 +262,9 @@ func _refresh_roster() -> void:
 			_combatants.append(item)
 		if item.is_player() and item.definition().has("output"):
 			_producers.append(item)
-		if item.is_player() and float(item.definition().get("capacity", 0.0)) > 0.0:
+		if item.is_player() and item.repairing:
+			_repairers.append(item)
+		elif item.is_player() and float(item.definition().get("capacity", 0.0)) > 0.0:
 			_stores.append(item)
 		if item.is_player():
 			_players.append(item)
@@ -267,6 +285,27 @@ func available_kinds() -> Array[String]:
 
 func is_survival() -> bool:
 	return setup.is_survival()
+
+
+func is_creative() -> bool:
+	return setup.is_creative()
+
+
+func has_unlimited_money() -> bool:
+	return is_creative() and unlimited_money
+
+
+func can_afford(cost: int) -> bool:
+	return has_unlimited_money() or money >= cost
+
+
+func pay(cost: int) -> void:
+	if not has_unlimited_money():
+		money -= cost
+
+
+func day_editable() -> bool:
+	return is_creative() and (is_planning() or is_scouting())
 
 
 func attackers() -> int:

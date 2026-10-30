@@ -260,7 +260,7 @@ func test_lamp_radius_shrinks_with_its_charge() -> void:
 	assert_false(battle.lighting.sees(lamp.position + Vector2(full * 0.8, 0)))
 
 
-func test_powered_buildings_glow_half_a_tile() -> void:
+func test_powered_buildings_glow_one_and_a_half_tiles() -> void:
 	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -560))
 	relay.energy = 10.0
 	var edge := relay.half_extent()
@@ -271,17 +271,64 @@ func test_powered_buildings_glow_half_a_tile() -> void:
 	assert_eq(battle.lighting.glow_version, version + 1)
 	assert_eq(battle.lighting.glow[state.map.index(relay.origin)], Lighting.GLOW_ON)
 	assert_true(battle.lighting.sees(relay.position))
-	assert_true(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 0.45, 0)))
-	assert_true(battle.lighting.sees(relay.position + Vector2(0, -(edge + GameConfig.CELL * 0.45))))
-	assert_false(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 0.6, 0)))
-	assert_true(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 0.6, 0), 12.0))
-	assert_false(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 0.4, edge + GameConfig.CELL * 0.4)))
+	assert_true(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 1.45, 0)))
+	assert_true(battle.lighting.sees(relay.position + Vector2(0, -(edge + GameConfig.CELL * 1.45))))
+	assert_false(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 1.6, 0)))
+	assert_true(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 1.6, 0), 12.0))
+	assert_true(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 1.0, edge + GameConfig.CELL * 1.0)))
+	assert_false(battle.lighting.sees(relay.position + Vector2(edge + GameConfig.CELL * 1.1, edge + GameConfig.CELL * 1.1)))
 	assert_false(battle.lighting.refresh_glow())
 	assert_eq(battle.lighting.glow_version, version + 1)
 	relay.energy = GameConfig.GLOW_ENERGY * 0.5
 	assert_true(battle.lighting.refresh_glow())
 	assert_eq(battle.lighting.glow[state.map.index(relay.origin)], 0)
 	assert_false(battle.lighting.sees(relay.position))
+
+
+func test_glow_fades_out_around_the_building() -> void:
+	var relay := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -560))
+	relay.energy = 10.0
+	battle.lighting.refresh_glow()
+	var glow := battle.lighting.glow
+	var map := state.map
+	var next := glow[map.index(relay.origin + Vector2i(1, 0))]
+	var diagonal := glow[map.index(relay.origin + Vector2i(1, 1))]
+	assert_gt(next, 0)
+	assert_lt(next, Lighting.GLOW_ON)
+	assert_gt(diagonal, 0)
+	assert_lt(diagonal, next)
+	assert_eq(glow[map.index(relay.origin + Vector2i(2, 0))], 0)
+	assert_eq(glow[map.index(relay.origin + Vector2i(0, -2))], 0)
+	relay.energy = 0.0
+	battle.lighting.refresh_glow()
+	assert_eq(glow[map.index(relay.origin + Vector2i(1, 0))], 0)
+	assert_eq(glow[map.index(relay.origin + Vector2i(1, 1))], 0)
+
+
+func test_neighbouring_glows_keep_the_brighter_value() -> void:
+	var first := BattleFixtures.add(battle, GameConfig.RELAY, core.position + Vector2(0, -560))
+	var second := BattleFixtures.add(battle, GameConfig.RELAY, first.position + Vector2(GameConfig.CELL * 2.0, 0))
+	first.energy = 10.0
+	second.energy = 10.0
+	battle.lighting.refresh_glow()
+	var between := state.map.index(first.origin + Vector2i(1, 0))
+	assert_eq(battle.lighting.glow[between], battle.lighting.glow[state.map.index(first.origin + Vector2i(-1, 0))])
+	second.energy = 0.0
+	battle.lighting.refresh_glow()
+	assert_eq(battle.lighting.glow[state.map.index(second.origin)], 0)
+	assert_gt(battle.lighting.glow[between], 0)
+
+
+func test_halo_kernel_matches_the_glow_reach() -> void:
+	var kernel := Lighting.halo_kernel()
+	var values := {}
+	for entry in kernel:
+		values[Vector2i(entry.x, entry.y)] = entry.z
+	assert_eq(values[Vector2i.ZERO], Lighting.GLOW_ON)
+	assert_true(values.has(Vector2i(1, 0)))
+	assert_true(values.has(Vector2i(-1, 1)))
+	assert_false(values.has(Vector2i(2, 0)))
+	assert_gt(values[Vector2i(1, 0)], values[Vector2i(1, 1)])
 
 
 func test_only_living_player_buildings_glow() -> void:
@@ -310,3 +357,42 @@ func test_towers_see_enemies_next_to_powered_buildings() -> void:
 	assert_eq(battle.combat.find_target(zapper), close)
 	close.position = zapper.position + Vector2(0, -150)
 	assert_null(battle.combat.find_target(zapper))
+
+
+func test_lamps_light_up_in_the_dusk() -> void:
+	var lamp := _lamp(Vector2(0, -300))
+	state.phase = BattleState.Phase.FIGHT
+	state.round_time = float(state.level.day) - GameConfig.DUSK_RAMP * 0.5
+	assert_false(state.is_night())
+	assert_true(battle.lighting.is_dim())
+	battle.lighting.update(0.1)
+	assert_true(lamp.lit)
+	assert_lt(lamp.energy, Formulas.capacity(lamp))
+
+
+func test_lamps_stay_dark_in_full_daylight() -> void:
+	var lamp := _lamp(Vector2(0, -300))
+	state.phase = BattleState.Phase.FIGHT
+	state.round_time = 1.0
+	assert_false(battle.lighting.is_dim())
+	battle.lighting.update(0.1)
+	assert_false(lamp.lit)
+	assert_eq(lamp.energy, Formulas.capacity(lamp))
+
+
+func test_lamps_stay_dark_while_planning() -> void:
+	var lamp := _lamp(Vector2(0, -300))
+	battle.lighting.update(0.1)
+	assert_false(battle.lighting.is_dim())
+	assert_false(lamp.lit)
+
+
+func test_lamps_burn_at_dawn_until_the_light_is_back() -> void:
+	var lamp := _lamp(Vector2(0, -300))
+	state.phase = BattleState.Phase.FIGHT
+	state.round_time = DayCycle.length(state.level) + GameConfig.DAWN_RAMP * 0.5
+	battle.lighting.update(0.1)
+	assert_true(lamp.lit)
+	state.round_time = DayCycle.length(state.level) + GameConfig.DAWN_RAMP + 1.0
+	battle.lighting.update(0.1)
+	assert_false(lamp.lit)

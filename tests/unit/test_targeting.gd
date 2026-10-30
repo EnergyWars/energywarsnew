@@ -87,3 +87,70 @@ func test_lure_picks_nearest_living_bastion() -> void:
 	assert_eq(Targeting.lure(Vector2.ZERO, candidates), far)
 	far.hp = 0.0
 	assert_null(Targeting.lure(Vector2.ZERO, candidates))
+
+
+func test_lures_lists_living_bastions_only() -> void:
+	var bastion := _building(GameConfig.BASTION)
+	var fallen := _building(GameConfig.BASTION)
+	fallen.hp = 0.0
+	var zapper := _building(GameConfig.ZAPPER)
+	assert_eq(Targeting.lures([bastion, fallen, zapper] as Array[Building]), [bastion] as Array[Building])
+	assert_true(Targeting.lures([] as Array[Building]).is_empty())
+
+
+func test_walls_keep_their_tier_with_or_without_energy() -> void:
+	var wall := _building(GameConfig.BULWARK)
+	assert_true(wall.repairing)
+	assert_false(Targeting.is_idle(wall))
+	assert_eq(Targeting.tier(wall), Targeting.TIER_WALL)
+	wall.energy = 0.0
+	assert_eq(Targeting.tier(wall), Targeting.TIER_WALL)
+
+
+func test_peers_are_the_living_buildings_of_the_top_tier() -> void:
+	var dead := Building.new(1, GameConfig.ZAPPER, Vector2(50, 0))
+	var tower := Building.new(2, GameConfig.ZAPPER, Vector2(100, 0))
+	var laser := Building.new(3, GameConfig.LASER, Vector2(400, 0))
+	var relay := Building.new(4, GameConfig.RELAY, Vector2(10, 0))
+	for building in [dead, tower, laser, relay]:
+		building.energy = Formulas.capacity(building)
+	dead.hp = 0.0
+	var ranked := Targeting.rank([dead, tower, laser, relay] as Array[Building])
+	var peers := Targeting.peers(ranked)
+	assert_eq(peers.size(), 2)
+	assert_true(peers.has(tower))
+	assert_true(peers.has(laser))
+	tower.hp = 0.0
+	laser.hp = 0.0
+	assert_eq(Targeting.peers(ranked), [relay] as Array[Building])
+	assert_true(Targeting.peers([]).is_empty())
+
+
+func test_spread_picks_an_uncrowded_peer_nearby() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var best := Building.new(1, GameConfig.BULWARK, Vector2(100, 0))
+	var near := Building.new(2, GameConfig.BULWARK, Vector2(160, 0))
+	var crowded := Building.new(3, GameConfig.BULWARK, Vector2(130, 0))
+	var far := Building.new(4, GameConfig.BULWARK, Vector2(100 + GameConfig.SPREAD_REACH * GameConfig.CELL + 200.0, 0))
+	var candidates: Array[Building] = [best, near, crowded, far]
+	var loads := {best.id: 5, crowded.id: GameConfig.SPREAD_CROWD}
+	for i in 20:
+		assert_eq(Targeting.spread(Vector2.ZERO, best, candidates, loads, rng), near)
+	near.hp = 0.0
+	assert_null(Targeting.spread(Vector2.ZERO, best, candidates, loads, rng))
+
+
+func test_spread_chooses_randomly_among_the_nearest_options() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var best := Building.new(1, GameConfig.BULWARK, Vector2(100, 0))
+	var candidates: Array[Building] = [best]
+	for i in GameConfig.SPREAD_OPTIONS + 2:
+		candidates.append(Building.new(10 + i, GameConfig.BULWARK, Vector2(100 + 56 * (i + 1), 0)))
+	var seen := {}
+	for i in 200:
+		seen[Targeting.spread(Vector2.ZERO, best, candidates, {}, rng).id] = true
+	assert_eq(seen.size(), GameConfig.SPREAD_OPTIONS)
+	for i in GameConfig.SPREAD_OPTIONS:
+		assert_true(seen.has(10 + i))

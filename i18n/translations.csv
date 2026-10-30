@@ -43,7 +43,7 @@ BUILDING_LASER,Laser tower,Laserturm
 BUILDING_LASER_INFO,Continuous beam that melts tough targets. Energy hungry.,"Dauerstrahl, der zähe Ziele schmilzt. Energiehungrig."
 BUILDING_LASER_SHORT,Laser,Laser
 BUILDING_TESLA,Tesla coil,Tesla-Spule
-BUILDING_TESLA_INFO,Lightning jumps between up to four enemies.,Blitze springen zwischen bis zu vier Gegnern.
+BUILDING_TESLA_INFO,Lightning jumps between up to five enemies.,Blitze springen zwischen bis zu fünf Gegnern.
 BUILDING_TESLA_SHORT,Tesla,Tesla
 BUILDING_PLASMA,Plasma mortar,Plasmawerfer
 BUILDING_PLASMA_INFO,"Huge range, area damage. Ground targets only, not too close.","Riesige Reichweite, Flächenschaden. Nur Bodenziele, nicht zu nah."
@@ -61,7 +61,7 @@ BUILDING_BASTION,Bulwark tower,Bollwerk-Turm
 BUILDING_BASTION_INFO,"Sturdy anti-air tower. Flying enemies always attack it first. Air targets only.","Robuster Flugabwehrturm. Luftgegner greifen ihn immer zuerst an. Nur Luftziele."
 BUILDING_BASTION_SHORT,Bulwark,Bollwerk
 BUILDING_BULWARK,Bulwark,Bollwerk
-BUILDING_BULWARK_INFO,"Cheap, extremely tough wall block. Enemies can't pass – drag to build whole walls.","Günstiger, extrem widerstandsfähiger Mauerblock. Gegner kommen nicht durch – ziehe, um ganze Mauern zu bauen."
+BUILDING_BULWARK_INFO,"Cheap, tough wall block. Enemies can't pass. Upgrades pay off far more than new blocks, a powered block slowly repairs itself.","Günstiger, widerstandsfähiger Mauerblock. Gegner kommen nicht durch. Ausbauen lohnt sich weit mehr als neue Blöcke, mit Energie repariert er sich langsam."
 BUILDING_BULWARK_SHORT,Bulwark,Bollwerk
 BUILDING_NEST,Nest,Nest
 BUILDING_NEST_INFO,Breeds creatures. Destroy it!,Brütet Viecher aus. Zerstöre es!
@@ -93,6 +93,7 @@ REASON_BUILD_INVALID,Can't build that.,Das kann hier nicht gebaut werden.
 REASON_BUILD_LOCKED,Not unlocked yet.,Noch nicht freigeschaltet.
 REASON_BUILD_MONEY,Not enough money!,Nicht genug Geld!
 REASON_BUILD_BOUNDS,Outside the map.,Außerhalb der Karte.
+REASON_BUILD_WATER_ONLY,Can only be built on water.,Kann nur auf Wasser gebaut werden.
 REASON_BUILD_BLOCKED,Blocked by terrain.,Gelände blockiert.
 REASON_BUILD_OVERLAP,Too close to another building.,Zu nah an einem anderen Gebäude.
 REASON_BUILD_ENEMY_NEAR,Too close to the enemy.,Zu nah am Feind.
@@ -107,7 +108,7 @@ REASON_LINK_RANGE,Out of beam range.,Außer Strahlreichweite.
 REASON_UPGRADE_MONEY,Not enough money!,Nicht genug Geld!
 STAT_HP,Hull,Hülle
 STAT_DAMAGE,Damage,Schaden
-STAT_RANGE,Range,Reichweite
+STAT_RANGE,Range (tiles),Reichweite (Felder)
 STAT_SPAWNS,Spawns,Erzeugt
 STAT_SPAWNS_VALUE,enemy waves,Gegnerwellen
 STAT_BOUNTY,Bounty,Kopfgeld
@@ -116,12 +117,12 @@ STAT_SOLAR_OUTPUT,Sunlight,Bei Sonne
 STAT_OUTPUT,Output,Erzeugung
 STAT_LINKS,Beams,Strahlen
 STAT_RATE,Transfer,Transfer
-STAT_LINK_RANGE,Beam range,Strahlweite
+STAT_LINK_RANGE,Beam range (tiles),Strahlweite (Felder)
 STAT_DPS,Damage/s,Schaden/s
 STAT_FIRE_RATE,Shots,Schüsse
 STAT_ENERGY_USE,Energy/shot,Energie/Schuss
 STAT_ENERGY_USE_LASER,Energy/s,Energie/s
-STAT_SHIELD_RADIUS,Radius,Radius
+STAT_SHIELD_RADIUS,Radius (tiles),Radius (Felder)
 STAT_SHIELD_RATIO,Damage/energy,Schaden/Energie
 STAT_HEAL,Heal,Heilung
 STAT_HEAL_RATE,Heals,Heilungen
@@ -214,6 +215,8 @@ TUTORIAL_DEPLOY_CORE,"Tap “Base” below and place your core near the soldier 
 TUTORIAL_BUILD_WALL,Enemies wreck towers fast. Pick the bulwark under “Build” and place pieces that close off your base – ramps and gaps first! “Place multiple” keeps the bulwark selected.,"Gegner zerlegen Türme schnell. Wähle unter „Bauen“ das Bollwerk und setze Teile, die deine Basis abschließen – zuerst Rampen und Lücken! „Mehrfach platzieren“ behält das Bollwerk ausgewählt."
 STAT_BLOCKS,Blocks,Blockiert
 STAT_BLOCKS_VALUE,ground enemies,Bodengegner
+STAT_REPAIR,Self-repair,Selbstreparatur
+STAT_REPAIR_DRAW,Repair draw,Reparaturverbrauch
 BUILDING_ROVER,Mobile tower,Mobiler Turm
 BUILDING_ROVER_INFO,Drives wherever you steer it. Driving costs a lot of energy; it only recharges within range of its beams.,"Fährt, wohin du ihn lenkst. Fahren kostet viel Energie; aufgeladen wird er nur in Reichweite seiner Strahlen."
 BUILDING_ROVER_SHORT,Mobile,Mobil
@@ -487,3 +490,18 @@ STAT_LIGHT_STATE,Light,Licht
 STAT_LIGHT_ON_VALUE,On · %.1f tiles,An · %.1f Felder
 STAT_LIGHT_OFF,Off,Aus
 STAT_EXPORT_PROGRESS,Current cycle,Aktueller Zyklus
+REGION_CREATIVE,Creative,Kreativ
+REGION_CREATIVE_INFO,"Creative mode: all buildings, no fog, switchable unlimited money, invulnerable core. Choose the start day; progress is not saved.","Kreativmodus: alle Gebäude, kein Nebel, zuschaltbares unbegrenztes Geld, unverwundbarer Kern. Wähle den Starttag; es wird kein Fortschritt gespeichert."
+CREATIVE_CLEAR,Remove enemies,Gegner entfernen
+TOAST_ENEMIES_CLEARED,%d enemies removed,%d Gegner entfernt
+CREATIVE_MONEY_ON,Unlimited money on,Unbegrenztes Geld an
+CREATIVE_MONEY_OFF,Unlimited money off,Unbegrenztes Geld aus
+REASON_BUILD_SLIME,Covered by slime – destroy the nest first.,Von Schleim bedeckt – zerstöre zuerst das Nest.
+TOAST_CREEP_SPAWNED,%d bug nests spread slime across the map,%d Käfernester überziehen die Karte mit Schleim
+TOAST_NEST_KILLED,Nest destroyed – the slime recedes,Nest zerstört – der Schleim zieht sich zurück
+BUILD_CATEGORY_ALL,All,Alle
+BUILD_CATEGORY_ENERGY,Energy,Energie
+BUILD_CATEGORY_TOWERS,Towers,Türme
+BUILD_CATEGORY_DEFENSE,Defence,Verteidigung
+BUILD_CATEGORY_UTILITY,Utility,Extras
+BUILD_CATEGORY_OTHER,Other,Sonstiges

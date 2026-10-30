@@ -35,6 +35,13 @@ const TURRET := "turret"
 const BUILD_ORDER: Array[String] = [BULWARK, SOLAR, WATER, FIRE, RELAY, BATTERY, EXPORTER, LAMP, ZAPPER, LASER, HEALER, BASTION, ROVER, TESLA, PLASMA, SHIELD]
 const STARTER_KINDS: Array[String] = [BULWARK, SOLAR, RELAY, BATTERY, EXPORTER, LAMP, ZAPPER]
 
+const BUILD_CATEGORIES := [
+	{"key": "energy", "kinds": [SOLAR, WATER, FIRE, RELAY, BATTERY, EXPORTER]},
+	{"key": "towers", "kinds": [ZAPPER, LASER, TESLA, PLASMA]},
+	{"key": "defense", "kinds": [BULWARK, BASTION, SHIELD, HEALER]},
+	{"key": "utility", "kinds": [LAMP, ROVER]},
+]
+
 const MODE_BOLT := "bolt"
 const MODE_LASER := "laser"
 const MODE_CHAIN := "chain"
@@ -72,6 +79,7 @@ const TRACKS := {
 	TRACK_TRANSFER: {"max": 10, "step": 0.1, "price": 0.2},
 }
 const TRACK_GROWTH := 1.18
+const WALL_HULL := {"max": 8, "gain": 2.0, "gain_growth": 1.85, "price": 0.125, "growth": 1.75}
 
 const BUILDINGS := {
 	CORE: {"team": TEAM_PLAYER, "cost": 0, "upgrade_base": 120, "hp": 1500.0, "radius": 50.0, "cells": 2, "capacity": 300.0, "output": 3.0,
@@ -81,7 +89,7 @@ const BUILDINGS := {
 	SOLAR: {"team": TEAM_PLAYER, "cost": 40, "hp": 70.0, "radius": 26.0, "capacity": 30.0, "output": 8.0, "solar": true,
 		"links": 1, "range": 240.0, "rate_from_output": true, "build_radius": 240.0, "receives": false,
 		"tracks": [TRACK_OUTPUT, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
-	WATER: {"team": TEAM_PLAYER, "cost": 50, "hp": 90.0, "radius": 26.0, "capacity": 30.0, "output": 3.0,
+	WATER: {"team": TEAM_PLAYER, "cost": 50, "hp": 90.0, "radius": 26.0, "capacity": 30.0, "output": 3.0, "water_only": true,
 		"links": 1, "range": 240.0, "rate_from_output": true, "build_radius": 240.0, "receives": false,
 		"tracks": [TRACK_OUTPUT, TRACK_RANGE, TRACK_LINKS, TRACK_TRANSFER, TRACK_CAPACITY, TRACK_HULL]},
 	FIRE: {"team": TEAM_PLAYER, "cost": 15, "hp": 60.0, "radius": 24.0, "capacity": 40.0, "output": 30.0, "fuel": true,
@@ -122,9 +130,9 @@ const BUILDINGS := {
 	BASTION: {"team": TEAM_PLAYER, "cost": 130, "hp": 900.0, "radius": 28.0, "capacity": 60.0, "links": 0, "build_radius": 160.0, "lure": true,
 		"attack": {"mode": MODE_BOLT, "damage": 14.0, "cooldown": 0.5, "energy": 3.0, "range": 240.0, "ground": false, "air": true},
 		"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_TRANSFER, TRACK_HULL]},
-	BULWARK: {"team": TEAM_PLAYER, "cost": 4, "cost_every": 6, "upgrade_base": 40, "hp": 2000.0, "radius": 27.0, "capacity": 0.0, "links": 0,
-		"build_radius": 0.0, "vision": 120.0, "wall": true,
-		"tracks": [TRACK_HULL]},
+	BULWARK: {"team": TEAM_PLAYER, "cost": 4, "cost_every": 6, "upgrade_base": 40, "hp": 1600.0, "radius": 27.0, "capacity": 12.0, "links": 0,
+		"build_radius": 0.0, "vision": 120.0, "wall": true, "repair": {"rate": 5.0, "energy": 0.4},
+		"tracks": [TRACK_HULL], "curves": {TRACK_HULL: WALL_HULL}},
 	NEST: {"team": TEAM_ENEMY, "hp": 1200.0, "radius": 52.0, "cells": 2, "bounty": 250, "spawns": true},
 	CAMP: {"team": TEAM_ENEMY, "hp": 1500.0, "radius": 52.0, "cells": 2, "bounty": 320, "spawns": true},
 	TURRET: {"team": TEAM_ENEMY, "hp": 500.0, "radius": 26.0, "bounty": 140,
@@ -186,6 +194,10 @@ const ENEMY_NO_BUILD := 150.0
 const ENEMY_PLAN_CLEAR := 650.0
 const RETARGET_TIME := 0.5
 const RETARGET_JITTER := 0.25
+const SPREAD_CROWD := 3
+const SPREAD_CHANCE := 0.5
+const SPREAD_OPTIONS := 3
+const SPREAD_REACH := 4.0
 const PATHS_PER_TICK := 8
 const SPAWN_RING := 1.6
 const PLASMA_SPEED := 520.0
@@ -203,6 +215,7 @@ const DAWN_RAMP := 8.0
 const ENERGY_PER_COIN := 8.0
 const EXPORT_CYCLE := 5.0
 const SURVIVAL_TARGETS: Array[int] = [5, 10, 15]
+const CREATIVE_MAX_DAY := 99
 const BEAM_LOSS_PER_CELL := 0.025
 const BEAM_LOSS_MAX := 0.6
 const BEAM_FREE_MARGIN := 1.0
@@ -253,7 +266,16 @@ const LAMP_BASE_RADIUS := 2.0
 const LAMP_BASE_DRAW := 1.2
 const LAMP_EXPONENT := 2.5
 const GLOW_ENERGY := 0.5
-const GLOW_REACH := 0.5
+const GLOW_REACH := 1.5
+const CREEP_RIM := 6
+const CREEP_RADIUS := 6.0
+const CREEP_CORE_CLEAR := 16.0
+const CREEP_FRINGE := 1.0
+const CREEP_REACH := 2.5
+const CREEP_RECEDE_TIME := 8.0
+const CREEP_REFRESH := 0.1
+const CREEP_SCAN := 0.25
+const CREEP_STRIDE := 2
 const FIRE_REACH := 3.5
 const FIRE_BURN_TIME := 15.0
 

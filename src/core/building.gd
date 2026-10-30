@@ -53,6 +53,7 @@ var steer := Vector2.ZERO
 var stalled := false
 var armed := false
 var healing := false
+var repairing := false
 var shielding := false
 var exporting := false
 var mobile := false
@@ -75,6 +76,7 @@ func _init(p_id: int, p_kind: String, p_position: Vector2) -> void:
 	_team = int(_definition.get("team", GameConfig.TEAM_PLAYER))
 	armed = _definition.has("attack")
 	healing = _definition.has("heal")
+	repairing = _definition.has("repair")
 	shielding = _definition.has("shield")
 	exporting = _definition.has("export")
 	mobile = _definition.has("mobile")

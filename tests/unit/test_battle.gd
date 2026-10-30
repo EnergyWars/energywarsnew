@@ -110,7 +110,7 @@ func test_hull_upgrade_heals_by_the_added_hp() -> void:
 	var wall := BattleFixtures.add(battle, GameConfig.BULWARK, core.position + Vector2(0, -150))
 	wall.hp = 100.0
 	assert_true(battle.upgrade(wall.id, GameConfig.TRACK_HULL))
-	assert_almost_eq(wall.hp, 100.0 + 2000.0 * float(GameConfig.TRACKS[GameConfig.TRACK_HULL].step), 0.001)
+	assert_almost_eq(wall.hp, 100.0 + 1600.0 * float(GameConfig.WALL_HULL.gain), 0.001)
 
 
 func test_target_priority_controls() -> void:
@@ -134,7 +134,7 @@ func test_upgrade_rejections() -> void:
 	assert_false(battle.upgrade(999, GameConfig.TRACK_RATE))
 	var nest: Building = battle.state.enemy_buildings()[0]
 	assert_false(battle.upgrade(nest.id, GameConfig.TRACK_RATE))
-	core.set_level(GameConfig.TRACK_LINKS, Formulas.max_level(GameConfig.TRACK_LINKS))
+	core.set_level(GameConfig.TRACK_LINKS, Formulas.max_level(core, GameConfig.TRACK_LINKS))
 	assert_false(battle.upgrade(core.id, GameConfig.TRACK_LINKS))
 	battle.state.money = 0
 	assert_false(battle.upgrade(core.id, GameConfig.TRACK_RATE))

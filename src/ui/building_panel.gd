@@ -20,6 +20,10 @@ signal fuel_pressed(id: int)
 
 const SCROLL_DEADZONE := 12
 const PULSE := 1.2
+const HOLD_DELAY := 0.45
+const HOLD_REPEAT := 0.09
+const HOLD_REPEAT_MIN := 0.03
+const HOLD_ACCELERATION := 0.88
 const MINIMIZED_PADDING := AppTheme.SPACING_SM
 
 var battle: Battle
@@ -64,6 +68,10 @@ var active_pick := ""
 var _track_rows := {}
 var _stat_values: Array[Label] = []
 var _pulse := false
+var _held_track := ""
+var _hold_timer := 0.0
+var _hold_interval := HOLD_REPEAT
+var _hold_fired := false
 var minimized := false
 var _name_shown := false
 var _status_shown := false
@@ -361,6 +369,7 @@ func _action_button(callback: Callable) -> Button:
 
 func show_building(id: int) -> void:
 	if id != building_id:
+		end_hold()
 		_commit_name()
 		_name.release_focus()
 	building_id = id
@@ -482,11 +491,47 @@ func _track_row(building: Building, track: String) -> Control:
 	var detail := UiKit.label("", "Caption")
 	texts.add_child(detail)
 	row.add_child(texts)
-	var button := UiKit.button("", "GoldButton", func() -> void: upgrade_pressed.emit(building_id, track))
+	var button := UiKit.button("", "GoldButton", func() -> void: _on_upgrade_released(track))
+	button.button_down.connect(begin_hold.bind(track))
+	button.button_up.connect(end_hold)
 	button.custom_minimum_size = Vector2(150, 56)
 	row.add_child(button)
 	_track_rows[track] = {"detail": detail, "button": button}
 	return row
+
+
+func begin_hold(track: String) -> void:
+	_held_track = track
+	_hold_timer = HOLD_DELAY
+	_hold_interval = HOLD_REPEAT
+	_hold_fired = false
+
+
+func end_hold() -> void:
+	_held_track = ""
+
+
+func _on_upgrade_released(track: String) -> void:
+	if _hold_fired:
+		_hold_fired = false
+		return
+	upgrade_pressed.emit(building_id, track)
+
+
+func _process(delta: float) -> void:
+	if _held_track.is_empty():
+		return
+	_hold_timer -= delta
+	while _hold_timer <= 0.0 and not _held_track.is_empty():
+		_hold_timer += _hold_interval
+		_hold_interval = maxf(HOLD_REPEAT_MIN, _hold_interval * HOLD_ACCELERATION)
+		_hold_fired = true
+		var entry: Dictionary = _track_rows.get(_held_track, {})
+		var button: Button = entry.get("button")
+		if not visible or button == null or button.disabled:
+			end_hold()
+			return
+		upgrade_pressed.emit(building_id, _held_track)
 
 
 func pulse_changes() -> void:
@@ -592,4 +637,4 @@ func _refresh_actions(building: Building) -> void:
 		var cost := Formulas.relocate_cost(building, state.is_planning())
 		var label := Texts.t("PANEL_RELOCATE_FREE") if cost == 0 else Texts.format("PANEL_RELOCATE", [cost])
 		_relocate.text = "%s  %s" % [Icons.MOVE, label]
-		_relocate.disabled = state.money < cost or state.is_over()
+		_relocate.disabled = not state.can_afford(cost) or state.is_over()

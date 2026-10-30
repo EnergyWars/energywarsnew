@@ -14,6 +14,8 @@ var drop := Vector2.ZERO
 var structures: Array[Dictionary] = []
 var tiles := PackedByteArray()
 var heights := PackedByteArray()
+var slime := PackedByteArray()
+var sealed := PackedByteArray()
 var version := 0
 
 
@@ -30,6 +32,10 @@ static func blank(cells: Vector2i) -> LevelMap:
 	map.tiles.fill(Tile.OPEN)
 	map.heights.resize(cells.x * cells.y)
 	map.heights.fill(0)
+	map.slime.resize(cells.x * cells.y)
+	map.slime.fill(0)
+	map.sealed.resize(cells.x * cells.y)
+	map.sealed.fill(0)
 	return map
 
 
@@ -63,6 +69,10 @@ func center_of(cell: Vector2i) -> Vector2:
 
 func has_cell(cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.y >= 0 and cell.x < width and cell.y < height
+
+
+func edge_distance(cell: Vector2i) -> int:
+	return mini(mini(cell.x, cell.y), mini(width - 1 - cell.x, height - 1 - cell.y))
 
 
 func index(cell: Vector2i) -> int:
@@ -101,7 +111,15 @@ func is_walkable(cell: Vector2i) -> bool:
 
 
 func is_buildable(cell: Vector2i) -> bool:
-	return is_walkable(cell)
+	return is_walkable(cell) and not is_slimed(cell)
+
+
+func is_slimed(cell: Vector2i) -> bool:
+	return has_cell(cell) and not slime.is_empty() and slime[index(cell)] != 0
+
+
+func is_sealed(cell: Vector2i) -> bool:
+	return has_cell(cell) and not sealed.is_empty() and sealed[index(cell)] != 0
 
 
 func is_clearable(cell: Vector2i) -> bool:

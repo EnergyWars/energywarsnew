@@ -3,6 +3,7 @@ extends Control
 
 signal campaign_chosen(index: int)
 signal survival_chosen(index: int, days: int)
+signal creative_chosen(index: int, day: int)
 signal locale_changed
 signal progress_reset
 
@@ -91,6 +92,7 @@ func _build_bottom() -> void:
 	panel = RegionPanel.new().setup(progress)
 	panel.campaign_pressed.connect(func(index: int) -> void: campaign_chosen.emit(index))
 	panel.survival_pressed.connect(func(index: int, days: int) -> void: survival_chosen.emit(index, days))
+	panel.creative_pressed.connect(func(index: int, day: int) -> void: creative_chosen.emit(index, day))
 	_bottom.add_child(panel)
 	var row := UiKit.hbox(AppTheme.SPACING_SM)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER

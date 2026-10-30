@@ -22,6 +22,15 @@ static func everything() -> Arsenal:
 	return from_techs(GameConfig.TECHS.keys())
 
 
+func with_all_kinds() -> Arsenal:
+	var copy := Arsenal.new()
+	copy.money_bonus = money_bonus
+	copy._boosts = _boosts.duplicate(true)
+	for kind in GameConfig.BUILD_ORDER:
+		copy._unlocked[kind] = true
+	return copy
+
+
 func apply(id: String) -> void:
 	var tech := GameConfig.tech(id)
 	if tech.has("unlock"):

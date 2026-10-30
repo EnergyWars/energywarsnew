@@ -62,9 +62,7 @@ func _ready() -> void:
 func refresh() -> void:
 	_points.text = Texts.format("SKILL_POINTS", [progress.skill_points()])
 	reset_button.disabled = progress.techs.is_empty()
-	for child in _list.get_children():
-		_list.remove_child(child)
-		child.queue_free()
+	UiKit.clear(_list)
 	buttons = {}
 	for branch in GameConfig.BRANCHES:
 		var label := UiKit.label(Texts.branch_name(branch), "Title")
