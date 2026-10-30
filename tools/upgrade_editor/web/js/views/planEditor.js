@@ -1,7 +1,7 @@
 import { h } from "../dom.js";
 import { t } from "../i18n.js";
 import { number } from "../format.js";
-import { trackConfig, planOf, maxLevel, buildFormulaLevels, multiplier, roundTo, writeLevels, COST_VARIABLES, EFFECT_VARIABLES, MAX_LEVELS } from "../formulas.js";
+import { trackConfig, planOf, maxLevel, buildFormulaLevels, multiplier, roundTo, writeLevels, COST_VARIABLES, EFFECT_VARIABLES, MAX_LEVELS, gainBase } from "../formulas.js";
 import { ExpressionError } from "../expr.js";
 import { numberField, searchSelect } from "./components.js";
 import { draftKey } from "./valueTable.js";
@@ -40,7 +40,7 @@ export function defaultFormulas(doc, entry, track) {
 export function formulaDefaults(doc, entry, track) {
   const plan = planOf(entry, track);
   const fallback = defaultFormulas(doc, entry, track);
-  return { max: maxLevel(doc, entry, track), cost: plan?.cost ?? fallback.cost, effect: plan?.effect ?? fallback.effect };
+  return { max: maxLevel(doc, entry, track), cost: plan?.cost ?? fallback.cost, effect: plan?.effect ?? fallback.effect, gain: "", absolute: false };
 }
 
 export function paramDefaults(doc, entry, track) {
@@ -130,7 +130,7 @@ export function fillFromFormula(ctx, entry, track) {
   const inputs = formulaInputs(ctx, entry, track);
   let levels;
   try {
-    levels = buildFormulaLevels(ctx.doc, entry, inputs);
+    levels = buildFormulaLevels(ctx.doc, entry, inputs, track);
   } catch (error) {
     report(ctx, entry, track, error);
     return;
@@ -200,14 +200,40 @@ function historyPicker(ctx, kind, pickKey, commit) {
   return h("div", { class: "history-row" }, select, remove);
 }
 
+export const TIP_VARIABLES = ["level", "base", "build", "max", "growth", "value", "pi", "e"];
+
+export function variableTip() {
+  return TIP_VARIABLES.map((name) => `${name} – ${t(`plan.var.${name}`)}`).join("\n");
+}
+
+function variableHelp() {
+  return h("span", { class: "variable-help multiline", tabindex: "0", "data-tip": variableTip() }, t("plan.variablesHelp"));
+}
+
+function absoluteToggle(ctx, entry, track) {
+  const name = inputKey(entry, track, "f:absolute");
+  const available = gainBase(ctx.doc, entry, track) !== null;
+  const input = h("input", { type: "checkbox", checked: available && formulaInputs(ctx, entry, track).absolute === true, disabled: !available });
+  input.addEventListener("change", () => {
+    ctx.view.drafts[name] = input.checked;
+    ctx.render();
+  });
+  return h("div", { class: "field wide" },
+    h("label", { class: "field inline" }, input, h("span", {}, t("plan.absolute"))),
+    h("small", { class: "field-desc" }, t(available ? "desc.absolute" : "desc.absoluteNone")));
+}
+
 function formulaTool(ctx, entry, track) {
   return h("div", { class: "plan" },
+    variableHelp(),
     numberField(t("field.max"), formulaInputs(ctx, entry, track).max, (value) => {
       ctx.view.drafts[inputKey(entry, track, "f:max")] = value;
       ctx.render();
     }, { integer: true, min: 1, desc: t("desc.max") }),
     textField(ctx, entry, track, "cost", t("plan.costFormula"), t("desc.costFormula")),
     textField(ctx, entry, track, "effect", t("plan.effectFormula"), t("desc.effectFormula")),
+    textField(ctx, entry, track, "gain", t("plan.gainFormula"), t("desc.gainFormula")),
+    absoluteToggle(ctx, entry, track),
     fillRow(ctx, entry, track, () => fillFromFormula(ctx, entry, track)),
     h("p", { class: "note" }, t("plan.variablesCost", { names: COST_VARIABLES.join(", ") })),
     h("p", { class: "note" }, t("plan.variablesEffect", { names: EFFECT_VARIABLES.join(", ") })),

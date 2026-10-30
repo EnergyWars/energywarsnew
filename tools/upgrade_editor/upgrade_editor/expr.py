@@ -2,7 +2,7 @@ import re
 
 FUNCTIONS = frozenset(("min", "max", "abs", "sqrt", "exp", "ln", "log", "log10", "floor", "ceil", "round", "pow", "sign"))
 CONSTANTS = frozenset(("pi", "e"))
-SCOPE = frozenset(("level", "base", "build", "max", "growth"))
+SCOPE = frozenset(("level", "base", "build", "max", "growth", "value"))
 MAX_LENGTH = 400
 TOKEN = re.compile(r"\s*(?:(\d+\.?\d*(?:e[+-]?\d+)?|\.\d+(?:e[+-]?\d+)?)|([A-Za-z_][A-Za-z_0-9]*)|(\*\*|[-+*/^(),]))", re.IGNORECASE)
 

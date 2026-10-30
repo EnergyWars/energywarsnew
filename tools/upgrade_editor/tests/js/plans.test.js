@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { game, fresh, find } from "./data.js";
 import { effectAt, maxLevel, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf } from "../../web/js/formulas.js";
-import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, toolOf, rememberFormula, forgetFormula, formulaHistory, HISTORY_LIMIT } from "../../web/js/views/planEditor.js";
+import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, toolOf, rememberFormula, forgetFormula, formulaHistory, HISTORY_LIMIT, TIP_VARIABLES, variableTip } from "../../web/js/views/planEditor.js";
 import { draftKey, pendingLevels, applyLevels } from "../../web/js/views/valueTable.js";
+import { COST_VARIABLES, EFFECT_VARIABLES } from "../../web/js/formulas.js";
 import { ExpressionError } from "../../web/js/expr.js";
 import { create } from "../../web/js/store.js";
 
@@ -213,4 +214,40 @@ test("history entries can be deleted and the list is capped", () => {
   for (let index = 0; index < HISTORY_LIMIT + 5; index += 1) rememberFormula(doc, "effect", `1 + ${index}`);
   assert.equal(formulaHistory(doc, "effect").length, HISTORY_LIMIT);
   assert.equal(formulaHistory(doc, "effect")[0], `1 + ${HISTORY_LIMIT + 4}`);
+});
+
+test("the variable tooltip lists every formula variable with an explanation", () => {
+  const lines = variableTip().split("\n");
+  assert.equal(lines.length, TIP_VARIABLES.length);
+  for (const [index, name] of TIP_VARIABLES.entries()) assert.ok(lines[index].startsWith(`${name} – `) && lines[index].length > name.length + 4);
+  for (const name of [...COST_VARIABLES, ...EFFECT_VARIABLES]) assert.ok(TIP_VARIABLES.includes(name), name);
+});
+
+test("the value variable and the absolute mode turn real values into factors", () => {
+  const doc = fresh();
+  const bulwark = find(doc, "bulwark");
+  const factor = buildFormulaLevels(doc, bulwark, { max: 3, cost: "build", effect: "1 + 3 * level / 1600" }, "hull");
+  const absolute = buildFormulaLevels(doc, bulwark, { max: 3, cost: "build", effect: "1600 + 3 * level", absolute: true }, "hull");
+  assert.deepEqual(absolute, factor);
+  const byValue = buildFormulaLevels(doc, bulwark, { max: 3, cost: "value / 400", effect: "1 + 3 * level / value" }, "hull");
+  assert.deepEqual(byValue.map((level) => level.cost), [4, 4, 4]);
+  assert.deepEqual(byValue.map((level) => level.gain), factor.map((level) => level.gain));
+});
+
+test("value is unknown without a base value", () => {
+  const doc = fresh();
+  const solar = find(doc, "solar");
+  assert.throws(() => buildFormulaLevels(doc, solar, { max: 2, cost: "1", effect: "value" }), (error) => error.code === "VARIABLE");
+  assert.throws(() => buildFormulaLevels(doc, solar, { max: 2, cost: "1", effect: "level", absolute: true }, "does-not-exist"), (error) => error.code === "VARIABLE");
+});
+
+test("a gain formula sets the gain of every upgrade directly", () => {
+  const doc = fresh();
+  const solar = find(doc, "solar");
+  const levels = buildFormulaLevels(doc, solar, { max: 12, cost: "1", effect: "", gain: "abs(floor(abs(6.5 - level)))" });
+  assert.deepEqual(levels.map((entry) => entry.gain), [5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5]);
+  const bulwark = find(doc, "bulwark");
+  const absolute = buildFormulaLevels(doc, bulwark, { max: 2, cost: "1", effect: "", gain: "160 * level", absolute: true }, "hull");
+  assert.deepEqual(absolute.map((entry) => entry.gain), [0.1, 0.2]);
+  assert.deepEqual(buildFormulaLevels(doc, solar, { max: 2, cost: "1", effect: "1 + level", gain: "   " }).map((entry) => entry.gain), [1, 1]);
 });

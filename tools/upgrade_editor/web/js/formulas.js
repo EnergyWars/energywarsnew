@@ -1,9 +1,9 @@
-import { compute } from "./expr.js";
+import { compute, ExpressionError } from "./expr.js";
 
 export const DEFAULT_GROWTH = 1.18;
 export const MAX_LEVELS = 200;
-export const COST_VARIABLES = ["level", "base", "build", "max", "growth"];
-export const EFFECT_VARIABLES = ["level", "max", "base", "build"];
+export const COST_VARIABLES = ["level", "base", "build", "max", "growth", "value"];
+export const EFFECT_VARIABLES = ["level", "max", "base", "build", "value"];
 
 export function trackConfig(doc, entry, track) {
   return entry.curves?.[track] ?? doc.tracks[track];
@@ -70,21 +70,29 @@ export function usage(doc, track) {
   return doc.buildings.filter((entry) => entry.tracks.includes(track)).map((entry) => entry.id);
 }
 
-export function scopeFor(doc, entry, max, level) {
-  return { level, base: entry.upgrade_base, build: entry.cost, max, growth: doc.system.track_growth };
+export function scopeFor(doc, entry, max, level, track = null) {
+  const scope = { level, base: entry.upgrade_base, build: entry.cost, max, growth: doc.system.track_growth };
+  const value = track ? gainBase(doc, entry, track) : null;
+  if (value !== null) scope.value = value;
+  return scope;
 }
 
-export function buildFormulaLevels(doc, entry, plan) {
+export function buildFormulaLevels(doc, entry, plan, track = null) {
   const max = plan.max;
   if (!Number.isInteger(max) || max < 1 || max > MAX_LEVELS) throw Object.assign(new Error("MAX"), { code: "MAX" });
-  const zero = compute(plan.effect, scopeFor(doc, entry, max, 0));
+  const divisor = plan.absolute ? gainBase(doc, entry, track) : 1;
+  if (divisor === null) throw new ExpressionError("VARIABLE", "value");
+  const scope = (level) => scopeFor(doc, entry, max, level, track);
+  const gainFormula = String(plan.gain ?? "").trim();
+  const effectAt = (level) => compute(plan.effect, scope(level)) / divisor;
+  const gainAt = (level, before) => (gainFormula ? compute(gainFormula, scope(level + 1)) / divisor : effectAt(level + 1) - before);
   const levels = [];
-  let previous = zero;
+  let previous = gainFormula ? 0 : effectAt(0);
   for (let level = 0; level < max; level += 1) {
-    const cost = Math.max(Math.round(compute(plan.cost, scopeFor(doc, entry, max, level))), 1);
-    const effect = compute(plan.effect, scopeFor(doc, entry, max, level + 1));
-    levels.push({ cost, gain: roundTo(effect - previous) });
-    previous = effect;
+    const cost = Math.max(Math.round(compute(plan.cost, scope(level))), 1);
+    const gain = gainAt(level, previous);
+    levels.push({ cost, gain: roundTo(gain) });
+    previous += gain;
   }
   return levels;
 }
