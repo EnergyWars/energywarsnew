@@ -703,5 +703,7 @@
  "values.desc.spent": "Build cost plus the cost of all upgrades up to this level.",
  "values.floor": "Round all values of this column down",
  "values.ceil": "Round all values of this column up",
- "values.round": "Round all values of this column"
+ "values.round": "Round all values of this column",
+ "done.label": "Done",
+ "error.DONE": "Done marks invalid"
 }

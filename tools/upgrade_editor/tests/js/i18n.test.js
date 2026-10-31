@@ -41,7 +41,7 @@ test("every base value and input has a description in both languages", () => {
   for (const key of ["max", "step", "price", "growth", "energy"]) keys.push(`desc.track.${key}`);
   for (const key of ["level", "cost", "spent", "value", "totalValue", "efficiency", "totalEfficiency", "factor"]) keys.push(`values.col.${key}`, `values.desc.${key}`);
   keys.push("plan.variablesHelp", "plan.operatorsHelp", "plan.operatorsTip", ...["level", "base", "build", "max", "growth", "start", "cost", "pi", "e"].map((name) => `plan.var.${name}`));
-  keys.push("values.floor", "values.round", "values.ceil", "values.referenceCost", "values.title", "values.base", "values.noBase", "values.apply", "values.discard", "values.add", "values.remove", "values.pending", "values.applied");
+  keys.push("done.label", "error.DONE", "values.floor", "values.round", "values.ceil", "values.referenceCost", "values.title", "values.base", "values.noBase", "values.apply", "values.discard", "values.add", "values.remove", "values.pending", "values.applied");
   for (const key of keys) {
     assert.ok(dictionary.de[key], `de ${key}`);
     assert.ok(dictionary.en[key], `en ${key}`);

@@ -703,5 +703,7 @@
  "values.desc.spent": "Baukosten plus die Kosten aller Upgrades bis zu dieser Stufe.",
  "values.floor": "Alle Werte dieser Spalte abrunden",
  "values.ceil": "Alle Werte dieser Spalte aufrunden",
- "values.round": "Alle Werte dieser Spalte runden"
+ "values.round": "Alle Werte dieser Spalte runden",
+ "done.label": "Erledigt",
+ "error.DONE": "Erledigt-Markierungen ungültig"
 }

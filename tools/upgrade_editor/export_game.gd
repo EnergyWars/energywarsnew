@@ -45,6 +45,7 @@ func _initialize() -> void:
 	document["defaults"] = _defaults()
 	_keep_groups(document, previous)
 	_keep_saved_formulas(document, previous)
+	_keep_done(document, previous)
 	_keep_plan_sources(document, previous)
 	_keep_variables(document, previous)
 	var file := FileAccess.open(OUTPUT, FileAccess.WRITE)
@@ -107,6 +108,17 @@ func _load_previous() -> Dictionary:
 		return {}
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(OUTPUT))
 	return parsed if parsed is Dictionary else {}
+
+
+func _keep_done(document: Dictionary, previous: Dictionary) -> void:
+	var done: Variant = previous.get("done")
+	if not done is Array:
+		return
+	var known := {}
+	for entry: Dictionary in document["buildings"]:
+		for track: String in entry["tracks"]:
+			known["%s:%s" % [entry["id"], track]] = true
+	document["done"] = _known_items(done, known)
 
 
 func _keep_groups(document: Dictionary, previous: Dictionary) -> void:

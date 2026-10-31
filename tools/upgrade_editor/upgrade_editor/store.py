@@ -10,7 +10,7 @@ from .patcher import patch_config
 
 
 CONTENT_KEYS = ("armor", "enemies", "levels", "routes")
-EDITOR_KEYS = ("groups", "saved_formulas")
+EDITOR_KEYS = ("groups", "saved_formulas", "done")
 ARCHIVE_ATTEMPTS = 1000
 
 

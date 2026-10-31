@@ -210,3 +210,23 @@ class LayoutValidationTest(unittest.TestCase):
                 self.entry["layout"] = bad
                 self.assertIn("LAYOUT", self.codes())
 
+
+class DoneValidationTest(unittest.TestCase):
+    def codes(self, done):
+        document = copy.deepcopy(load_game())
+        if done is not None:
+            document["done"] = done
+        return [error["code"] for error in model.safe_validate(document, load_game())]
+
+    def test_valid_marks(self):
+        track = building(load_game(), "solar")["tracks"][0]
+        self.assertEqual(self.codes(None), [])
+        self.assertEqual(self.codes([]), [])
+        self.assertEqual(self.codes([f"solar:{track}"]), [])
+
+    def test_invalid_marks(self):
+        track = building(load_game(), "solar")["tracks"][0]
+        for bad in ("x", [1], ["solar:nope"], ["ghost:hull"], [f"solar:{track}", f"solar:{track}"], ["a:b"] * 2, [f"x{i}" for i in range(1001)]):
+            with self.subTest(bad=bad):
+                self.assertIn("DONE", self.codes(bad))
+

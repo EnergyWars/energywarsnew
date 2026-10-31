@@ -6,6 +6,7 @@ from .expr import is_formula, SCOPE, FUNCTIONS, CONSTANTS
 SCHEMA = 1
 MAX_LEVELS = 200
 PLAN_MODES = ("formula", "table")
+DONE_LIMIT = 1000
 SAVED_KINDS = ("cost", "metric")
 SAVED_NAME_LIMIT = 60
 SAVED_DESCRIPTION_LIMIT = 1000
@@ -77,6 +78,7 @@ def validate(document, original):
     if not _is_number(growth) or growth <= 1:
         errors.append(_error("GROWTH", "system.track_growth"))
     _check_saved_formulas(document.get("saved_formulas", {}), errors)
+    _check_done(document, errors)
     tracks = document.get("tracks")
     if not isinstance(tracks, dict) or set(tracks) != set(original["tracks"]):
         errors.append(_error("TRACK_SET", "tracks"))
@@ -169,6 +171,16 @@ def _check_groups(groups, known, errors):
                 _check_group_items(section.get("items"), known, f"{where}.items", errors)
         _check_group_names(sections, f"{path}.sections", errors)
     _check_group_names(groups, "groups", errors)
+
+
+def _check_done(document, errors):
+    done = document.get("done")
+    if done is None:
+        return
+    known = {f"{entry['id']}:{track}" for entry in document.get("buildings", []) if isinstance(entry, dict) and isinstance(entry.get("tracks"), list) for track in entry["tracks"] if isinstance(track, str)}
+    valid = isinstance(done, list) and len(done) <= DONE_LIMIT and all(isinstance(item, str) for item in done) and len(set(done)) == len(done) and set(done) <= known
+    if not valid:
+        errors.append(_error("DONE", "done"))
 
 
 def _check_saved_formulas(saved, errors):

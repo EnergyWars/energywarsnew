@@ -11,6 +11,7 @@ import { METRICS, CHART_METRICS } from "./metrics.js";
 import { buildingIcon } from "./icon.js";
 import { variablesCard } from "./variablesPanel.js";
 import { layoutView } from "./layoutView.js";
+import { isDone, setDone, pruneDone } from "../done.js";
 import { moveTrackBy, layoutAddTrack, layoutRemoveTrack } from "../layout.js";
 
 export function trackName(names, track, kind) {
@@ -79,6 +80,7 @@ function removeTrack(doc, id, track) {
   const entry = doc.buildings.find((item) => item.id === id);
   entry.tracks = entry.tracks.filter((item) => item !== track);
   layoutRemoveTrack(entry, track);
+  pruneDone(doc, id, track);
   if (entry.curves) delete entry.curves[track];
   if (entry.plans) {
     delete entry.plans[track];
@@ -137,8 +139,12 @@ function trackRow(ctx, entry, track, index, count) {
     toggleKey(view.open, key);
     ctx.render();
   };
-  return h("div", { class: open ? "track-row open" : "track-row" },
+  const done = isDone(doc, entry, track);
+  const check = h("input", { type: "checkbox", class: "done-check", checked: done, title: t("done.label"), "aria-label": `${t("done.label")}: ${trackName(names, track, entry.id)}` });
+  check.addEventListener("change", () => ctx.store.update((d) => { setDone(d, entry, track, check.checked); }));
+  return h("div", { class: ["track-row", open ? "open" : "", done ? "done" : ""].filter(Boolean).join(" ") },
     h("div", { class: "track-head" },
+      check,
       h("div", { class: "track-text", onclick: toggle },
         h("div", { class: "body" }, trackName(names, track, entry.id)),
         h("div", { class: "caption" }, `${t("level.short")} 0/${max}  ×1 → ×${number(effectAt(entry, track, 1, doc), 2)}`)),

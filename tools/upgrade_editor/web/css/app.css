@@ -242,6 +242,8 @@ tr.group-row small { color: var(--muted); font-weight: 400; }
 .ok-note { color: var(--ok); }
 @media (max-width: 860px) { .groups-split { grid-template-columns: 1fr; } }
 .round-button { padding: 0 4px; margin-left: 2px; font-size: 14px; line-height: 1.2; }
+.done-check { width: 20px; height: 20px; margin: 0 8px 0 0; accent-color: var(--ok); flex: none; }
+.track-row.done .track-text .body { color: var(--ok); }
 .layout { display: grid; gap: 12px; }
 .layout-group { border: 1px dashed var(--outline); border-radius: 14px; padding: 8px 12px; }
 .group-head { display: flex; gap: 8px; align-items: center; }
