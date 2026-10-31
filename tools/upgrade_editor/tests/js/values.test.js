@@ -527,5 +527,9 @@ test("floor, round and ceil change every value of one column", () => {
   assert.deepEqual(values("floor"), [1, 4, 7]);
   assert.deepEqual(values("round"), [1, 5, 8]);
   assert.deepEqual(values("ceil"), [2, 5, 8]);
+  const twoDigits = (mode) => deriveRows(OWNER, roundColumn(OWNER, [{ cost: 10, gain: 0.12349 }, { cost: 20, gain: 0.45651 }], "value", mode, 10, 10, 2), 10).slice(1).map((row) => Math.round(row.value * 1e6) / 1e6);
+  assert.deepEqual(twoDigits("floor"), [1.23, 4.56]);
+  assert.deepEqual(twoDigits("round"), [1.23, 4.57]);
+  assert.deepEqual(twoDigits("ceil"), [1.24, 4.57]);
   assert.deepEqual(roundColumn(OWNER, levels, "cost", "ceil", 10).map((level) => level.cost), [10, 20, 30]);
 });

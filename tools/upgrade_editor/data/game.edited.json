@@ -90,7 +90,7 @@
 			"id": "core",
 			"cost": 0,
 			"upgrade_base": 120,
-			"hp": 1500,
+			"hp": 2500,
 			"armor": 0,
 			"description_key": "BUILDING_CORE_DESC",
 			"tracks": [
@@ -110,16 +110,16 @@
 				"radius": 50,
 				"capacity": 300,
 				"output": 3,
-				"links": 3,
-				"range": 280,
-				"rate": 40,
-				"build_radius": 420,
-				"vision": 460,
+				"links": 1,
+				"range": 168,
+				"rate": 3,
+				"build_radius": 672,
+				"vision": 448,
 				"attack": {
 					"damage": 12,
-					"cooldown": 0.7,
+					"cooldown": 0.666666667,
 					"energy": 3,
-					"range": 220
+					"range": 224
 				}
 			},
 			"plans": {
@@ -302,6 +302,13 @@
 						"armor"
 					]
 				}
+			],
+			"variables": [
+				{
+					"name": "cbuil",
+					"value": 12,
+					"description": ""
+				}
 			]
 		},
 		{
@@ -468,7 +475,7 @@
 			"id": "solar",
 			"cost": 40,
 			"upgrade_base": 40,
-			"hp": 70,
+			"hp": 125,
 			"armor": 0,
 			"description_key": "BUILDING_SOLAR_DESC",
 			"tracks": [
@@ -483,11 +490,11 @@
 			"curves": {},
 			"stats": {
 				"radius": 26,
-				"capacity": 30,
+				"capacity": 80,
 				"output": 8,
 				"links": 1,
-				"range": 240,
-				"build_radius": 240
+				"range": 112,
+				"build_radius": 224
 			},
 			"layout": [
 				{
@@ -765,8 +772,8 @@
 			"id": "battery",
 			"cost": 80,
 			"upgrade_base": 80,
-			"hp": 140,
-			"armor": 0,
+			"hp": 750,
+			"armor": 2,
 			"description_key": "BUILDING_BATTERY_DESC",
 			"tracks": [
 				"capacity",
@@ -780,10 +787,10 @@
 			"curves": {},
 			"stats": {
 				"radius": 26,
-				"capacity": 400,
-				"links": 2,
-				"range": 220,
-				"rate": 30,
+				"capacity": 600,
+				"links": 1,
+				"range": 112,
+				"rate": 2,
 				"build_radius": 220
 			},
 			"layout": [
@@ -854,7 +861,7 @@
 				"radius": 26,
 				"capacity": 80,
 				"links": 0,
-				"build_radius": 160,
+				"build_radius": 112,
 				"export": 8
 			},
 			"layout": [
@@ -952,7 +959,7 @@
 			"id": "zapper",
 			"cost": 70,
 			"upgrade_base": 70,
-			"hp": 90,
+			"hp": 125,
 			"armor": 0,
 			"description_key": "BUILDING_ZAPPER_DESC",
 			"tracks": [
@@ -970,9 +977,9 @@
 			"curves": {},
 			"stats": {
 				"radius": 26,
-				"capacity": 40,
+				"capacity": 80,
 				"links": 0,
-				"build_radius": 160,
+				"build_radius": 112,
 				"attack": {
 					"damage": 26,
 					"cooldown": 0.45,
@@ -2646,6 +2653,28 @@
 				1885,
 				2224,
 				2624
+			],
+			"armor": [
+				18,
+				21,
+				25,
+				30,
+				35,
+				41,
+				49,
+				57,
+				68,
+				80,
+				94,
+				111,
+				131,
+				155,
+				183,
+				216,
+				254,
+				300,
+				354,
+				418
 			]
 		},
 		"bulwark": {
@@ -2658,6 +2687,28 @@
 				82,
 				144,
 				251
+			],
+			"armor": [
+				6,
+				7,
+				8,
+				10,
+				12,
+				14,
+				16,
+				19,
+				23,
+				27,
+				31,
+				37,
+				44,
+				52,
+				61,
+				72,
+				85,
+				100,
+				118,
+				139
 			]
 		},
 		"solar": {
@@ -2787,6 +2838,28 @@
 				628,
 				741,
 				875
+			],
+			"armor": [
+				6,
+				7,
+				8,
+				10,
+				12,
+				14,
+				16,
+				19,
+				23,
+				27,
+				31,
+				37,
+				44,
+				52,
+				61,
+				72,
+				85,
+				100,
+				118,
+				139
 			]
 		},
 		"water": {
@@ -2916,6 +2989,28 @@
 				785,
 				927,
 				1094
+			],
+			"armor": [
+				8,
+				9,
+				10,
+				12,
+				15,
+				17,
+				20,
+				24,
+				28,
+				33,
+				39,
+				46,
+				55,
+				64,
+				76,
+				90,
+				106,
+				125,
+				148,
+				174
 			]
 		},
 		"fire": {
@@ -3045,6 +3140,28 @@
 				236,
 				278,
 				328
+			],
+			"armor": [
+				2,
+				3,
+				3,
+				4,
+				4,
+				5,
+				6,
+				7,
+				8,
+				10,
+				12,
+				14,
+				16,
+				19,
+				23,
+				27,
+				32,
+				38,
+				44,
+				52
 			]
 		},
 		"relay": {
@@ -3169,6 +3286,28 @@
 				471,
 				556,
 				656
+			],
+			"armor": [
+				4,
+				5,
+				6,
+				7,
+				9,
+				10,
+				12,
+				14,
+				17,
+				20,
+				24,
+				28,
+				33,
+				39,
+				46,
+				54,
+				64,
+				75,
+				89,
+				104
 			]
 		},
 		"battery": {
@@ -3293,6 +3432,28 @@
 				1257,
 				1483,
 				1750
+			],
+			"armor": [
+				12,
+				14,
+				17,
+				20,
+				23,
+				27,
+				32,
+				38,
+				45,
+				53,
+				63,
+				74,
+				87,
+				103,
+				122,
+				144,
+				170,
+				200,
+				236,
+				279
 			]
 		},
 		"exporter": {
@@ -3393,6 +3554,28 @@
 				1885,
 				2224,
 				2624
+			],
+			"armor": [
+				18,
+				21,
+				25,
+				30,
+				35,
+				41,
+				49,
+				57,
+				68,
+				80,
+				94,
+				111,
+				131,
+				155,
+				183,
+				216,
+				254,
+				300,
+				354,
+				418
 			]
 		},
 		"lamp": {
@@ -3488,6 +3671,28 @@
 				393,
 				463,
 				547
+			],
+			"armor": [
+				4,
+				4,
+				5,
+				6,
+				7,
+				9,
+				10,
+				12,
+				14,
+				17,
+				20,
+				23,
+				27,
+				32,
+				38,
+				45,
+				53,
+				63,
+				74,
+				87
 			]
 		},
 		"zapper": {
@@ -5204,6 +5409,28 @@
 				2199,
 				2595,
 				3062
+			],
+			"armor": [
+				21,
+				25,
+				29,
+				35,
+				41,
+				48,
+				57,
+				67,
+				79,
+				93,
+				110,
+				130,
+				153,
+				181,
+				213,
+				251,
+				297,
+				350,
+				413,
+				488
 			]
 		}
 	},
@@ -8995,19 +9222,6 @@
 			]
 		]
 	},
-	"formula_history": {
-		"cost": [
-			"build * 2 ^ level",
-			"base * 2 ^ level",
-			"base +1"
-		],
-		"effect": [
-			"( 70 + abs(floor( abs( 6.5 - level ) ) ) * 10) / 100",
-			"70 + abs(floor( abs( 6.5 - level ) ) ) * 10",
-			"abs(floor( abs( 6.5 - level ) ))",
-			"level +1"
-		]
-	},
 	"saved_formulas": {
 		"metric": [
 			{
@@ -9024,5 +9238,10 @@
 				"description": "Kosten verdoppeln sich je upgrade, ausgehend vom Kaufpreis des Gebäudes"
 			}
 		]
-	}
+	},
+	"done": [
+		"core:armor",
+		"core:hull",
+		"core:rate"
+	]
 }

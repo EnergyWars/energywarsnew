@@ -5,7 +5,7 @@ import { addVariable, updateVariable, deleteVariable, variablesCard, VARIABLE_LI
 import { storedFormula, formulaState, writeLevels, effectAt, maxLevel, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf, startValue } from "../../web/js/formulas.js";
 import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, formulaDraftChanged, toolOf, savedFormulas, saveFormula, updateSavedFormula, deleteSavedFormula, SAVED_NAME_LIMIT, SAVED_DESCRIPTION_LIMIT, TIP_VARIABLES, variableTip } from "../../web/js/views/planEditor.js";
 import { draftKey, pendingLevels, applyLevels } from "../../web/js/views/valueTable.js";
-import { COST_VARIABLES, TARGET_VARIABLES } from "../../web/js/formulas.js";
+import { COST_VARIABLES, TARGET_VARIABLES, baseValue, roundTo } from "../../web/js/formulas.js";
 import { ExpressionError } from "../../web/js/expr.js";
 import { create } from "../../web/js/store.js";
 
@@ -385,4 +385,14 @@ test("the variable tooltip lists every formula variable with an explanation", ()
   assert.equal(lines.length, TIP_VARIABLES.length);
   for (const [index, name] of TIP_VARIABLES.entries()) assert.ok(lines[index].startsWith(`${name} – `) && lines[index].length > name.length + 4);
   for (const name of [...COST_VARIABLES, ...TARGET_VARIABLES]) assert.ok(TIP_VARIABLES.includes(name), name);
+});
+
+test("build is the building cost in the cost formula and the initial attribute value in the benefit formula", () => {
+  const doc = fresh();
+  const bulwark = find(doc, "bulwark");
+  const hull = buildFormulaLevels(doc, bulwark, { max: 1, cost: "build", target: "value", formula: "build" }, "hull");
+  assert.equal(hull[0].cost, bulwark.cost);
+  assert.equal(hull[0].gain, roundTo(baseValue(doc, bulwark, "hull") / startValue(doc, bulwark, "hull")));
+  const armor = buildFormulaLevels(doc, bulwark, { max: 1, cost: "10", target: "value", formula: "build" }, "armor");
+  assert.equal(armor[0].gain, roundTo(bulwark.armor / doc.system.armor_unit));
 });

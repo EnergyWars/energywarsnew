@@ -1,7 +1,7 @@
 import { h } from "../dom.js";
 import { t, gameName } from "../i18n.js";
 import { number, compact, LENGTH_STATS, cellSize, toCells, fromCells } from "../format.js";
-import { effectAt, maxLevel, costs, levelCost, baseValue, gainBase, snapshotLevels, deriveRowsFromBase, startValue } from "../formulas.js";
+import { effectAt, maxLevel, costs, levelCost, baseValue, snapshotLevels, deriveRowsFromBase, startValue } from "../formulas.js";
 import { planEditor } from "./planEditor.js";
 import { numberField, chart, flipSeries, sectionHeading, isCollapsed, toggleKey, searchSelect } from "./components.js";
 import { pruneItem } from "../groups.js";
@@ -10,6 +10,7 @@ import { valueTable } from "./valueTable.js";
 import { METRICS, CHART_METRICS } from "./metrics.js";
 import { buildingIcon } from "./icon.js";
 import { variablesCard } from "./variablesPanel.js";
+import { rateField, RATE_STATS } from "./rateField.js";
 import { layoutView } from "./layoutView.js";
 import { isDone, setDone, pruneDone } from "../done.js";
 import { moveTrackBy, layoutAddTrack, layoutRemoveTrack } from "../layout.js";
@@ -56,6 +57,7 @@ function statsCard(ctx, entry) {
   const integerAt = (path) => path.split(".").reduce((node, key) => node?.[key], originalStats);
   const cell = cellSize(ctx.doc);
   const field = (path, value) => {
+    if (RATE_STATS.has(path)) return rateField(path, value, (v) => ctx.store.set(`${base}.stats.${path}`, v));
     const inCells = LENGTH_STATS.has(path);
     return numberField(t(`stat.${path}`), inCells ? toCells(value, cell) : value,
       (v) => ctx.store.set(`${base}.stats.${path}`, inCells ? fromCells(v, cell) : v),
@@ -115,12 +117,11 @@ function trackDetail(ctx, entry, track, index, count) {
   const start = startValue(doc, entry, track);
   const rows = deriveRowsFromBase(entry, snapshotLevels(doc, entry, track), start, baseValue(doc, entry, track));
   const totals = rows[rows.length - 1];
-  const hasBase = gainBase(doc, entry, track) !== null;
   return h("div", { class: "track-detail" },
     chart(chartSeries(rows), { hidden: ctx.view.hidden, onToggle: (key, solo) => toggleSeries(ctx, key, solo), detail: (index) => detailPairs(rows[index], ctx.view.hidden) }),
     h("dl", { class: "stats" },
       h("div", { "data-tip": t("stat.totalCostDesc") }, h("dt", {}, t("stat.totalCost")), h("dd", {}, compact(totals.spent))),
-      h("div", { "data-tip": t("stat.totalValueDesc") }, h("dt", {}, t("stat.totalValue")), h("dd", {}, hasBase ? number(totals.totalValue, 2) : `×${number(totals.effect, 2)}`))),
+      h("div", { "data-tip": t("stat.totalValueDesc") }, h("dt", {}, t("stat.totalValue")), h("dd", {}, number(totals.totalValue, 2)))),
     trackGroups(ctx, entry, track),
     planEditor(ctx, entry, track),
     valueTable(ctx, entry, track),

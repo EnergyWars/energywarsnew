@@ -12,11 +12,18 @@ function pathKeys(path) {
   return keys;
 }
 
+function child(node, key) {
+  if (node === null || typeof node !== "object") throw new Error("PATH");
+  if (Object.hasOwn(node, key)) return node[key];
+  const match = Array.isArray(node) ? node.find((item) => item !== null && typeof item === "object" && item.id === key) : undefined;
+  if (match === undefined) throw new Error("PATH");
+  return match;
+}
+
 function parentOf(document, keys) {
   let node = document;
   for (const key of keys.slice(0, -1)) {
-    if (node === null || typeof node !== "object" || !Object.hasOwn(node, key)) throw new Error("PATH");
-    node = node[key];
+    node = child(node, key);
   }
   if (node === null || typeof node !== "object") throw new Error("PATH");
   return node;

@@ -241,9 +241,14 @@ tr.group-row small { color: var(--muted); font-weight: 400; }
 .warning-mark { color: var(--gold); font-size: 22px; width: 32px; text-align: center; }
 .ok-note { color: var(--ok); }
 @media (max-width: 860px) { .groups-split { grid-template-columns: 1fr; } }
-.round-button { padding: 0 4px; margin-left: 2px; font-size: 14px; line-height: 1.2; }
+.round-buttons { display: flex; gap: 2px; justify-content: center; }
+.round-button { padding: 0 4px; font-size: 14px; line-height: 1.2; }
 .done-check { width: 20px; height: 20px; margin: 0 8px 0 0; accent-color: var(--ok); flex: none; }
 .track-row.done .track-text .body { color: var(--ok); }
+.goal-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.goal-row .grow { flex: 1; min-width: 160px; }
+.goal-result { display: grid; gap: 4px; }
+.goal-result code { display: block; overflow-wrap: anywhere; }
 .layout { display: grid; gap: 12px; }
 .layout-group { border: 1px dashed var(--outline); border-radius: 14px; padding: 8px 12px; }
 .group-head { display: flex; gap: 8px; align-items: center; }
@@ -264,3 +269,4 @@ tr.group-row small { color: var(--muted); font-weight: 400; }
 .column-toggles { display: flex; gap: 8px 16px; flex-wrap: wrap; margin: 8px 0; }
 .column-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .column-toggle input { width: auto; margin: 0; }
+.value-table th, .table-edit th { text-align: center; }

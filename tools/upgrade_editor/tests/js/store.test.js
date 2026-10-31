@@ -66,3 +66,17 @@ test("setPath walks nested keys", () => {
   setPath(doc, "a.b.c", 2);
   assert.equal(doc.a.b.c, 2);
 });
+
+test("paths address list entries by their id", () => {
+  const doc = { buildings: [{ id: "core", stats: { range: 5 } }, { id: "solar", stats: { range: 3 } }] };
+  setPath(doc, "buildings.solar.stats.range", 4);
+  assert.equal(doc.buildings[1].stats.range, 4);
+  assert.equal(doc.buildings[0].stats.range, 5);
+  setPath(doc, "buildings.0.stats.range", 9);
+  assert.equal(doc.buildings[0].stats.range, 9);
+  assert.throws(() => setPath(doc, "buildings.ghost.stats.range", 1), /PATH/);
+  const store = create(doc, doc);
+  store.set("buildings.core.stats.range", 7);
+  assert.equal(store.state.document.buildings[0].stats.range, 7);
+  assert.equal(store.dirty(), true);
+});

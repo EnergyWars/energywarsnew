@@ -108,7 +108,7 @@ export function buildFormulaLevels(doc, entry, plan, track = null) {
     const scope = scopeFor(doc, entry, max, index + 1, track);
     const cost = Math.max(Math.round(compute(plan.cost, scope)), 1);
     spent += cost;
-    const amount = compute(plan.formula, { ...scope, cost });
+    const amount = compute(plan.formula, { ...scope, build: baseValue(doc, entry, track), cost });
     const gain = roundTo(gainFor(target, amount, { start, cost, effectBefore: effect, spent, reference }));
     levels.push({ cost, gain });
     effect += gain;
@@ -261,16 +261,27 @@ export function formulaState(doc, entry, track) {
 }
 
 const DEFAULT_ARMOR_UNIT = 10;
+const COOLDOWN_DIGITS = 9;
+
+export function ratePerSecond(cooldown) {
+  return Number.isFinite(cooldown) && cooldown > 0 ? 1 / cooldown : null;
+}
+
+export function cooldownFor(rate) {
+  return Number.isFinite(rate) && rate > 0 ? roundTo(1 / rate, COOLDOWN_DIGITS) : null;
+}
 
 const GAIN_BASES = {
   hull: (entry) => ({ value: entry.hp }),
   armor: (entry, doc) => ({ value: doc?.system?.armor_unit ?? DEFAULT_ARMOR_UNIT }),
+  speed: (entry) => ({ value: ratePerSecond(entry.stats.attack?.cooldown ?? entry.stats.heal?.cooldown) }),
   output: (entry) => ({ value: entry.stats.output }),
   capacity: (entry) => ({ value: entry.stats.capacity }),
   rate: (entry) => ({ value: entry.stats.export ?? entry.stats.rate }),
   power: (entry) => ({ value: entry.stats.attack?.damage ?? entry.stats.heal?.amount }),
   splash: (entry) => ({ value: entry.stats.attack?.splash, length: true }),
   range: (entry) => {
+    if (entry.stats.range !== undefined) return { value: entry.stats.range, length: true };
     if (entry.stats.attack) return { value: entry.stats.attack.range, length: true };
     if (entry.stats.shield) return { value: entry.stats.shield.radius, length: true };
     if (entry.stats.heal) return { value: entry.stats.heal.range, length: true };

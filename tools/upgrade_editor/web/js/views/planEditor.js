@@ -8,8 +8,9 @@ import { openModal } from "./modal.js";
 import { entryVariables } from "./variablesPanel.js";
 import { savedManager, formulaForm, saveFormula } from "./savedFormulas.js";
 import { draftKey } from "./valueTable.js";
+import { goalTool } from "./goalTool.js";
 
-const TOOLS = ["params", "formula", "table"];
+const TOOLS = ["params", "formula", "table", "goal"];
 export { savedFormulas, saveFormula, updateSavedFormula, deleteSavedFormula, SAVED_NAME_LIMIT, SAVED_DESCRIPTION_LIMIT, SAVED_KINDS } from "./savedFormulas.js";
 
 export function defaultFormulas(doc, entry, track) {
@@ -63,6 +64,7 @@ export function describeError(error) {
   if (error.code === "MAX") return t("expr.MAX", { limit: MAX_LEVELS });
   if (error.code === "PARAM") return t("error.PARAM");
   if (error.code === "TARGET") return t("error.TARGET");
+  if (typeof error.code === "string" && error.code.startsWith("GOAL_")) return t(`error.${error.code}`);
   throw error;
 }
 
@@ -298,6 +300,15 @@ function paramTool(ctx, entry, track) {
     }, { min: key.endsWith("growth") ? 1 : 0 }))));
 }
 
+function applyGoal(ctx, entry, track, result) {
+  ctx.view.drafts[inputKey(entry, track, "f:cost")] = result.cost;
+  ctx.view.drafts[inputKey(entry, track, "f:formula")] = result.formula;
+  ctx.view.drafts[inputKey(entry, track, "f:target")] = result.target;
+  ctx.view.drafts[inputKey(entry, track, "max")] = result.max;
+  ctx.view.tools[inputKey(entry, track, "tool")] = "formula";
+  ctx.render();
+}
+
 function maxField(ctx, entry, track) {
   const inputs = toolOf(ctx.view, entry, track) === "params" ? paramInputs(ctx, entry, track) : formulaInputs(ctx, entry, track);
   return numberField(t("field.max"), inputs.max, (value) => {
@@ -313,8 +324,14 @@ export function planEditor(ctx, entry, track) {
     h("h4", { class: "value-heading" }, t("plan.tools")),
     maxField(ctx, entry, track),
     toolSwitch(ctx, entry, track),
-    active === "table" ? null : fillRow(ctx, entry, track, action),
+    active === "table" || active === "goal" ? null : fillRow(ctx, entry, track, action),
     active === "formula" ? formulaStatus(ctx, entry, track) : null,
     active === "params" ? paramTool(ctx, entry, track) : null,
-    active === "formula" ? formulaTool(ctx, entry, track) : null);
+    active === "formula" ? formulaTool(ctx, entry, track) : null,
+    active === "goal" ? goalTool(ctx, entry, track, {
+      key: (name) => inputKey(entry, track, name),
+      max: Number(formulaInputs(ctx, entry, track).max),
+      describe: describeError,
+      apply: (result) => applyGoal(ctx, entry, track, result),
+    }) : null);
 }

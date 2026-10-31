@@ -1,9 +1,12 @@
 import { h } from "../dom.js";
+import { openModal } from "./modal.js";
 import { t } from "../i18n.js";
 import { number } from "../format.js";
 import { METRICS } from "./metrics.js";
 import { sectionHeading, isCollapsed, toggleKey } from "./components.js";
-import { snapshotLevels, deriveRowsFromBase, editLevel, writeLevels, gainBase, startValue, baseValue, referenceCost, deriveRows, roundTo, MAX_LEVELS } from "../formulas.js";
+import { snapshotLevels, deriveRowsFromBase, editLevel, writeLevels, gainBase, startValue, baseValue, referenceCost, deriveRows, roundTo, ratePerSecond, MAX_LEVELS } from "../formulas.js";
+
+export const COOLDOWN_COLUMN = { key: "cooldown", readonly: true, digits: 4, format: (value) => number(value, 4) };
 
 export const COLUMNS = [{ key: "level" }, ...METRICS];
 
@@ -53,15 +56,43 @@ const ROUNDERS = { floor: Math.floor, round: Math.round, ceil: Math.ceil };
 
 const ROUND_ICONS = { floor: "⌊", round: "≈", ceil: "⌈" };
 
-export function roundColumn(entry, levels, key, mode, start, origin) {
+export const DEFAULT_ROUND_DIGITS = 2;
+export const MAX_ROUND_DIGITS = 8;
+
+export function roundColumn(entry, levels, key, mode, start, origin, digits = 0) {
   const round = ROUNDERS[mode];
+  const factor = 10 ** digits;
   let result = levels;
   for (let index = 0; index < levels.length; index++) {
     const value = deriveRows(entry, result, start, origin)[index][key];
     if (value === null || value === undefined || !Number.isFinite(value)) continue;
-    result = editLevel(entry, result, index, key, round(roundTo(value, 9)), start, origin);
+    result = editLevel(entry, result, index, key, roundTo(round(roundTo(value * factor, 9)) / factor), start, origin);
   }
   return result;
+}
+
+function askDigits(ctx, entry, track, column, mode, start, origin) {
+  let digits = DEFAULT_ROUND_DIGITS;
+  openModal({
+    title: `${t(`values.col.${column.key}`)}: ${t(`values.${mode}`)}`,
+    render: ({ close }) => {
+      const input = h("input", { type: "number", min: 0, max: MAX_ROUND_DIGITS, step: 1, value: digits });
+      input.addEventListener("input", () => {
+        const parsed = Math.round(Number(input.value));
+        digits = Number.isFinite(parsed) ? Math.min(MAX_ROUND_DIGITS, Math.max(0, parsed)) : DEFAULT_ROUND_DIGITS;
+      });
+      const apply = () => {
+        close();
+        changeDraft(ctx, entry, track, (levels) => roundColumn(entry, levels, column.key, mode, start, origin, digits));
+      };
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") apply();
+      });
+      return h("div", { class: "plan" },
+        h("label", { class: "field" }, h("span", {}, t("values.digits")), input),
+        h("div", { class: "actions" }, h("button", { class: "primary", onclick: apply }, t("values.roundApply"))));
+    },
+  });
 }
 
 function roundButtons(ctx, entry, track, column, start, origin) {
@@ -70,7 +101,7 @@ function roundButtons(ctx, entry, track, column, start, origin) {
     class: "icon round-button",
     title: t(`values.${mode}`),
     "aria-label": `${t(`values.col.${column.key}`)}: ${t(`values.${mode}`)}`,
-    onclick: () => changeDraft(ctx, entry, track, (levels) => roundColumn(entry, levels, column.key, mode, start, origin)),
+    onclick: () => askDigits(ctx, entry, track, column, mode, start, origin),
   }, ROUND_ICONS[mode]));
 }
 
@@ -96,6 +127,7 @@ function cell(ctx, entry, track, column, row, index, start, origin) {
   const tip = t(`values.desc.${column.key}`);
   if (row.level === 0) return readonlyCell(column, row, tip);
   if (column.key === "level") return h("td", { "data-tip": tip }, row.level);
+  if (column.readonly) return readonlyCell(column, row, tip);
   const shown = row[column.key];
   if (shown === null || shown === undefined) return h("td", { "data-tip": tip }, "–");
   const digits = column.digits === 0 ? 0 : 6;
@@ -114,12 +146,12 @@ export function valueTable(ctx, entry, track) {
   const levels = draft ?? current;
   const start = startValue(ctx.doc, entry, track);
   const origin = baseValue(ctx.doc, entry, track);
-  const rows = deriveRowsFromBase(entry, levels, start, origin);
+  const rows = deriveRowsFromBase(entry, levels, start, origin).map((row) => ({ ...row, cooldown: ratePerSecond(row.totalValue) }));
   const base = gainBase(ctx.doc, entry, track);
   const reference = referenceCost(entry);
   const changed = (index) => index > 0 && (!current[index - 1] || current[index - 1].cost !== levels[index - 1].cost || current[index - 1].gain !== levels[index - 1].gain);
-  const columns = visibleColumns(ctx.view.hidden);
-  const head = columns.map((column) => h("th", { "data-tip": t(`values.desc.${column.key}`), tabindex: "0" }, t(`values.col.${column.key}`), column.key === "level" ? null : roundButtons(ctx, entry, track, column, start, origin)));
+  const columns = [...visibleColumns(ctx.view.hidden), ...(track === "speed" && gainBase(ctx.doc, entry, track) !== null ? [COOLDOWN_COLUMN] : [])];
+  const head = columns.map((column) => h("th", { "data-tip": t(`values.desc.${column.key}`), tabindex: "0" }, column.key === "level" || column.readonly ? null : h("div", { class: "round-buttons" }, roundButtons(ctx, entry, track, column, start, origin)), h("div", {}, t(`values.col.${column.key}`))));
   const body = rows.map((row, index) => h("tr", { class: changed(index) ? "changed" : "" }, columns.map((column) => cell(ctx, entry, track, column, row, index - 1, start, origin))));
   const key = `values:${entry.id}:${track}`;
   if (isCollapsed(ctx, key)) return h("section", { class: "value-table" }, sectionHeading(ctx, key, t("values.title"), "h4", "value-heading"));
