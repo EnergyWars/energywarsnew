@@ -2,7 +2,8 @@
 	"schema": 1,
 	"system": {
 		"track_growth": 1.18,
-		"cell": 56.0
+		"cell": 56.0,
+		"armor_unit": 10.0
 	},
 	"tracks": {
 		"rate": {
@@ -90,7 +91,7 @@
 			"cost": 0,
 			"upgrade_base": 120,
 			"hp": 1500.0,
-			"armor": 20.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_CORE_DESC",
 			"tracks": [
 				"rate",
@@ -101,7 +102,8 @@
 				"speed",
 				"output",
 				"capacity",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -126,10 +128,11 @@
 			"cost": 4,
 			"upgrade_base": 40,
 			"hp": 1600.0,
-			"armor": 40.0,
+			"armor": 3.0,
 			"description_key": "BUILDING_BULWARK_DESC",
 			"tracks": [
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {
 				"hull": {
@@ -167,7 +170,8 @@
 				"links",
 				"transfer",
 				"capacity",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -184,7 +188,7 @@
 			"cost": 50,
 			"upgrade_base": 50,
 			"hp": 90.0,
-			"armor": 2.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_WATER_DESC",
 			"tracks": [
 				"output",
@@ -192,7 +196,8 @@
 				"links",
 				"transfer",
 				"capacity",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -217,7 +222,8 @@
 				"links",
 				"transfer",
 				"capacity",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -234,7 +240,7 @@
 			"cost": 30,
 			"upgrade_base": 30,
 			"hp": 90.0,
-			"armor": 4.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_RELAY_DESC",
 			"tracks": [
 				"rate",
@@ -242,7 +248,8 @@
 				"links",
 				"transfer",
 				"capacity",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -260,7 +267,7 @@
 			"cost": 80,
 			"upgrade_base": 80,
 			"hp": 140.0,
-			"armor": 8.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_BATTERY_DESC",
 			"tracks": [
 				"capacity",
@@ -268,7 +275,8 @@
 				"range",
 				"links",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -285,13 +293,14 @@
 			"cost": 120,
 			"upgrade_base": 120,
 			"hp": 80.0,
-			"armor": 4.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_EXPORTER_DESC",
 			"tracks": [
 				"rate",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -313,7 +322,8 @@
 				"efficiency",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -328,7 +338,7 @@
 			"cost": 70,
 			"upgrade_base": 70,
 			"hp": 90.0,
-			"armor": 6.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_ZAPPER_DESC",
 			"tracks": [
 				"power",
@@ -361,7 +371,7 @@
 			"cost": 120,
 			"upgrade_base": 120,
 			"hp": 110.0,
-			"armor": 8.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_LASER_DESC",
 			"tracks": [
 				"power",
@@ -391,7 +401,7 @@
 			"cost": 110,
 			"upgrade_base": 110,
 			"hp": 90.0,
-			"armor": 6.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_HEALER_DESC",
 			"tracks": [
 				"power",
@@ -422,7 +432,7 @@
 			"cost": 130,
 			"upgrade_base": 130,
 			"hp": 900.0,
-			"armor": 50.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_BASTION_DESC",
 			"tracks": [
 				"power",
@@ -454,7 +464,7 @@
 			"cost": 150,
 			"upgrade_base": 150,
 			"hp": 160.0,
-			"armor": 12.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_ROVER_DESC",
 			"tracks": [
 				"power",
@@ -491,7 +501,7 @@
 			"cost": 160,
 			"upgrade_base": 160,
 			"hp": 120.0,
-			"armor": 8.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_TESLA_DESC",
 			"tracks": [
 				"power",
@@ -526,7 +536,7 @@
 			"cost": 200,
 			"upgrade_base": 200,
 			"hp": 110.0,
-			"armor": 10.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_PLASMA_DESC",
 			"tracks": [
 				"power",
@@ -562,14 +572,15 @@
 			"cost": 140,
 			"upgrade_base": 140,
 			"hp": 100.0,
-			"armor": 10.0,
+			"armor": 0.0,
 			"description_key": "BUILDING_SHIELD_DESC",
 			"tracks": [
 				"power",
 				"range",
 				"capacity",
 				"transfer",
-				"hull"
+				"hull",
+				"armor"
 			],
 			"curves": {},
 			"stats": {
@@ -1508,6 +1519,28 @@
 				1885,
 				2224,
 				2624
+			],
+			"armor": [
+				18,
+				21,
+				25,
+				30,
+				35,
+				41,
+				49,
+				57,
+				68,
+				80,
+				94,
+				111,
+				131,
+				155,
+				183,
+				216,
+				254,
+				300,
+				354,
+				418
 			]
 		},
 		"bulwark": {
@@ -1520,6 +1553,28 @@
 				82,
 				144,
 				251
+			],
+			"armor": [
+				6,
+				7,
+				8,
+				10,
+				12,
+				14,
+				16,
+				19,
+				23,
+				27,
+				31,
+				37,
+				44,
+				52,
+				61,
+				72,
+				85,
+				100,
+				118,
+				139
 			]
 		},
 		"solar": {
@@ -1649,6 +1704,28 @@
 				628,
 				741,
 				875
+			],
+			"armor": [
+				6,
+				7,
+				8,
+				10,
+				12,
+				14,
+				16,
+				19,
+				23,
+				27,
+				31,
+				37,
+				44,
+				52,
+				61,
+				72,
+				85,
+				100,
+				118,
+				139
 			]
 		},
 		"water": {
@@ -1778,6 +1855,28 @@
 				785,
 				927,
 				1094
+			],
+			"armor": [
+				8,
+				9,
+				10,
+				12,
+				15,
+				17,
+				20,
+				24,
+				28,
+				33,
+				39,
+				46,
+				55,
+				64,
+				76,
+				90,
+				106,
+				125,
+				148,
+				174
 			]
 		},
 		"fire": {
@@ -1907,6 +2006,28 @@
 				236,
 				278,
 				328
+			],
+			"armor": [
+				2,
+				3,
+				3,
+				4,
+				4,
+				5,
+				6,
+				7,
+				8,
+				10,
+				12,
+				14,
+				16,
+				19,
+				23,
+				27,
+				32,
+				38,
+				44,
+				52
 			]
 		},
 		"relay": {
@@ -2031,6 +2152,28 @@
 				471,
 				556,
 				656
+			],
+			"armor": [
+				4,
+				5,
+				6,
+				7,
+				9,
+				10,
+				12,
+				14,
+				17,
+				20,
+				24,
+				28,
+				33,
+				39,
+				46,
+				54,
+				64,
+				75,
+				89,
+				104
 			]
 		},
 		"battery": {
@@ -2155,6 +2298,28 @@
 				1257,
 				1483,
 				1750
+			],
+			"armor": [
+				12,
+				14,
+				17,
+				20,
+				23,
+				27,
+				32,
+				38,
+				45,
+				53,
+				63,
+				74,
+				87,
+				103,
+				122,
+				144,
+				170,
+				200,
+				236,
+				279
 			]
 		},
 		"exporter": {
@@ -2255,6 +2420,28 @@
 				1885,
 				2224,
 				2624
+			],
+			"armor": [
+				18,
+				21,
+				25,
+				30,
+				35,
+				41,
+				49,
+				57,
+				68,
+				80,
+				94,
+				111,
+				131,
+				155,
+				183,
+				216,
+				254,
+				300,
+				354,
+				418
 			]
 		},
 		"lamp": {
@@ -2350,6 +2537,28 @@
 				393,
 				463,
 				547
+			],
+			"armor": [
+				4,
+				4,
+				5,
+				6,
+				7,
+				9,
+				10,
+				12,
+				14,
+				17,
+				20,
+				23,
+				27,
+				32,
+				38,
+				45,
+				53,
+				63,
+				74,
+				87
 			]
 		},
 		"zapper": {
@@ -4066,6 +4275,28 @@
 				2199,
 				2595,
 				3062
+			],
+			"armor": [
+				21,
+				25,
+				29,
+				35,
+				41,
+				48,
+				57,
+				67,
+				79,
+				93,
+				110,
+				130,
+				153,
+				181,
+				213,
+				251,
+				297,
+				350,
+				413,
+				488
 			]
 		}
 	},

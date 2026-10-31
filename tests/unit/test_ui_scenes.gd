@@ -791,7 +791,7 @@ func test_tower_panel_lists_health_and_armour_separately() -> void:
 	assert_string_contains(detail.text, StatText.track_value(zapper, GameConfig.TRACK_ARMOR))
 	screen.view.select(core.id)
 	_frames(screen, 2)
-	assert_false(screen.panel._track_rows.has(GameConfig.TRACK_ARMOR))
+	assert_true(screen.panel._track_rows.has(GameConfig.TRACK_ARMOR))
 
 
 func test_holding_an_upgrade_button_repeats_upgrades() -> void:

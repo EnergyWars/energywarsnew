@@ -133,7 +133,7 @@ class GroupsStayInTheEditorTest(unittest.TestCase):
         self.assertEqual(patch_config(source, document), patch_config(source, load_game()))
 
     def test_keep_editor_data_fills_only_missing_keys(self):
-        self.assertEqual(EDITOR_KEYS, ("groups", "formula_history"))
+        self.assertEqual(EDITOR_KEYS, ("groups", "saved_formulas"))
         original = {"groups": sample_groups()}
         self.assertEqual(keep_editor_data({}, original)["groups"], sample_groups())
         self.assertEqual(keep_editor_data({"groups": []}, original)["groups"], [])
@@ -201,16 +201,17 @@ class ExportKeepsGroupsTest(unittest.TestCase):
         self.assertIn("known.has(item)", script)
 
 
-class FormulaHistoryKeptTest(unittest.TestCase):
-    def test_keep_editor_data_restores_a_missing_formula_history(self):
-        original = {"formula_history": {"cost": ["base * 2"], "effect": []}}
-        self.assertEqual(keep_editor_data({}, original)["formula_history"], {"cost": ["base * 2"], "effect": []})
-        self.assertEqual(keep_editor_data({"formula_history": {"cost": []}}, original)["formula_history"], {"cost": []})
+class SavedFormulasKeptTest(unittest.TestCase):
+    def test_keep_editor_data_restores_missing_saved_formulas_and_drops_the_old_history(self):
+        original = {"saved_formulas": {"cost": [{"name": "a", "formula": "base", "description": ""}]}}
+        self.assertEqual(keep_editor_data({}, original)["saved_formulas"], original["saved_formulas"])
+        self.assertEqual(keep_editor_data({"saved_formulas": {"cost": []}}, original)["saved_formulas"], {"cost": []})
+        self.assertNotIn("formula_history", keep_editor_data({"formula_history": {"cost": ["x"]}}, original))
 
-    def test_export_script_carries_the_formula_history_over(self):
+    def test_export_script_carries_the_saved_formulas_over(self):
         script = (TOOL_DIR / "export_game.gd").read_text(encoding="utf-8")
-        self.assertIn("func _keep_history(", script)
-        self.assertIn('document["formula_history"] = kept', script)
-        self.assertLess(script.index("_keep_history(document, previous)"), script.index("FileAccess.open(OUTPUT, FileAccess.WRITE)"))
-        self.assertIn("HISTORY_LIMIT := 30", script)
-        self.assertIn("HISTORY_TEXT_LIMIT := 500", script)
+        self.assertIn("func _keep_saved_formulas(", script)
+        self.assertIn('document["saved_formulas"] = kept', script)
+        self.assertLess(script.index("_keep_saved_formulas(document, previous)"), script.index("FileAccess.open(OUTPUT, FileAccess.WRITE)"))
+        self.assertIn("SAVED_LIMIT := 50", script)
+        self.assertIn("SAVED_DESCRIPTION_LIMIT := 1000", script)

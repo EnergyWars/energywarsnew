@@ -116,7 +116,6 @@ func test_hull_upgrade_heals_by_the_added_hp() -> void:
 func test_armour_upgrade_is_bought_like_any_track() -> void:
 	battle.state.money = 1000
 	var zapper := BattleFixtures.add(battle, GameConfig.ZAPPER, core.position + Vector2(0, -150))
-	var solar := BattleFixtures.add(battle, GameConfig.SOLAR, core.position + Vector2(150, 0))
 	var armor := Formulas.armor(zapper)
 	var hp := zapper.hp
 	var cost := Formulas.upgrade_cost(zapper, GameConfig.TRACK_ARMOR)
@@ -125,8 +124,8 @@ func test_armour_upgrade_is_bought_like_any_track() -> void:
 	assert_gt(Formulas.armor(zapper), armor)
 	assert_eq(zapper.hp, hp)
 	assert_eq(battle.state.money, 1000 - cost)
-	assert_false(battle.can_upgrade(solar.id, GameConfig.TRACK_ARMOR))
-	assert_false(battle.upgrade(solar.id, GameConfig.TRACK_ARMOR))
+	var solar := BattleFixtures.add(battle, GameConfig.SOLAR, core.position + Vector2(150, 0))
+	assert_true(battle.can_upgrade(solar.id, GameConfig.TRACK_ARMOR))
 
 
 func test_target_priority_controls() -> void:

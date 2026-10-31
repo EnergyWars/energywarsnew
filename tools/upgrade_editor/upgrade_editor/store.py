@@ -10,12 +10,13 @@ from .patcher import patch_config
 
 
 CONTENT_KEYS = ("armor", "enemies", "levels", "routes")
-EDITOR_KEYS = ("groups", "formula_history")
+EDITOR_KEYS = ("groups", "saved_formulas")
 ARCHIVE_ATTEMPTS = 1000
 
 
 def keep_editor_data(document, original):
     if isinstance(document, dict) and isinstance(original, dict):
+        document.pop("formula_history", None)
         for key in EDITOR_KEYS:
             if key not in document and key in original:
                 document[key] = original[key]

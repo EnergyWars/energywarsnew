@@ -26,8 +26,8 @@ class PatcherTest(unittest.TestCase):
         document = edited(lambda d: building(d, "zapper").update(tracks=[track for track in building(d, "zapper")["tracks"] if track != "armor"]))
         patched = patch_config(self.text, document)
         self.assertIn('"tracks": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_RANGE, TRACK_CRIT, TRACK_EFFICIENCY, TRACK_CAPACITY, TRACK_TRANSFER, TRACK_HULL]},', patched)
-        self.assertEqual(self.text.count("TRACK_HULL, TRACK_ARMOR]"), 7)
-        self.assertEqual(patched.count("TRACK_HULL, TRACK_ARMOR]"), 6)
+        self.assertEqual(self.text.count("TRACK_HULL, TRACK_ARMOR]"), 17)
+        self.assertEqual(patched.count("TRACK_HULL, TRACK_ARMOR]"), 16)
 
     def test_energy_and_growth_constants(self):
         document = edited(lambda d: (d["tracks"]["overclock"].update(energy=1.5), d["system"].update(track_growth=1.2)))

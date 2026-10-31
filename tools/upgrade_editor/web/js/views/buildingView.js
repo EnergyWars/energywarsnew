@@ -1,7 +1,7 @@
 import { h } from "../dom.js";
 import { t, gameName } from "../i18n.js";
 import { number, compact, signedPercent, LENGTH_STATS, cellSize, toCells, fromCells } from "../format.js";
-import { effectAt, maxLevel, costs, levelCost, totalCost, benefitTotal, snapshotLevels, deriveRowsFromBase } from "../formulas.js";
+import { effectAt, maxLevel, costs, levelCost, totalCost, benefitTotal, snapshotLevels, deriveRowsFromBase, startValue } from "../formulas.js";
 import { planEditor } from "./planEditor.js";
 import { numberField, chart, flipSeries, sectionHeading, isCollapsed, toggleKey, searchSelect } from "./components.js";
 import { pruneItem } from "../groups.js";
@@ -65,6 +65,7 @@ function statsCard(ctx, entry) {
       numberField(t("field.cost"), entry.cost, (v) => ctx.store.set(`${base}.cost`, v), { integer: true, min: 0, desc: t("desc.cost") }),
       numberField(t("field.upgradeBase"), entry.upgrade_base, (v) => ctx.store.set(`${base}.upgrade_base`, v), { integer: true, min: 1, hint: t("hint.upgradeBase"), desc: t("desc.upgradeBase") }),
       numberField(t("field.hp"), entry.hp, (v) => ctx.store.set(`${base}.hp`, v), { min: 1, desc: t("desc.hp") }),
+      numberField(t("field.armor"), entry.armor ?? 0, (v) => ctx.store.set(`${base}.armor`, v), { min: 0, desc: t("desc.armor") }),
       flat.map(([key, value]) => field(key, value))),
     nested.map(([group, fields]) => h("div", { class: "subgroup" },
       h("h4", {}, t(`section.${group}`)),
@@ -110,7 +111,7 @@ export function chartSeries(rows) {
 function trackDetail(ctx, entry, track, index) {
   const { doc, store } = ctx;
   const max = maxLevel(doc, entry, track);
-  const rows = deriveRowsFromBase(entry, snapshotLevels(doc, entry, track));
+  const rows = deriveRowsFromBase(entry, snapshotLevels(doc, entry, track), startValue(doc, entry, track));
   return h("div", { class: "track-detail" },
     chart(chartSeries(rows), { hidden: ctx.view.hidden, onToggle: (key, solo) => toggleSeries(ctx, key, solo), detail: (index) => detailPairs(rows[index], ctx.view.hidden) }),
     h("dl", { class: "stats" },

@@ -42,11 +42,12 @@ func test_track_values() -> void:
 func test_armour_track_shows_the_armour_and_its_reduction() -> void:
 	var zapper := _building(GameConfig.ZAPPER)
 	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), StatText.armor_value(Formulas.armor(zapper)))
-	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), "6 (−6%)")
-	assert_eq(StatText.next_value(zapper, GameConfig.TRACK_ARMOR), "7 (−6%)")
+	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), "0 (−0%)")
 	assert_eq(zapper.level(GameConfig.TRACK_ARMOR), 0)
+	zapper.set_level(GameConfig.TRACK_ARMOR, 3)
+	assert_eq(StatText.next_value(zapper, GameConfig.TRACK_ARMOR), "6 (−6%)")
 	zapper.set_level(GameConfig.TRACK_ARMOR, 20)
-	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), "24 (−19%)")
+	assert_eq(StatText.track_value(zapper, GameConfig.TRACK_ARMOR), "30 (−23%)")
 
 
 func test_armor_value_rounds_armour_and_reduction() -> void:
@@ -194,6 +195,11 @@ func test_stats_show_armor_with_its_reduction() -> void:
 	var solar := Building.new(2, GameConfig.SOLAR, Vector2.ZERO)
 	for row in StatText.stats(solar, state):
 		assert_ne(row[0], "STAT_ARMOR")
+	solar.set_level(GameConfig.TRACK_ARMOR, 2)
+	var shown := false
+	for row in StatText.stats(solar, state):
+		shown = shown or row[0] == "STAT_ARMOR"
+	assert_true(shown)
 
 
 func test_stats_show_the_upgraded_armour() -> void:
@@ -205,4 +211,4 @@ func test_stats_show_the_upgraded_armour() -> void:
 		if row[0] == "STAT_ARMOR":
 			shown = row[1]
 	assert_eq(shown, StatText.armor_value(Formulas.armor(bastion)))
-	assert_eq(shown, "125 (−56%)")
+	assert_eq(shown, "15 (−13%)")

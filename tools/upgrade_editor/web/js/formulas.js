@@ -1,9 +1,10 @@
-import { compute, ExpressionError } from "./expr.js";
+import { compute } from "./expr.js";
 
 export const DEFAULT_GROWTH = 1.18;
 export const MAX_LEVELS = 200;
-export const COST_VARIABLES = ["level", "base", "build", "max", "growth", "value"];
-export const EFFECT_VARIABLES = ["level", "max", "base", "build", "value"];
+export const FORMULA_TARGETS = ["value", "efficiency", "totalEfficiency", "factor"];
+export const COST_VARIABLES = ["level", "base", "build", "max", "growth", "start"];
+export const TARGET_VARIABLES = ["level", "max", "base", "build", "growth", "start", "cost"];
 
 export function trackConfig(doc, entry, track) {
   return entry.curves?.[track] ?? doc.tracks[track];
@@ -70,29 +71,41 @@ export function usage(doc, track) {
   return doc.buildings.filter((entry) => entry.tracks.includes(track)).map((entry) => entry.id);
 }
 
+export function startValue(doc, entry, track) {
+  return track ? gainBase(doc, entry, track) ?? 1 : 1;
+}
+
 export function scopeFor(doc, entry, max, level, track = null) {
-  const scope = { level, base: entry.upgrade_base, build: entry.cost, max, growth: doc.system.track_growth };
-  const value = track ? gainBase(doc, entry, track) : null;
-  if (value !== null) scope.value = value;
-  return scope;
+  return { level, base: entry.upgrade_base, build: entry.cost, max, growth: doc.system.track_growth, start: startValue(doc, entry, track) };
+}
+
+export function gainFor(target, amount, row) {
+  const { start, cost, effectBefore, spent, reference } = row;
+  if (target === "value") return amount / start;
+  if (target === "efficiency") return (amount * cost) / reference;
+  if (target === "totalEfficiency") return (amount * spent) / reference - effectBefore;
+  if (target === "factor") return (amount - 1) * effectBefore;
+  throw Object.assign(new Error("TARGET"), { code: "TARGET" });
 }
 
 export function buildFormulaLevels(doc, entry, plan, track = null) {
   const max = plan.max;
   if (!Number.isInteger(max) || max < 1 || max > MAX_LEVELS) throw Object.assign(new Error("MAX"), { code: "MAX" });
-  const divisor = plan.absolute ? gainBase(doc, entry, track) : 1;
-  if (divisor === null) throw new ExpressionError("VARIABLE", "value");
-  const scope = (level) => scopeFor(doc, entry, max, level, track);
-  const gainFormula = String(plan.gain ?? "").trim();
-  const effectAt = (level) => compute(plan.effect, scope(level)) / divisor;
-  const gainAt = (level, before) => (gainFormula ? compute(gainFormula, scope(level + 1)) / divisor : effectAt(level + 1) - before);
+  const target = plan.target ?? FORMULA_TARGETS[0];
+  if (!FORMULA_TARGETS.includes(target)) throw Object.assign(new Error("TARGET"), { code: "TARGET" });
+  const start = startValue(doc, entry, track);
+  const reference = referenceCost(entry) > 0 ? referenceCost(entry) : 1;
   const levels = [];
-  let previous = gainFormula ? 0 : effectAt(0);
-  for (let level = 0; level < max; level += 1) {
-    const cost = Math.max(Math.round(compute(plan.cost, scope(level))), 1);
-    const gain = gainAt(level, previous);
-    levels.push({ cost, gain: roundTo(gain) });
-    previous += gain;
+  let effect = 1;
+  let spent = purchasePrice(entry);
+  for (let index = 0; index < max; index += 1) {
+    const scope = scopeFor(doc, entry, max, index + 1, track);
+    const cost = Math.max(Math.round(compute(plan.cost, scope)), 1);
+    spent += cost;
+    const amount = compute(plan.formula, { ...scope, cost });
+    const gain = roundTo(gainFor(target, amount, { start, cost, effectBefore: effect, spent, reference }));
+    levels.push({ cost, gain });
+    effect += gain;
   }
   return levels;
 }
@@ -117,7 +130,7 @@ export function referenceCost(entry) {
   return entry.cost > 0 ? entry.cost : entry.upgrade_base;
 }
 
-export function deriveRows(entry, levels) {
+export function deriveRows(entry, levels, start = 1) {
   const build = referenceCost(entry);
   const purchase = purchasePrice(entry);
   let upgrades = 0;
@@ -130,6 +143,10 @@ export function deriveRows(entry, levels) {
     return {
       level: index + 1,
       cost: level.cost,
+      value: level.gain * start,
+      efficiency: build > 0 ? (level.gain * build) / level.cost : null,
+      totalEfficiency: build > 0 && purchase + upgrades > 0 ? (effect * build) / (purchase + upgrades) : null,
+      factor: effect / before,
       costFactor: known ? level.cost / build : null,
       spent: purchase + upgrades,
       spentFactor: known ? (purchase + upgrades) / build : null,
@@ -147,12 +164,16 @@ export function levelFactors(doc, entry, track) {
   return deriveRows(entry, snapshotLevels(doc, entry, track)).map(({ single, total }) => ({ single, total }));
 }
 
-export function baseRow(entry) {
+export function baseRow(entry, start = 1) {
   const build = referenceCost(entry);
   const purchase = purchasePrice(entry);
   return {
     level: 0,
     cost: null,
+    value: null,
+    efficiency: null,
+    totalEfficiency: build > 0 && purchase > 0 ? build / purchase : null,
+    factor: null,
     costFactor: null,
     spent: purchase,
     spentFactor: build > 0 ? purchase / build : null,
@@ -165,13 +186,13 @@ export function baseRow(entry) {
   };
 }
 
-export function deriveRowsFromBase(entry, levels) {
-  return [baseRow(entry), ...deriveRows(entry, levels)];
+export function deriveRowsFromBase(entry, levels, start = 1) {
+  return [baseRow(entry, start), ...deriveRows(entry, levels, start)];
 }
 
-export const EDITABLE_FIELDS = ["cost", "costFactor", "spent", "spentFactor", "gain", "effect", "totalEffect", "single", "total", "unitCost"];
+export const EDITABLE_FIELDS = ["cost", "value", "efficiency", "totalEfficiency", "factor", "costFactor", "spent", "spentFactor", "gain", "effect", "totalEffect", "single", "total", "unitCost"];
 
-export function editLevel(entry, levels, index, field, value) {
+export function editLevel(entry, levels, index, field, value, start = 1) {
   const next = levels.map((level) => ({ ...level }));
   if (!Number.isFinite(value) || !next[index] || !EDITABLE_FIELDS.includes(field)) return next;
   const build = referenceCost(entry);
@@ -190,7 +211,10 @@ export function editLevel(entry, levels, index, field, value) {
     total: () => (value > 0 && build > 0 && effectAfter > 0 ? costOf(build * (effectAfter / (value / 100) - 1) - upgradesBefore) : null),
     unitCost: () => (value > 0 && level.gain > 0 && effectBefore > 0 ? costOf(value * ((level.gain / effectBefore) * 100)) : null),
   };
-  if (field === "gain") level.gain = roundTo(value);
+  if (FORMULA_TARGETS.includes(field)) {
+    const spent = purchase + upgradesBefore + level.cost;
+    level.gain = roundTo(gainFor(field, value, { start, cost: level.cost, effectBefore, spent, reference: build > 0 ? build : 1 }));
+  } else if (field === "gain") level.gain = roundTo(value);
   else if (field === "effect") level.gain = roundTo(value - effectBefore);
   else if (field === "totalEffect") level.gain = roundTo(value / 100 + 1 - effectBefore);
   else {
@@ -205,9 +229,11 @@ export function writeLevels(entry, track, levels) {
   entry.plans[track] = { mode: "table", levels };
 }
 
+const DEFAULT_ARMOR_UNIT = 10;
+
 const GAIN_BASES = {
   hull: (entry) => ({ value: entry.hp }),
-  armor: (entry) => ({ value: entry.armor }),
+  armor: (entry, doc) => ({ value: doc?.system?.armor_unit ?? DEFAULT_ARMOR_UNIT }),
   output: (entry) => ({ value: entry.stats.output }),
   capacity: (entry) => ({ value: entry.stats.capacity }),
   rate: (entry) => ({ value: entry.stats.export ?? entry.stats.rate }),
@@ -223,7 +249,7 @@ const GAIN_BASES = {
 
 export function gainBase(doc, entry, track) {
   const find = GAIN_BASES[track];
-  const base = find ? find(entry) : null;
+  const base = find ? find(entry, doc) : null;
   if (!base || !Number.isFinite(base.value) || base.value <= 0) return null;
   const cell = doc?.system?.cell ?? 56;
   return base.length ? base.value / cell : base.value;

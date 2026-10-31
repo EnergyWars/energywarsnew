@@ -76,14 +76,25 @@ class StatsTest(unittest.TestCase):
         self.assertEqual(codes(edited(lambda d: building(d, "solar")["stats"].update(radius=30))), set())
 
 
-class HistoryTest(unittest.TestCase):
-    def test_valid_history(self):
-        self.assertEqual(codes(edited(lambda d: d.update(formula_history={"cost": ["base * level"], "effect": []}))), set())
+def saved(name="A", formula="base * level", description="", **extra):
+    return {"name": name, "formula": formula, "description": description, **extra}
+
+
+class SavedFormulasTest(unittest.TestCase):
+    def test_valid_saved_formulas(self):
+        value = {"cost": [saved(description="lang")], "metric": [saved("B", "level", target="efficiency")]}
+        self.assertEqual(codes(edited(lambda d: d.update(saved_formulas=value))), set())
         self.assertEqual(codes(edited(lambda d: None)), set())
 
-    def test_invalid_history(self):
-        for history in ([], {"other": []}, {"cost": "x"}, {"cost": [""]}, {"cost": [1]}, {"cost": ["a", "a"]}, {"cost": ["a"] * 2}, {"cost": [str(i) for i in range(31)]}, {"effect": ["x" * 501]}):
-            self.assertIn("HISTORY", codes(edited(lambda d, h=history: d.update(formula_history=h))), str(history))
+    def test_invalid_saved_formulas(self):
+        too_many = [saved(f"n{i}") for i in range(51)]
+        cases = ([], {"other": []}, {"cost": "x"}, {"cost": ["x"]}, {"cost": [saved(name="  ")]}, {"cost": [saved(name="n" * 61)]},
+                 {"cost": [saved(formula="")]}, {"cost": [saved(formula="please read the keys")]}, {"cost": [saved(formula="1" * 501)]},
+                 {"cost": [saved(description="d" * 1001)]}, {"cost": [saved("a"), saved(" A ")]}, {"cost": too_many},
+                 {"cost": [saved(target="value")]}, {"metric": [saved()]}, {"metric": [saved(target="other")]}, {"cost": [{"name": "a", "formula": "1"}]},
+                 {"cost": [saved(name=1)]})
+        for value in cases:
+            self.assertIn("SAVED_FORMULAS", codes(edited(lambda d, v=value: d.update(saved_formulas=v))), str(value))
 
 
 def formula_plan(**changes):

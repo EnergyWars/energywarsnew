@@ -73,12 +73,12 @@ func test_building_armor_override_changes_tank_value() -> void:
 	assert_eq(Formulas.armor(relay), float(GameConfig.building("relay").armor))
 
 
-func test_building_armor_override_is_scaled_by_the_armour_track() -> void:
+func test_building_armor_override_is_raised_by_the_armour_track() -> void:
 	ContentOverrides.set_data({"buildings": {"zapper": {"armor": 20.0}}})
 	var zapper := Building.new(1, "zapper", Vector2.ZERO)
 	zapper.set_level(GameConfig.TRACK_ARMOR, 2)
 	assert_eq(Formulas.base_armor(zapper), 20.0)
-	assert_almost_eq(Formulas.armor(zapper), 20.0 * (1.0 + 2.0 * float(GameConfig.TRACKS[GameConfig.TRACK_ARMOR].step)), 0.0001)
+	assert_almost_eq(Formulas.armor(zapper), 20.0 + GameConfig.ARMOR_UNIT * 2.0 * float(GameConfig.TRACKS[GameConfig.TRACK_ARMOR].step), 0.0001)
 
 
 func test_levels_convert_vectors() -> void:

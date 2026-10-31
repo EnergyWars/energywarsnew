@@ -7,9 +7,12 @@ const TRANSLATIONS_CSV := "res://i18n/translations.csv"
 const TEXT_PREFIXES: Array[String] = ["BUILDING_", "TRACK_", "BUILD_CATEGORY_", "ENEMY_"]
 const OVERRIDES := "res://data/upgrade_overrides.json"
 const VECTOR_STEP := 0.000001
-const HISTORY_KINDS: Array[String] = ["cost", "effect"]
-const HISTORY_LIMIT := 30
-const HISTORY_TEXT_LIMIT := 500
+const SAVED_KINDS: Array[String] = ["cost", "metric"]
+const SAVED_LIMIT := 50
+const SAVED_NAME_LIMIT := 60
+const SAVED_DESCRIPTION_LIMIT := 1000
+const FORMULA_TEXT_LIMIT := 500
+const FORMULA_TARGETS: Array[String] = ["value", "efficiency", "totalEfficiency", "factor"]
 const STAT_SKIP: Array[String] = ["team", "cells", "cost", "hp", "upgrade_base", "armor"]
 
 
@@ -28,7 +31,7 @@ func _initialize() -> void:
 		costs[kind] = _costs(kind)
 	var document := {
 		"schema": SCHEMA,
-		"system": {"track_growth": GameConfig.TRACK_GROWTH, "cell": GameConfig.CELL},
+		"system": {"track_growth": GameConfig.TRACK_GROWTH, "cell": GameConfig.CELL, "armor_unit": GameConfig.ARMOR_UNIT},
 		"tracks": GameConfig.TRACKS.duplicate(true),
 		"buildings": buildings,
 		"categories": GameConfig.BUILD_CATEGORIES.duplicate(true),
@@ -42,7 +45,7 @@ func _initialize() -> void:
 	document["routes"] = _routes(document["levels"].size())
 	document["defaults"] = _defaults()
 	_keep_groups(document, previous)
-	_keep_history(document, previous)
+	_keep_saved_formulas(document, previous)
 	var file := FileAccess.open(OUTPUT, FileAccess.WRITE)
 	file.store_string(JSON.stringify(document, "\t", false))
 	file.close()
@@ -125,21 +128,47 @@ func _keep_groups(document: Dictionary, previous: Dictionary) -> void:
 	document["groups"] = kept
 
 
-func _keep_history(document: Dictionary, previous: Dictionary) -> void:
-	var history: Variant = previous.get("formula_history")
-	if not history is Dictionary:
+func _keep_saved_formulas(document: Dictionary, previous: Dictionary) -> void:
+	var saved: Variant = previous.get("saved_formulas")
+	if not saved is Dictionary:
 		return
 	var kept := {}
-	for kind: String in HISTORY_KINDS:
-		var items: Variant = history.get(kind)
+	for kind: String in SAVED_KINDS:
+		var items: Variant = saved.get(kind)
 		if not items is Array:
 			continue
 		var list: Array = []
+		var names := {}
 		for item: Variant in items:
-			if item is String and not item.strip_edges().is_empty() and item.length() <= HISTORY_TEXT_LIMIT and not list.has(item) and list.size() < HISTORY_LIMIT:
-				list.append(item)
+			var entry := _saved_entry(kind, item)
+			if entry.is_empty() or list.size() >= SAVED_LIMIT:
+				continue
+			var key: String = String(entry["name"]).to_lower()
+			if names.has(key):
+				continue
+			names[key] = true
+			list.append(entry)
 		kept[kind] = list
-	document["formula_history"] = kept
+	document["saved_formulas"] = kept
+
+
+func _saved_entry(kind: String, item: Variant) -> Dictionary:
+	if not item is Dictionary:
+		return {}
+	var name: Variant = item.get("name")
+	var formula: Variant = item.get("formula")
+	var description: Variant = item.get("description")
+	if not name is String or not formula is String or not description is String:
+		return {}
+	var label: String = name.strip_edges()
+	if label.is_empty() or label.length() > SAVED_NAME_LIMIT or formula.strip_edges().is_empty() or formula.length() > FORMULA_TEXT_LIMIT or description.length() > SAVED_DESCRIPTION_LIMIT:
+		return {}
+	if kind == "cost":
+		return {"name": label, "formula": formula, "description": description}
+	var target: Variant = item.get("target")
+	if not target is String or not FORMULA_TARGETS.has(target):
+		return {}
+	return {"name": label, "formula": formula, "description": description, "target": target}
 
 
 func _known_items(items: Variant, known: Dictionary) -> Array:

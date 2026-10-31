@@ -64,15 +64,14 @@ func test_every_player_building_can_upgrade_its_health() -> void:
 			assert_true(GameConfig.building(kind).tracks.has(GameConfig.TRACK_HULL), kind)
 
 
-func test_every_tower_can_upgrade_its_armour() -> void:
-	var armored: Array[String] = [GameConfig.ZAPPER, GameConfig.LASER, GameConfig.TESLA, GameConfig.PLASMA, GameConfig.HEALER, GameConfig.ROVER, GameConfig.BASTION]
+func test_every_player_building_can_upgrade_its_armour() -> void:
 	for kind: String in GameConfig.BUILDINGS:
-		var tracks: Array = GameConfig.building(kind).get("tracks", [])
-		assert_eq(tracks.has(GameConfig.TRACK_ARMOR), armored.has(kind), kind)
-		if GameConfig.is_tower(kind):
-			assert_true(armored.has(kind), kind)
-	for kind in armored:
-		assert_gt(float(GameConfig.building(kind).armor), 0.0, kind)
+		if int(GameConfig.BUILDINGS[kind].team) != GameConfig.TEAM_PLAYER:
+			continue
+		assert_true(GameConfig.building(kind).tracks.has(GameConfig.TRACK_ARMOR), kind)
+		var expected := 3.0 if kind == GameConfig.BULWARK else 0.0
+		assert_eq(float(GameConfig.building(kind).armor), expected, kind)
+	assert_gt(GameConfig.ARMOR_UNIT, 0.0)
 	var config: Dictionary = GameConfig.TRACKS[GameConfig.TRACK_ARMOR]
 	assert_gt(int(config.max), 0)
 	assert_gt(float(config.step), 0.0)

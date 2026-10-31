@@ -62,7 +62,7 @@ Auswahlen mit mehr als vier Einträgen nutzen `searchSelect` (Dropdown mit Suchf
 Pro Gebäude und Pfad (Zahnrad in der Upgrade-Zeile) wählbar:
 
 - **Parameter:** wie bisher Stufen, Zuwachs, Preisfaktor, Wachstum (geteilte Pfade wirken auf alle Gebäude).
-- **Formel:** Kostenformel (Kosten von Stufe `level` auf `level + 1`) und Nutzenformel (Wirkung auf Stufe `level`, Stufe 0 = Ausgangswert) als mathematischer Ausdruck. Variablen `level`, `base` (Upgrade-Basis), `build` (Baukosten), `max`, `growth`; Operatoren `+ - * / ^`, Klammern, Funktionen `min max abs sqrt exp ln log log10 floor ceil round pow sign`, Konstanten `pi e`. Der Parser (`web/js/expr.js`) ist ein eigener Rekursiv-Abstiegs-Parser ohne `eval`.
+- **Formel:** Kostenformel und eine zweite Formel, für die man den Wert (Wert, Effizienz, Gesamteffizienz, Faktor) wählt; beide gelten pro Zeile (`level` = Nummer des Upgrades ab 1) als mathematischer Ausdruck. Variablen `level`, `base` (Upgrade-Basis), `build` (Baukosten), `max`, `growth`, `start` (Startwert des Pfads), in der zweiten Formel zusätzlich `cost`; Operatoren `+ - * / ^`, Klammern, Funktionen `min max abs sqrt exp ln log log10 floor ceil round pow sign`, Konstanten `pi e`. Der Parser (`web/js/expr.js`) ist ein eigener Rekursiv-Abstiegs-Parser ohne `eval`.
 - **Tabelle:** Kosten und Wertzuwachs jeder Stufe frei setzen; Stufen lassen sich anhängen und entfernen.
 
 Beim Wechsel bleiben die aktuellen Werte erhalten. Formel und Tabelle werden als Stufenliste gespeichert (`plans` im Dokument) und beim Übernehmen nach `data/upgrade_overrides.json` geschrieben, die das Spiel beim Start liest (`UpgradeOverrides`); Pfade im Parameter-Modus bleiben in `game_config.gd`.

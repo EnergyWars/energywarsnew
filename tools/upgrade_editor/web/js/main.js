@@ -12,7 +12,7 @@ import { monstersView } from "./views/monstersView.js";
 import { balanceView } from "./views/balanceView.js";
 
 const TABS = ["buildings", "overview", "tracks", "levels", "monsters", "balance", "changes"];
-const view = { tab: "buildings", building: null, category: "all", open: new Set(), drafts: {}, tools: {}, hidden: new Set(), collapsed: new Set(), gainModes: {}, planErrors: {}, sort: { key: "benefit", direction: "desc" }, errors: [] };
+const view = { tab: "buildings", building: null, category: "all", open: new Set(), drafts: {}, tools: {}, hidden: new Set(), collapsed: new Set(), planErrors: {}, sort: { key: "benefit", direction: "desc" }, errors: [] };
 let store;
 let names = {};
 

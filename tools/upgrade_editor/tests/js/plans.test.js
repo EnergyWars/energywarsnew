@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { game, fresh, find } from "./data.js";
-import { effectAt, maxLevel, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf } from "../../web/js/formulas.js";
-import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, toolOf, rememberFormula, forgetFormula, formulaHistory, HISTORY_LIMIT, TIP_VARIABLES, variableTip } from "../../web/js/views/planEditor.js";
+import { effectAt, maxLevel, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf, startValue } from "../../web/js/formulas.js";
+import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, toolOf, savedFormulas, saveFormula, deleteSavedFormula, SAVED_LIMIT, SAVED_NAME_LIMIT, SAVED_DESCRIPTION_LIMIT, TIP_VARIABLES, variableTip } from "../../web/js/views/planEditor.js";
 import { draftKey, pendingLevels, applyLevels } from "../../web/js/views/valueTable.js";
-import { COST_VARIABLES, EFFECT_VARIABLES } from "../../web/js/formulas.js";
+import { COST_VARIABLES, TARGET_VARIABLES } from "../../web/js/formulas.js";
 import { ExpressionError } from "../../web/js/expr.js";
 import { create } from "../../web/js/store.js";
 
@@ -25,29 +25,53 @@ test("tracks without a plan derive their table from the parameters", () => {
 test("formula levels use variables and floor the cost at one", () => {
   const doc = fresh();
   const solar = find(doc, "solar");
-  const levels = buildFormulaLevels(doc, solar, { max: 3, cost: "base * (level + 1)", effect: "1 + 0.5 * level" });
+  const levels = buildFormulaLevels(doc, solar, { max: 3, cost: "base * level", target: "value", formula: "start * 0.5" }, "output");
   assert.deepEqual(levels.map((level) => level.cost), [40, 80, 120]);
   assert.deepEqual(levels.map((level) => level.gain), [0.5, 0.5, 0.5]);
-  assert.equal(buildFormulaLevels(doc, solar, { max: 1, cost: "0", effect: "level" })[0].cost, 1);
+  assert.equal(buildFormulaLevels(doc, solar, { max: 1, cost: "0", target: "value", formula: "0" }, "output")[0].cost, 1);
 });
 
-test("an effect that does not start at one is normalised to a gain", () => {
+test("every target turns the row formula into the gain of the upgrade", () => {
   const doc = fresh();
   const solar = find(doc, "solar");
-  solar.plans = { output: { mode: "table", levels: buildFormulaLevels(doc, solar, { max: 2, cost: "5", effect: "10 + level" }) } };
-  assert.equal(effectAt(solar, "output", 0, doc), 1);
-  assert.equal(effectAt(solar, "output", 2, doc), 3);
+  const start = startValue(doc, solar, "output");
+  const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-5, `${actual} vs ${expected}`);
+  const value = buildFormulaLevels(doc, solar, { max: 2, cost: "10", target: "value", formula: "level * start" }, "output");
+  near(value[0].gain, 1);
+  near(value[1].gain, 2);
+  const efficiency = buildFormulaLevels(doc, solar, { max: 2, cost: "10 * level", target: "efficiency", formula: "1" }, "output");
+  near(efficiency[0].gain, 10 / solar.cost);
+  near(efficiency[1].gain, 20 / solar.cost);
+  const bulwark = find(doc, "bulwark");
+  const hull = buildFormulaLevels(doc, bulwark, { max: 1, cost: "build * 2 ^ level", target: "efficiency", formula: "(70 + abs(floor(abs(6.5 - level))) * 10) / 100" }, "hull");
+  near(hull[0].gain * 1600, 3840);
+  const total = buildFormulaLevels(doc, solar, { max: 2, cost: "10", target: "totalEfficiency", formula: "1" }, "output");
+  near(total[0].gain, (solar.cost + 10) / solar.cost - 1);
+  near(total[1].gain, 10 / solar.cost);
+  const factor = buildFormulaLevels(doc, solar, { max: 3, cost: "10", target: "factor", formula: "2" }, "output");
+  assert.deepEqual(factor.map((level) => level.gain), [1, 2, 4]);
+});
+
+test("the cost of the row is available in the second formula and start falls back to one", () => {
+  const doc = fresh();
+  const solar = find(doc, "solar");
+  assert.equal(startValue(doc, solar, "links"), 1);
+  const levels = buildFormulaLevels(doc, solar, { max: 2, cost: "7 * level", target: "value", formula: "cost / 7" }, "links");
+  assert.deepEqual(levels.map((level) => level.gain), [1, 2]);
+  assert.equal(startValue(doc, find(doc, "bulwark"), "hull"), 1600);
 });
 
 test("formula errors are thrown and described", () => {
   const solar = find(fresh(), "solar");
-  assert.throws(() => buildFormulaLevels(game, solar, { max: 2, cost: "1 +", effect: "1" }), ExpressionError);
-  assert.throws(() => buildFormulaLevels(game, solar, { max: 0, cost: "1", effect: "1" }), (error) => error.code === "MAX");
-  assert.throws(() => buildFormulaLevels(game, solar, { max: 500, cost: "1", effect: "1" }), (error) => error.code === "MAX");
+  assert.throws(() => buildFormulaLevels(game, solar, { max: 2, cost: "1 +", target: "value", formula: "1" }), ExpressionError);
+  assert.throws(() => buildFormulaLevels(game, solar, { max: 0, cost: "1", target: "value", formula: "1" }), (error) => error.code === "MAX");
+  assert.throws(() => buildFormulaLevels(game, solar, { max: 500, cost: "1", target: "value", formula: "1" }), (error) => error.code === "MAX");
   assert.throws(() => describeError(new Error("boom")), /boom/);
   assert.ok(describeError(new ExpressionError("EMPTY")));
   assert.ok(describeError(Object.assign(new Error("MAX"), { code: "MAX" })));
   assert.ok(describeError(Object.assign(new Error("PARAM"), { code: "PARAM" })));
+  assert.ok(describeError(Object.assign(new Error("TARGET"), { code: "TARGET" })));
+  assert.throws(() => buildFormulaLevels(game, solar, { max: 2, cost: "1", target: "nothing", formula: "1" }), (error) => error.code === "TARGET");
 });
 
 test("table plans drive cost, benefit and totals", () => {
@@ -69,9 +93,10 @@ test("snapshot covers every level and default formulas mirror the parameters", (
   const relay = find(doc, "relay");
   assert.equal(snapshotLevels(doc, relay, "range").length, 15);
   const formulas = defaultFormulas(doc, relay, "range");
-  assert.match(formulas.cost, /^base \* 0\.3 \* 1\.18\^level$/);
-  assert.match(formulas.effect, /^1 \+ 0\.04 \* level$/);
-  assert.match(defaultFormulas(doc, find(doc, "bulwark"), "hull").effect, /\(1\.85\^level - 1\)/);
+  assert.match(formulas.cost, /^base \* 0\.3 \* 1\.18\^\(level - 1\)$/);
+  assert.match(formulas.formula, /^start \* 0\.04$/);
+  assert.equal(formulas.target, "value");
+  assert.match(defaultFormulas(doc, find(doc, "bulwark"), "hull").formula, /1\.85\^\(level - 1\)/);
 });
 
 test("parameter levels reproduce the game curves for every upgrade", () => {
@@ -91,7 +116,10 @@ test("parameter levels reproduce the game curves for every upgrade", () => {
 test("default formulas reproduce the game curves too", () => {
   const solar = find(game, "solar");
   const defaults = formulaDefaults(game, solar, "output");
-  assert.deepEqual(buildFormulaLevels(game, solar, defaults).map((level) => level.cost), snapshotLevels(game, solar, "output").map((level) => level.cost));
+  const built = buildFormulaLevels(game, solar, defaults, "output");
+  const snapshot = snapshotLevels(game, solar, "output");
+  assert.deepEqual(built.map((level) => level.cost), snapshot.map((level) => level.cost));
+  built.forEach((level, index) => assert.ok(Math.abs(level.gain - snapshot[index].gain) < 1e-5, `level ${index + 1}`));
 });
 
 test("parameter keys depend on the curve type and invalid parameters are rejected", () => {
@@ -111,18 +139,20 @@ test("parameter keys depend on the curve type and invalid parameters are rejecte
   assert.throws(() => paramLevels(game, bulwark, { ...curved, gain: 0 }), (error) => error.code === "PARAM");
 });
 
-test("legacy formula plans provide their formulas as defaults", () => {
+test("formula defaults carry the stored limits and a value target", () => {
   const doc = fresh();
   const solar = find(doc, "solar");
-  solar.plans = { output: { mode: "formula", max: 2, cost: "base", effect: "1 + level", levels: [{ cost: 40, gain: 1 }, { cost: 40, gain: 1 }] } };
-  assert.deepEqual(formulaDefaults(doc, solar, "output"), { max: 2, cost: "base", effect: "1 + level" });
+  const defaults = formulaDefaults(doc, solar, "output");
+  assert.deepEqual(Object.keys(defaults).sort(), ["cost", "formula", "max", "target"]);
+  assert.equal(defaults.target, "value");
+  assert.equal(defaults.max, maxLevel(doc, solar, "output"));
 });
 
 test("the formula tool fills the table and applies it at once in one undo step", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
   ctx.view.drafts["solar:output:f:cost"] = "base * 3";
-  ctx.view.drafts["solar:output:f:effect"] = "1 + level";
+  ctx.view.drafts["solar:output:f:formula"] = "start";
   ctx.view.drafts["solar:output:f:max"] = 4;
   fillFromFormula(ctx, solar, "output");
   assert.equal(pendingLevels(ctx, solar, "output"), null);
@@ -130,12 +160,9 @@ test("the formula tool fills the table and applies it at once in one undo step",
   assert.equal(plan.mode, "table");
   assert.deepEqual(plan.levels.map((level) => level.cost), [120, 120, 120, 120]);
   assert.deepEqual(plan.levels.map((level) => level.gain), [1, 1, 1, 1]);
-  assert.deepEqual(formulaHistory(ctx.doc, "cost"), ["base * 3"]);
-  assert.deepEqual(formulaHistory(ctx.doc, "effect"), ["1 + level"]);
   assert.equal(ctx.store.state.past.length, 1);
   ctx.store.undo();
   assert.equal(planOf(find(ctx.doc, "solar"), "output"), null);
-  assert.deepEqual(formulaHistory(ctx.doc, "cost"), []);
 });
 
 test("filling replaces a pending table draft instead of keeping it", () => {
@@ -168,11 +195,10 @@ test("invalid tool inputs report an error and change nothing", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
   const before = JSON.stringify(ctx.doc.buildings);
-  ctx.view.drafts["solar:output:f:effect"] = "1 +";
+  ctx.view.drafts["solar:output:f:formula"] = "1 +";
   fillFromFormula(ctx, solar, "output");
   assert.ok(ctx.view.planErrors["solar:output:fill"]);
   assert.equal(JSON.stringify(ctx.doc.buildings), before);
-  assert.deepEqual(formulaHistory(ctx.doc, "effect"), []);
   ctx.view.drafts["solar:output:p:price"] = 0;
   fillFromParams(ctx, solar, "output");
   assert.ok(ctx.view.planErrors["solar:output:fill"]);
@@ -202,52 +228,39 @@ test("applied formulas are remembered, newest first, without duplicates", () => 
   assert.deepEqual(formulaHistory(doc, "cost"), ["base * 2", "base * 3"]);
 });
 
-test("history entries can be deleted and the list is capped", () => {
+test("named formulas are saved with description and target, replaced by name and deleted", () => {
   const doc = fresh();
-  rememberFormula(doc, "cost", "a");
-  rememberFormula(doc, "cost", "b");
-  rememberFormula(doc, "cost", "   ");
-  forgetFormula(doc, "cost", "a");
-  assert.deepEqual(formulaHistory(doc, "cost"), ["b"]);
-  forgetFormula(doc, "effect", "x");
-  forgetFormula(doc, "cost", "missing");
-  for (let index = 0; index < HISTORY_LIMIT + 5; index += 1) rememberFormula(doc, "effect", `1 + ${index}`);
-  assert.equal(formulaHistory(doc, "effect").length, HISTORY_LIMIT);
-  assert.equal(formulaHistory(doc, "effect")[0], `1 + ${HISTORY_LIMIT + 4}`);
+  assert.deepEqual(savedFormulas(doc, "cost"), []);
+  assert.equal(saveFormula(doc, "cost", { name: "  Doppelt ", formula: " build * 2 ^ level ", description: " teuer " }), true);
+  assert.deepEqual(savedFormulas(doc, "cost"), [{ name: "Doppelt", formula: "build * 2 ^ level", description: "teuer" }]);
+  assert.equal(saveFormula(doc, "metric", { name: "Welle", formula: "level", description: "", target: "efficiency" }), true);
+  assert.deepEqual(savedFormulas(doc, "metric"), [{ name: "Welle", formula: "level", description: "", target: "efficiency" }]);
+  assert.equal(saveFormula(doc, "cost", { name: "doppelt", formula: "base", description: "neu" }), true);
+  assert.deepEqual(savedFormulas(doc, "cost").map((item) => [item.name, item.formula]), [["doppelt", "base"]]);
+  assert.equal(saveFormula(doc, "cost", { name: "   ", formula: "base" }), false);
+  assert.equal(saveFormula(doc, "cost", { name: "x", formula: "  " }), false);
+  deleteSavedFormula(doc, "metric", "Welle");
+  deleteSavedFormula(doc, "metric", "unknown");
+  deleteSavedFormula(doc, "other", "x");
+  assert.deepEqual(savedFormulas(doc, "metric"), []);
+  assert.equal(savedFormulas(doc, "cost").length, 1);
+});
+
+test("saved formulas are limited in number, name and description", () => {
+  const doc = fresh();
+  for (let index = 0; index < SAVED_LIMIT; index += 1) assert.equal(saveFormula(doc, "cost", { name: `f${index}`, formula: "1" }), true);
+  assert.equal(saveFormula(doc, "cost", { name: "one too many", formula: "1" }), false);
+  assert.equal(saveFormula(doc, "cost", { name: "f0", formula: "2" }), true);
+  assert.equal(savedFormulas(doc, "cost").length, SAVED_LIMIT);
+  const other = fresh();
+  saveFormula(other, "cost", { name: "n".repeat(SAVED_NAME_LIMIT + 20), formula: "1", description: "d".repeat(SAVED_DESCRIPTION_LIMIT + 20) });
+  assert.equal(savedFormulas(other, "cost")[0].name.length, SAVED_NAME_LIMIT);
+  assert.equal(savedFormulas(other, "cost")[0].description.length, SAVED_DESCRIPTION_LIMIT);
 });
 
 test("the variable tooltip lists every formula variable with an explanation", () => {
   const lines = variableTip().split("\n");
   assert.equal(lines.length, TIP_VARIABLES.length);
   for (const [index, name] of TIP_VARIABLES.entries()) assert.ok(lines[index].startsWith(`${name} – `) && lines[index].length > name.length + 4);
-  for (const name of [...COST_VARIABLES, ...EFFECT_VARIABLES]) assert.ok(TIP_VARIABLES.includes(name), name);
-});
-
-test("the value variable and the absolute mode turn real values into factors", () => {
-  const doc = fresh();
-  const bulwark = find(doc, "bulwark");
-  const factor = buildFormulaLevels(doc, bulwark, { max: 3, cost: "build", effect: "1 + 3 * level / 1600" }, "hull");
-  const absolute = buildFormulaLevels(doc, bulwark, { max: 3, cost: "build", effect: "1600 + 3 * level", absolute: true }, "hull");
-  assert.deepEqual(absolute, factor);
-  const byValue = buildFormulaLevels(doc, bulwark, { max: 3, cost: "value / 400", effect: "1 + 3 * level / value" }, "hull");
-  assert.deepEqual(byValue.map((level) => level.cost), [4, 4, 4]);
-  assert.deepEqual(byValue.map((level) => level.gain), factor.map((level) => level.gain));
-});
-
-test("value is unknown without a base value", () => {
-  const doc = fresh();
-  const solar = find(doc, "solar");
-  assert.throws(() => buildFormulaLevels(doc, solar, { max: 2, cost: "1", effect: "value" }), (error) => error.code === "VARIABLE");
-  assert.throws(() => buildFormulaLevels(doc, solar, { max: 2, cost: "1", effect: "level", absolute: true }, "does-not-exist"), (error) => error.code === "VARIABLE");
-});
-
-test("a gain formula sets the gain of every upgrade directly", () => {
-  const doc = fresh();
-  const solar = find(doc, "solar");
-  const levels = buildFormulaLevels(doc, solar, { max: 12, cost: "1", effect: "", gain: "abs(floor(abs(6.5 - level)))" });
-  assert.deepEqual(levels.map((entry) => entry.gain), [5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5]);
-  const bulwark = find(doc, "bulwark");
-  const absolute = buildFormulaLevels(doc, bulwark, { max: 2, cost: "1", effect: "", gain: "160 * level", absolute: true }, "hull");
-  assert.deepEqual(absolute.map((entry) => entry.gain), [0.1, 0.2]);
-  assert.deepEqual(buildFormulaLevels(doc, solar, { max: 2, cost: "1", effect: "1 + level", gain: "   " }).map((entry) => entry.gain), [1, 1]);
+  for (const name of [...COST_VARIABLES, ...TARGET_VARIABLES]) assert.ok(TIP_VARIABLES.includes(name), name);
 });

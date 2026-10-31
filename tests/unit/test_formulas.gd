@@ -272,13 +272,16 @@ func test_track_config_prefers_kind_curves() -> void:
 	assert_eq(Formulas.multiplier(_building(GameConfig.BULWARK), GameConfig.TRACK_HULL), 1.0)
 
 
-func test_armour_track_scales_the_base_armour() -> void:
+func test_armour_track_adds_to_the_base_armour() -> void:
 	var zapper := _building(GameConfig.ZAPPER)
 	var base := float(GameConfig.building(GameConfig.ZAPPER).armor)
+	var wall := _building(GameConfig.BULWARK)
+	wall.set_level(GameConfig.TRACK_ARMOR, 2)
+	assert_almost_eq(Formulas.armor(wall), 3.0 + GameConfig.ARMOR_UNIT * 2.0 * float(GameConfig.TRACKS[GameConfig.TRACK_ARMOR].step), 0.0001)
 	assert_eq(Formulas.base_armor(zapper), base)
 	assert_eq(Formulas.armor(zapper), base)
 	zapper.set_level(GameConfig.TRACK_ARMOR, 4)
-	assert_almost_eq(Formulas.armor(zapper), base * (1.0 + 4.0 * float(GameConfig.TRACKS[GameConfig.TRACK_ARMOR].step)), 0.0001)
+	assert_almost_eq(Formulas.armor(zapper), base + GameConfig.ARMOR_UNIT * 4.0 * float(GameConfig.TRACKS[GameConfig.TRACK_ARMOR].step), 0.0001)
 	assert_eq(Formulas.base_armor(zapper), base)
 	zapper.levels = {}
 	assert_eq(Formulas.armor(zapper), base)

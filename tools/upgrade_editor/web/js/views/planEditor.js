@@ -1,46 +1,55 @@
 import { h } from "../dom.js";
 import { t } from "../i18n.js";
 import { number } from "../format.js";
-import { trackConfig, planOf, maxLevel, buildFormulaLevels, multiplier, roundTo, writeLevels, COST_VARIABLES, EFFECT_VARIABLES, MAX_LEVELS, gainBase } from "../formulas.js";
+import { trackConfig, planOf, maxLevel, buildFormulaLevels, multiplier, roundTo, writeLevels, COST_VARIABLES, TARGET_VARIABLES, FORMULA_TARGETS, MAX_LEVELS } from "../formulas.js";
 import { ExpressionError } from "../expr.js";
-import { numberField, searchSelect } from "./components.js";
+import { numberField } from "./components.js";
 import { draftKey } from "./valueTable.js";
 
 const TOOLS = ["params", "formula", "table"];
-export const HISTORY_LIMIT = 30;
-export const FORMULA_KINDS = ["cost", "effect"];
+export const SAVED_LIMIT = 50;
+export const SAVED_NAME_LIMIT = 60;
+export const SAVED_DESCRIPTION_LIMIT = 1000;
+export const SAVED_KINDS = ["cost", "metric"];
 
-export function formulaHistory(doc, kind) {
-  return doc.formula_history?.[kind] ?? [];
+export function savedFormulas(doc, kind) {
+  return doc.saved_formulas?.[kind] ?? [];
 }
 
-export function rememberFormula(doc, kind, text) {
-  const value = String(text).trim();
-  if (!value) return;
-  doc.formula_history ??= {};
-  const rest = formulaHistory(doc, kind).filter((item) => item !== value);
-  doc.formula_history[kind] = [value, ...rest].slice(0, HISTORY_LIMIT);
+export function saveFormula(doc, kind, { name, formula, description = "", target = null }) {
+  const label = String(name).trim().slice(0, SAVED_NAME_LIMIT);
+  const text = String(formula).trim();
+  if (!label || !text) return false;
+  const entry = { name: label, formula: text, description: String(description).trim().slice(0, SAVED_DESCRIPTION_LIMIT) };
+  if (kind === "metric") entry.target = target;
+  const list = [...savedFormulas(doc, kind)];
+  const index = list.findIndex((item) => item.name.toLowerCase() === label.toLowerCase());
+  if (index >= 0) list[index] = entry;
+  else if (list.length >= SAVED_LIMIT) return false;
+  else list.push(entry);
+  doc.saved_formulas ??= {};
+  doc.saved_formulas[kind] = list;
+  return true;
 }
 
-export function forgetFormula(doc, kind, text) {
-  if (!doc.formula_history?.[kind]) return;
-  doc.formula_history[kind] = doc.formula_history[kind].filter((item) => item !== text);
+export function deleteSavedFormula(doc, kind, name) {
+  if (!doc.saved_formulas?.[kind]) return;
+  doc.saved_formulas[kind] = doc.saved_formulas[kind].filter((item) => item.name !== name);
 }
 
 export function defaultFormulas(doc, entry, track) {
   const config = trackConfig(doc, entry, track);
   const growth = config.growth ?? doc.system.track_growth;
-  const cost = `base * ${number(config.price, 6)} * ${number(growth, 6)}^level`;
-  const effect = config.gain !== undefined
-    ? `1 + ${number(config.gain, 6)} * (${number(config.gain_growth, 6)}^level - 1) / (${number(config.gain_growth, 6)} - 1)`
-    : `1 + ${number(config.step, 6)} * level`;
-  return { cost, effect };
+  const cost = `base * ${number(config.price, 6)} * ${number(growth, 6)}^(level - 1)`;
+  const formula = config.gain !== undefined
+    ? `start * ${number(config.gain, 6)} * ${number(config.gain_growth, 6)}^(level - 1)`
+    : `start * ${number(config.step, 6)}`;
+  return { cost, formula, target: FORMULA_TARGETS[0] };
 }
 
 export function formulaDefaults(doc, entry, track) {
-  const plan = planOf(entry, track);
   const fallback = defaultFormulas(doc, entry, track);
-  return { max: maxLevel(doc, entry, track), cost: plan?.cost ?? fallback.cost, effect: plan?.effect ?? fallback.effect, gain: "", absolute: false };
+  return { max: maxLevel(doc, entry, track), ...fallback };
 }
 
 export function paramDefaults(doc, entry, track) {
@@ -76,6 +85,7 @@ export function describeError(error) {
   if (error instanceof ExpressionError) return t(`expr.${error.code}`, { detail: error.detail });
   if (error.code === "MAX") return t("expr.MAX", { limit: MAX_LEVELS });
   if (error.code === "PARAM") return t("error.PARAM");
+  if (error.code === "TARGET") return t("error.TARGET");
   throw error;
 }
 
@@ -135,10 +145,7 @@ export function fillFromFormula(ctx, entry, track) {
     report(ctx, entry, track, error);
     return;
   }
-  commitLevels(ctx, entry, track, levels, (doc) => {
-    rememberFormula(doc, "cost", inputs.cost);
-    rememberFormula(doc, "effect", inputs.effect);
-  });
+  commitLevels(ctx, entry, track, levels);
 }
 
 function toolSwitch(ctx, entry, track) {
@@ -162,45 +169,95 @@ function fillRow(ctx, entry, track, action) {
     error ? h("span", { class: "field-error", role: "alert" }, error) : null);
 }
 
-function textField(ctx, entry, track, key, label, desc) {
+function textField(ctx, entry, track, key, label, desc, kind) {
   const name = `f:${key}`;
-  const pickKey = `${inputKey(entry, track, name)}:pick`;
   const input = h("input", { type: "text", value: formulaInputs(ctx, entry, track)[key], spellcheck: false, autocomplete: "off" });
   input.addEventListener("input", () => {
     ctx.view.drafts[inputKey(entry, track, name)] = input.value;
-    delete ctx.view.drafts[pickKey];
   });
   return h("div", { class: "field wide" },
     h("label", { class: "field" }, h("span", {}, label), input),
     h("small", { class: "field-desc" }, desc),
-    historyPicker(ctx, key, pickKey, (text) => {
-      ctx.view.drafts[inputKey(entry, track, name)] = text;
-      ctx.render();
-    }));
+    savedControls(ctx, entry, track, kind));
 }
 
-function historyPicker(ctx, kind, pickKey, commit) {
-  const items = formulaHistory(ctx.doc, kind);
-  const picked = items.includes(ctx.view.drafts[pickKey]) ? ctx.view.drafts[pickKey] : "";
-  const select = searchSelect({
-    options: items.map((item) => ({ value: item, label: item })),
-    value: picked || null,
-    label: t("plan.history"),
-    prompt: t("plan.historyPick", { count: items.length }),
-    disabled: items.length === 0,
-    onChange: (value) => {
-      ctx.view.drafts[pickKey] = value;
-      commit(value);
-    },
+function savedState(ctx, entry, track, kind) {
+  return ctx.view.drafts[inputKey(entry, track, `s:${kind}`)] ?? "";
+}
+
+function setSavedState(ctx, entry, track, kind, state) {
+  const key = inputKey(entry, track, `s:${kind}`);
+  if (state) ctx.view.drafts[key] = state;
+  else delete ctx.view.drafts[key];
+  ctx.render();
+}
+
+function currentFormula(ctx, entry, track, kind) {
+  const inputs = formulaInputs(ctx, entry, track);
+  return kind === "metric" ? { formula: inputs.formula, target: inputs.target } : { formula: inputs.cost };
+}
+
+function applySaved(ctx, entry, track, kind, item) {
+  const drafts = ctx.view.drafts;
+  if (kind === "metric") {
+    drafts[inputKey(entry, track, "f:formula")] = item.formula;
+    drafts[inputKey(entry, track, "f:target")] = item.target;
+  } else {
+    drafts[inputKey(entry, track, "f:cost")] = item.formula;
+  }
+  setSavedState(ctx, entry, track, kind, "");
+}
+
+function savedControls(ctx, entry, track, kind) {
+  const state = savedState(ctx, entry, track, kind);
+  const saved = savedFormulas(ctx.doc, kind);
+  const buttons = h("div", { class: "saved-row" },
+    h("button", { type: "button", "aria-pressed": String(state === "naming"), onclick: () => setSavedState(ctx, entry, track, kind, state === "naming" ? "" : "naming") }, t("plan.saveFormula")),
+    h("button", { type: "button", "aria-pressed": String(state === "listing"), onclick: () => setSavedState(ctx, entry, track, kind, state === "listing" ? "" : "listing") }, t("plan.applySaved")));
+  if (state === "naming") return h("div", { class: "saved" }, buttons, namingForm(ctx, entry, track, kind));
+  if (state === "listing") return h("div", { class: "saved" }, buttons, savedList(ctx, entry, track, kind, saved));
+  return h("div", { class: "saved" }, buttons);
+}
+
+function namingForm(ctx, entry, track, kind) {
+  const name = h("input", { type: "text", maxlength: SAVED_NAME_LIMIT, placeholder: t("plan.saveName"), "aria-label": t("plan.saveName"), autocomplete: "off" });
+  const description = h("textarea", { rows: 4, maxlength: SAVED_DESCRIPTION_LIMIT, placeholder: t("plan.saveDescription"), "aria-label": t("plan.saveDescription") });
+  const error = h("span", { class: "field-error", role: "alert" });
+  const save = () => {
+    let done = false;
+    ctx.store.update((doc) => {
+      done = saveFormula(doc, kind, { name: name.value, description: description.value, ...currentFormula(ctx, entry, track, kind) });
+    });
+    if (done) setSavedState(ctx, entry, track, kind, "");
+    else error.textContent = t("plan.saveFailed");
+  };
+  name.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") save();
   });
-  const remove = h("button", { class: "danger", disabled: !picked, title: t("plan.historyDelete"), onclick: () => {
-    delete ctx.view.drafts[pickKey];
-    ctx.store.update((doc) => forgetFormula(doc, kind, picked));
-  } }, t("plan.historyDelete"));
-  return h("div", { class: "history-row" }, select, remove);
+  return h("div", { class: "saved-form" },
+    h("label", { class: "field" }, h("span", {}, t("plan.saveName")), name),
+    h("label", { class: "field" }, h("span", {}, t("plan.saveDescription")), description),
+    h("small", { class: "field-desc" }, t(kind === "metric" ? "plan.saveHintMetric" : "plan.saveHintCost")),
+    h("div", { class: "saved-row" },
+      h("button", { type: "button", class: "primary", onclick: save }, t("plan.saveConfirm")),
+      h("button", { type: "button", onclick: () => setSavedState(ctx, entry, track, kind, "") }, t("plan.saveCancel")),
+      error));
 }
 
-export const TIP_VARIABLES = ["level", "base", "build", "max", "growth", "value", "pi", "e"];
+function savedList(ctx, entry, track, kind, saved) {
+  if (saved.length === 0) return h("p", { class: "note" }, t("plan.savedNone"));
+  return h("ul", { class: "saved-list" }, saved.map((item) => h("li", {},
+    h("div", { class: "saved-head" },
+      h("strong", {}, item.name),
+      kind === "metric" ? h("span", { class: "note" }, t(`values.col.${item.target}`)) : null),
+    h("code", {}, item.formula),
+    item.description ? h("p", { class: "saved-description" }, item.description) : null,
+    h("div", { class: "saved-row" },
+      h("button", { type: "button", class: "primary", onclick: () => applySaved(ctx, entry, track, kind, item) }, t("plan.savedApply")),
+      h("button", { type: "button", class: "danger", onclick: () => ctx.store.update((doc) => deleteSavedFormula(doc, kind, item.name)) }, t("plan.savedDelete"))))));
+}
+
+export const TIP_VARIABLES = ["level", "base", "build", "max", "growth", "start", "cost", "pi", "e"];
 
 export function variableTip() {
   return TIP_VARIABLES.map((name) => `${name} – ${t(`plan.var.${name}`)}`).join("\n");
@@ -210,17 +267,18 @@ function variableHelp() {
   return h("span", { class: "variable-help multiline", tabindex: "0", "data-tip": variableTip() }, t("plan.variablesHelp"));
 }
 
-function absoluteToggle(ctx, entry, track) {
-  const name = inputKey(entry, track, "f:absolute");
-  const available = gainBase(ctx.doc, entry, track) !== null;
-  const input = h("input", { type: "checkbox", checked: available && formulaInputs(ctx, entry, track).absolute === true, disabled: !available });
-  input.addEventListener("change", () => {
-    ctx.view.drafts[name] = input.checked;
+function targetSelect(ctx, entry, track) {
+  const name = inputKey(entry, track, "f:target");
+  const current = formulaInputs(ctx, entry, track).target;
+  const select = h("select", { "aria-label": t("plan.target") },
+    FORMULA_TARGETS.map((key) => h("option", { value: key, selected: key === current }, t(`values.col.${key}`))));
+  select.addEventListener("change", () => {
+    ctx.view.drafts[name] = select.value;
     ctx.render();
   });
   return h("div", { class: "field wide" },
-    h("label", { class: "field inline" }, input, h("span", {}, t("plan.absolute"))),
-    h("small", { class: "field-desc" }, t(available ? "desc.absolute" : "desc.absoluteNone")));
+    h("label", { class: "field" }, h("span", {}, t("plan.target")), select),
+    h("small", { class: "field-desc" }, t(`desc.target.${current}`)));
 }
 
 function formulaTool(ctx, entry, track) {
@@ -230,13 +288,12 @@ function formulaTool(ctx, entry, track) {
       ctx.view.drafts[inputKey(entry, track, "f:max")] = value;
       ctx.render();
     }, { integer: true, min: 1, desc: t("desc.max") }),
-    textField(ctx, entry, track, "cost", t("plan.costFormula"), t("desc.costFormula")),
-    textField(ctx, entry, track, "effect", t("plan.effectFormula"), t("desc.effectFormula")),
-    textField(ctx, entry, track, "gain", t("plan.gainFormula"), t("desc.gainFormula")),
-    absoluteToggle(ctx, entry, track),
+    textField(ctx, entry, track, "cost", t("plan.costFormula"), t("desc.costFormula"), "cost"),
+    targetSelect(ctx, entry, track),
+    textField(ctx, entry, track, "formula", t("plan.targetFormula"), t("desc.targetFormula"), "metric"),
     fillRow(ctx, entry, track, () => fillFromFormula(ctx, entry, track)),
     h("p", { class: "note" }, t("plan.variablesCost", { names: COST_VARIABLES.join(", ") })),
-    h("p", { class: "note" }, t("plan.variablesEffect", { names: EFFECT_VARIABLES.join(", ") })),
+    h("p", { class: "note" }, t("plan.variablesEffect", { names: TARGET_VARIABLES.join(", ") })),
     h("p", { class: "note" }, t("plan.functions")));
 }
 

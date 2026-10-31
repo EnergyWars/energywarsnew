@@ -4,9 +4,12 @@ from .expr import is_formula
 SCHEMA = 1
 MAX_LEVELS = 200
 PLAN_MODES = ("formula", "table")
-HISTORY_KINDS = ("cost", "effect")
-HISTORY_LIMIT = 30
-HISTORY_TEXT_LIMIT = 500
+SAVED_KINDS = ("cost", "metric")
+SAVED_LIMIT = 50
+SAVED_NAME_LIMIT = 60
+SAVED_DESCRIPTION_LIMIT = 1000
+FORMULA_TEXT_LIMIT = 500
+FORMULA_TARGETS = ("value", "efficiency", "totalEfficiency", "factor")
 TRACK_KEYS = ("max", "step", "price", "growth", "energy")
 CURVE_KEYS = ("max", "gain", "gain_growth", "price", "growth")
 PLAN_KEYS = ("mode", "levels", "max", "cost", "effect")
@@ -63,7 +66,7 @@ def validate(document, original):
     growth = document.get("system", {}).get("track_growth")
     if not _is_number(growth) or growth <= 1:
         errors.append(_error("GROWTH", "system.track_growth"))
-    _check_history(document.get("formula_history", {}), errors)
+    _check_saved_formulas(document.get("saved_formulas", {}), errors)
     tracks = document.get("tracks")
     if not isinstance(tracks, dict) or set(tracks) != set(original["tracks"]):
         errors.append(_error("TRACK_SET", "tracks"))
@@ -158,19 +161,42 @@ def _check_groups(groups, known, errors):
     _check_group_names(groups, "groups", errors)
 
 
-def _check_history(history, errors):
-    if not isinstance(history, dict) or set(history) - set(HISTORY_KINDS):
-        errors.append(_error("HISTORY", "formula_history"))
+def _check_saved_formulas(saved, errors):
+    if not isinstance(saved, dict) or set(saved) - set(SAVED_KINDS):
+        errors.append(_error("SAVED_FORMULAS", "saved_formulas"))
         return
-    for kind, items in history.items():
-        valid = (
-            isinstance(items, list)
-            and len(items) <= HISTORY_LIMIT
-            and all(isinstance(item, str) and len(item) <= HISTORY_TEXT_LIMIT and is_formula(item) for item in items)
-            and len(set(items)) == len(items)
-        )
-        if not valid:
-            errors.append(_error("HISTORY", f"formula_history.{kind}"))
+    for kind, items in saved.items():
+        if not _valid_saved_list(kind, items):
+            errors.append(_error("SAVED_FORMULAS", f"saved_formulas.{kind}"))
+
+
+def _valid_saved_list(kind, items):
+    if not isinstance(items, list) or len(items) > SAVED_LIMIT:
+        return False
+    names = set()
+    for item in items:
+        if not _valid_saved_formula(kind, item):
+            return False
+        key = item["name"].strip().lower()
+        if key in names:
+            return False
+        names.add(key)
+    return True
+
+
+def _valid_saved_formula(kind, item):
+    keys = {"name", "formula", "description"} | ({"target"} if kind == "metric" else set())
+    if not isinstance(item, dict) or set(item) != keys:
+        return False
+    name, formula, description = item["name"], item["formula"], item["description"]
+    texts = isinstance(name, str) and isinstance(formula, str) and isinstance(description, str)
+    return (
+        texts
+        and 0 < len(name.strip()) and len(name) <= SAVED_NAME_LIMIT
+        and 0 < len(formula) <= FORMULA_TEXT_LIMIT and is_formula(formula)
+        and len(description) <= SAVED_DESCRIPTION_LIMIT
+        and (kind == "cost" or item["target"] in FORMULA_TARGETS)
+    )
 
 
 def _check_building(entry, source, tracks, errors):
@@ -240,7 +266,7 @@ def _check_plans(plans, listed, path, errors):
                 errors.append(_error("PLAN_LEVELS", f"{where}.levels.{index}"))
         if plan["mode"] == "formula":
             for key in ("cost", "effect"):
-                if not isinstance(plan.get(key), str) or len(plan[key]) > HISTORY_TEXT_LIMIT or not is_formula(plan[key]):
+                if not isinstance(plan.get(key), str) or len(plan[key]) > FORMULA_TEXT_LIMIT or not is_formula(plan[key]):
                     errors.append(_error("PLAN_FORMULA", f"{where}.{key}"))
             if plan.get("max") != len(levels):
                 errors.append(_error("PLAN_FORMULA", f"{where}.max"))

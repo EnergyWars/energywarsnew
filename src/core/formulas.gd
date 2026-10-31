@@ -27,7 +27,7 @@ static func compute_stats(building: Building) -> PackedFloat64Array:
 		stats[Stat.COOLDOWN] = base_cooldown
 	stats[Stat.SHOT_ENERGY] = float(attack(building).get("energy", 0.0)) * overclock_energy(building) / efficiency(building)
 	stats[Stat.MAX_HP] = float(building.definition().get("hp", 1.0)) * multiplier(building, GameConfig.TRACK_HULL) * building.boost(GameConfig.BOOST_HP)
-	stats[Stat.ARMOR] = base_armor(building) * multiplier(building, GameConfig.TRACK_ARMOR)
+	stats[Stat.ARMOR] = base_armor(building) + GameConfig.ARMOR_UNIT * (multiplier(building, GameConfig.TRACK_ARMOR) - 1.0)
 	return stats
 
 

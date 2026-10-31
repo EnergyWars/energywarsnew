@@ -4,7 +4,7 @@ import { game, fresh, find } from "./data.js";
 import { installFakeDom } from "./fakeDom.js";
 import { create } from "../../web/js/store.js";
 import { searchSelect, choiceSelect, choiceField, usesSearch, NATIVE_SELECT_LIMIT } from "../../web/js/views/components.js";
-import { rememberFormula, planEditor } from "../../web/js/views/planEditor.js";
+import { saveFormula, savedFormulas, planEditor } from "../../web/js/views/planEditor.js";
 
 installFakeDom();
 
@@ -59,25 +59,56 @@ test("a prompt is shown until something is picked", () => {
   assert.ok(combos(plain)[0].text().includes("v9"));
 });
 
-test("the formula history is a searchable dropdown that fills the input and can delete entries", () => {
+test("saved formulas use buttons instead of dropdowns: apply, save with a description and delete", () => {
   const doc = fresh();
-  rememberFormula(doc, "cost", "base * 2");
-  rememberFormula(doc, "cost", "base * 3");
+  saveFormula(doc, "cost", { name: "Zwei", formula: "base * 2", description: "doppelt so teuer" });
+  saveFormula(doc, "metric", { name: "Eff", formula: "1.2", description: "", target: "efficiency" });
   const ctx = context(doc);
   const entry = find(ctx.doc, "zapper");
   ctx.view.tools["zapper:power:tool"] = "formula";
+  const press = (root, label, index = 0) => root.findAll((node) => node.tagName === "button" && node.text() === label)[index].dispatch("click");
   let root = planEditor(ctx, entry, "power");
-  assert.equal(root.findAll((node) => node.tagName === "select").length, 0);
-  const pickers = combos(root).filter((node) => node.attributes["aria-label"] === "plan.history");
-  assert.equal(pickers.length, 2);
-  assert.ok(pickers[1].disabled);
-  choose(pickers[0], "base * 2");
+  assert.equal(combos(root).length, 0);
+  assert.equal(root.findAll((node) => node.tagName === "button" && node.text() === "plan.applySaved").length, 2);
+  assert.equal(root.findAll((node) => node.tagName === "button" && node.text() === "plan.saveFormula").length, 2);
+  press(root, "plan.applySaved", 0);
+  root = planEditor(ctx, entry, "power");
+  assert.ok(root.text().includes("doppelt so teuer"));
+  press(root, "plan.savedApply");
   assert.equal(ctx.view.drafts["zapper:power:f:cost"], "base * 2");
   root = planEditor(ctx, entry, "power");
-  const remove = root.findAll((node) => node.tagName === "button" && node.text() === "plan.historyDelete" && !node.disabled);
-  assert.equal(remove.length, 1);
-  remove[0].dispatch("click");
-  assert.deepEqual(ctx.doc.formula_history.cost, ["base * 3"]);
+  assert.ok(!root.text().includes("doppelt so teuer"));
+  press(root, "plan.applySaved", 1);
+  root = planEditor(ctx, entry, "power");
+  press(root, "plan.savedApply");
+  assert.equal(ctx.view.drafts["zapper:power:f:formula"], "1.2");
+  assert.equal(ctx.view.drafts["zapper:power:f:target"], "efficiency");
+  press(root, "plan.saveFormula", 1);
+  root = planEditor(ctx, entry, "power");
+  const name = root.find((node) => node.attributes["aria-label"] === "plan.saveName");
+  const description = root.find((node) => node.attributes["aria-label"] === "plan.saveDescription");
+  name.value = "Meine Effizienz";
+  description.value = "Ausführlich";
+  press(root, "plan.saveConfirm");
+  assert.deepEqual(savedFormulas(ctx.doc, "metric").map((item) => [item.name, item.formula, item.description, item.target]), [["Eff", "1.2", "", "efficiency"], ["Meine Effizienz", "1.2", "Ausführlich", "efficiency"]]);
+  root = planEditor(ctx, entry, "power");
+  press(root, "plan.saveFormula", 0);
+  root = planEditor(ctx, entry, "power");
+  root.find((node) => node.attributes["aria-label"] === "plan.saveName").value = "   ";
+  press(root, "plan.saveConfirm");
+  assert.equal(savedFormulas(ctx.doc, "cost").length, 1);
+  root = planEditor(ctx, entry, "power");
+  assert.ok(root.findAll((node) => node.className === "field-error").some((node) => node.textContent === "plan.saveFailed"));
+  press(root, "plan.saveCancel");
+  root = planEditor(ctx, entry, "power");
+  press(root, "plan.applySaved", 0);
+  root = planEditor(ctx, entry, "power");
+  press(root, "plan.savedDelete");
+  assert.deepEqual(savedFormulas(ctx.doc, "cost"), []);
+  root = planEditor(ctx, entry, "power");
+  press(root, "plan.applySaved", 0);
+  root = planEditor(ctx, entry, "power");
+  assert.ok(root.text().includes("plan.savedNone"));
 });
 
 test("the monster look uses a search while small choices stay native", async () => {

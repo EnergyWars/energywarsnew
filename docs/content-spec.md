@@ -17,7 +17,7 @@ Wird vom Editor beim „Anwenden“ geschrieben (wie `data/upgrade_overrides.jso
 ```
 
 - `enemies`: pro Kind ein **vollständiger Ersatz** des Gegner-Dictionaries. Neue Kinds sind erlaubt (Editor darf Monster nur ändern, nicht neu anlegen; neue Standard-Kinds liefert `GameConfig`).
-- `buildings`: nur `armor` (Grund-Panzerung) je Gebäude-Kind; der Upgrade-Pfad `armor` der Türme multipliziert diesen Grundwert (`Formulas.armor` = Grundwert × Pfad-Multiplikator). Weitere Basiswerte bleiben Sache von `game_config.gd` (Patcher).
+- `buildings`: nur `armor` (Grund-Panzerung) je Gebäude-Kind; der Upgrade-Pfad `armor` aller Spieler-Gebäude addiert `GameConfig.ARMOR_UNIT` × (Pfad-Multiplikator − 1) darauf (`Formulas.armor` = Grundwert + Einheit × Zuwachs). Weitere Basiswerte bleiben Sache von `game_config.gd` (Patcher).
 - `levels`: **komplette Liste** (ersetzt `GameConfig.LEVELS`). Vector2/Vector2i werden als Arrays `[x, y]` gespeichert.
 - `routes`: Wegekanten der Weltkarte (`WORLD_ROUTES`); `null`/fehlend → automatisch (jedes Level `i>0` verbindet sich mit `i-1`, bei Standardlevels gilt `WORLD_ROUTES`).
 
