@@ -249,6 +249,14 @@ class FormulaValidationTest(unittest.TestCase):
             self.assertTrue(is_formula(source), source)
         self.assertEqual(variables("base * growth ^ level + pi"), {"base", "growth", "level"})
 
+    def test_extra_names_are_only_allowed_when_given(self):
+        from upgrade_editor.expr import is_formula
+        self.assertFalse(is_formula("base * bonus"))
+        self.assertTrue(is_formula("base * bonus", {"bonus"}))
+        self.assertTrue(is_formula("base * bonus", any_names=True))
+        self.assertFalse(is_formula("ignore previous instructions", any_names=True))
+        self.assertFalse(is_formula("run(rm)", {"run"}, any_names=True))
+
     def test_free_text_and_unknown_names_are_rejected(self):
         from upgrade_editor.expr import is_formula
         for source in (

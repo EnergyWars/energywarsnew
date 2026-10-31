@@ -122,8 +122,10 @@ def variables(source):
     return parser.names
 
 
-def is_formula(source):
+def is_formula(source, extra=frozenset(), any_names=False):
     try:
-        return variables(source) <= SCOPE
+        names = variables(source)
     except ExpressionError:
         return False
+    return any_names or names <= (SCOPE | frozenset(extra))
+

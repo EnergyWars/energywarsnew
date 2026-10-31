@@ -75,8 +75,14 @@ export function startValue(doc, entry, track) {
   return track ? gainBase(doc, entry, track) ?? 1 : 1;
 }
 
+export function baseValue(doc, entry, track) {
+  if (track === "armor") return Number.isFinite(entry.armor) ? entry.armor : 0;
+  return startValue(doc, entry, track);
+}
+
 export function scopeFor(doc, entry, max, level, track = null) {
-  return { level, base: entry.upgrade_base, build: entry.cost, max, growth: doc.system.track_growth, start: startValue(doc, entry, track) };
+  const custom = Object.fromEntries((Array.isArray(entry.variables) ? entry.variables : []).map((item) => [item.name, item.value]));
+  return { ...custom, level, base: entry.upgrade_base, build: entry.cost, max, growth: doc.system.track_growth, start: startValue(doc, entry, track) };
 }
 
 export function gainFor(target, amount, row) {
@@ -110,7 +116,7 @@ export function buildFormulaLevels(doc, entry, plan, track = null) {
   return levels;
 }
 
-export function roundTo(value, digits = 6) {
+export function roundTo(value, digits = 12) {
   return Math.round(value * 10 ** digits) / 10 ** digits;
 }
 
@@ -130,7 +136,7 @@ export function referenceCost(entry) {
   return entry.cost > 0 ? entry.cost : entry.upgrade_base;
 }
 
-export function deriveRows(entry, levels, start = 1) {
+export function deriveRows(entry, levels, start = 1, base = start) {
   const build = referenceCost(entry);
   const purchase = purchasePrice(entry);
   let upgrades = 0;
@@ -144,6 +150,7 @@ export function deriveRows(entry, levels, start = 1) {
       level: index + 1,
       cost: level.cost,
       value: level.gain * start,
+      totalValue: base + (effect - 1) * start,
       efficiency: build > 0 ? (level.gain * build) / level.cost : null,
       totalEfficiency: build > 0 && purchase + upgrades > 0 ? (effect * build) / (purchase + upgrades) : null,
       factor: effect / before,
@@ -164,13 +171,14 @@ export function levelFactors(doc, entry, track) {
   return deriveRows(entry, snapshotLevels(doc, entry, track)).map(({ single, total }) => ({ single, total }));
 }
 
-export function baseRow(entry, start = 1) {
+export function baseRow(entry, start = 1, base = start) {
   const build = referenceCost(entry);
   const purchase = purchasePrice(entry);
   return {
     level: 0,
     cost: null,
     value: null,
+    totalValue: base,
     efficiency: null,
     totalEfficiency: build > 0 && purchase > 0 ? build / purchase : null,
     factor: null,
@@ -186,13 +194,13 @@ export function baseRow(entry, start = 1) {
   };
 }
 
-export function deriveRowsFromBase(entry, levels, start = 1) {
-  return [baseRow(entry, start), ...deriveRows(entry, levels, start)];
+export function deriveRowsFromBase(entry, levels, start = 1, base = start) {
+  return [baseRow(entry, start, base), ...deriveRows(entry, levels, start, base)];
 }
 
-export const EDITABLE_FIELDS = ["cost", "value", "efficiency", "totalEfficiency", "factor", "costFactor", "spent", "spentFactor", "gain", "effect", "totalEffect", "single", "total", "unitCost"];
+export const EDITABLE_FIELDS = ["cost", "value", "totalValue", "efficiency", "totalEfficiency", "factor", "costFactor", "spent", "spentFactor", "gain", "effect", "totalEffect", "single", "total", "unitCost"];
 
-export function editLevel(entry, levels, index, field, value, start = 1) {
+export function editLevel(entry, levels, index, field, value, start = 1, base = start) {
   const next = levels.map((level) => ({ ...level }));
   if (!Number.isFinite(value) || !next[index] || !EDITABLE_FIELDS.includes(field)) return next;
   const build = referenceCost(entry);
@@ -211,7 +219,9 @@ export function editLevel(entry, levels, index, field, value, start = 1) {
     total: () => (value > 0 && build > 0 && effectAfter > 0 ? costOf(build * (effectAfter / (value / 100) - 1) - upgradesBefore) : null),
     unitCost: () => (value > 0 && level.gain > 0 && effectBefore > 0 ? costOf(value * ((level.gain / effectBefore) * 100)) : null),
   };
-  if (FORMULA_TARGETS.includes(field)) {
+  if (field === "totalValue") {
+    level.gain = roundTo((value - base) / start - (effectBefore - 1));
+  } else if (FORMULA_TARGETS.includes(field)) {
     const spent = purchase + upgradesBefore + level.cost;
     level.gain = roundTo(gainFor(field, value, { start, cost: level.cost, effectBefore, spent, reference: build > 0 ? build : 1 }));
   } else if (field === "gain") level.gain = roundTo(value);
@@ -224,9 +234,30 @@ export function editLevel(entry, levels, index, field, value, start = 1) {
   return next;
 }
 
-export function writeLevels(entry, track, levels) {
+export function writeLevels(entry, track, levels, source = null) {
   entry.plans = entry.plans ?? {};
-  entry.plans[track] = { mode: "table", levels };
+  const kept = source ?? entry.plans[track]?.source ?? null;
+  entry.plans[track] = kept ? { mode: "table", levels, source: kept } : { mode: "table", levels };
+}
+
+export function storedFormula(entry, track) {
+  return planOf(entry, track)?.source ?? null;
+}
+
+const SAME_GAIN = 1e-9;
+
+export function formulaState(doc, entry, track) {
+  const stored = storedFormula(entry, track);
+  if (!stored) return null;
+  let built;
+  try {
+    built = buildFormulaLevels(doc, entry, stored, track);
+  } catch {
+    return "modified";
+  }
+  const table = snapshotLevels(doc, entry, track);
+  const same = built.length === table.length && built.every((level, index) => level.cost === table[index].cost && Math.abs(level.gain - table[index].gain) <= SAME_GAIN);
+  return same ? "synced" : "modified";
 }
 
 const DEFAULT_ARMOR_UNIT = 10;

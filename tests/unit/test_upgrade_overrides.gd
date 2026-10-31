@@ -91,3 +91,37 @@ func test_shipped_file_is_valid_json() -> void:
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(UpgradeOverrides.PATH))
 	assert_true(parsed is Dictionary)
 	assert_eq(int(parsed.schema), 1)
+
+
+func test_layout_falls_back_to_the_default_and_is_sanitized() -> void:
+	assert_true(UpgradeOverrides.layout("solar").is_empty())
+	assert_eq(Formulas.track_layout("solar"), GameConfig.default_layout("solar"))
+	UpgradeOverrides.set_layouts({
+		"solar": [
+			{"title": "Mein Block", "tracks": ["hull", "output", "output", "nonsense", 5]},
+			{"title": 7, "tracks": ["capacity"]},
+			{"title": "Leer", "tracks": []},
+			"kaputt",
+		],
+		"ghost": [{"title": "x", "tracks": ["hull"]}],
+		"lamp": "no",
+		"zapper": [{"title": "x", "tracks": ["nonsense"]}],
+	})
+	var layout := Formulas.track_layout("solar")
+	assert_eq(layout.size(), 2)
+	assert_eq(layout[0], {"title": "Mein Block", "tracks": ["hull", "output"]})
+	var solar_tracks: Array = GameConfig.building("solar").tracks
+	var seen: Array = layout[0].tracks + layout[1].tracks
+	seen.sort()
+	var expected := solar_tracks.duplicate()
+	expected.sort()
+	assert_eq(seen, expected)
+	assert_eq(layout[1].title, "")
+	assert_eq(layout[1].tracks[0], "capacity")
+	assert_true(UpgradeOverrides.layout("ghost").is_empty())
+	assert_true(UpgradeOverrides.layout("lamp").is_empty())
+	assert_eq(Formulas.track_layout("zapper"), GameConfig.default_layout("zapper"))
+	UpgradeOverrides.set_layouts({"solar": [{"title": "t".repeat(100), "tracks": GameConfig.building("solar").tracks.duplicate()}]})
+	assert_eq(str(Formulas.track_layout("solar")[0].title).length(), UpgradeOverrides.MAX_TITLE)
+	UpgradeOverrides.set_layouts({})
+	assert_eq(Formulas.track_layout("solar"), GameConfig.default_layout("solar"))

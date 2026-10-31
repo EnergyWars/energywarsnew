@@ -4,6 +4,8 @@ const FUNCTIONS = {
   log: (value, base = Math.E) => Math.log(value) / Math.log(base),
 };
 const CONSTANTS = { pi: Math.PI, e: Math.E };
+export const FUNCTION_NAMES = Object.keys(FUNCTIONS);
+export const CONSTANT_NAMES = Object.keys(CONSTANTS);
 const MAX_LENGTH = 400;
 
 export class ExpressionError extends Error {

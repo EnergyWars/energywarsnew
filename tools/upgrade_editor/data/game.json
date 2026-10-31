@@ -121,7 +121,71 @@
 					"energy": 3.0,
 					"range": 220.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "bulwark",
@@ -155,7 +219,25 @@
 					"energy": 0.4
 				}
 			},
-			"cost_every": 6
+			"cost_every": 6,
+			"layout": [
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "solar",
@@ -181,7 +263,55 @@
 				"links": 1,
 				"range": 240.0,
 				"build_radius": 240.0
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "water",
@@ -207,7 +337,55 @@
 				"links": 1,
 				"range": 240.0,
 				"build_radius": 240.0
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "fire",
@@ -233,7 +411,55 @@
 				"links": 1,
 				"range": 240.0,
 				"build_radius": 200.0
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "relay",
@@ -260,7 +486,55 @@
 				"rate": 30.0,
 				"build_radius": 320.0,
 				"vision": 320.0
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "battery",
@@ -286,7 +560,55 @@
 				"range": 220.0,
 				"rate": 30.0,
 				"build_radius": 220.0
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "exporter",
@@ -309,7 +631,41 @@
 				"links": 0,
 				"build_radius": 160.0,
 				"export": 8.0
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "lamp",
@@ -331,7 +687,41 @@
 				"capacity": 40.0,
 				"links": 0,
 				"build_radius": 160.0
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "zapper",
@@ -364,7 +754,71 @@
 					"energy": 4.0,
 					"range": 230.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "laser",
@@ -394,7 +848,65 @@
 					"energy": 10.0,
 					"range": 270.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "healer",
@@ -425,7 +937,67 @@
 					"energy": 6.0,
 					"range": 230.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "bastion",
@@ -457,7 +1029,69 @@
 					"energy": 3.0,
 					"range": 240.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "rover",
@@ -494,7 +1128,71 @@
 					"energy": 3.0,
 					"range": 210.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "tesla",
@@ -529,7 +1227,73 @@
 					"range": 220.0,
 					"chain": 5
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"chain"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"chain"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "plasma",
@@ -565,7 +1329,73 @@
 					"min_range": 90.0,
 					"splash": 85.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"splash"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"splash"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "shield",
@@ -591,7 +1421,63 @@
 				"shield": {
 					"radius": 210.0
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		}
 	],
 	"categories": [
@@ -1293,6 +2179,22 @@
 		"ENEMY_PHANTOM_DESC": {
 			"en": "A night drone with a glowing core. It shoots from a distance and burns at dawn.",
 			"de": "Eine Nachtdrohne mit leuchtendem Kern. Sie schießt aus der Distanz und verbrennt bei Tagesanbruch."
+		},
+		"TRACKGROUP_ATTACK": {
+			"en": "Attack",
+			"de": "Angriff"
+		},
+		"TRACKGROUP_RANGE": {
+			"en": "Range",
+			"de": "Reichweite"
+		},
+		"TRACKGROUP_ENERGY": {
+			"en": "Energy",
+			"de": "Energie"
+		},
+		"TRACKGROUP_DEFENSE": {
+			"en": "Defense",
+			"de": "Verteidigung"
 		}
 	},
 	"check": {

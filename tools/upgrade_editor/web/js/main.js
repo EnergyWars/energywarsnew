@@ -9,9 +9,10 @@ import { overviewView } from "./views/overviewView.js";
 import { changesView, computeChanges } from "./views/changesView.js";
 import { levelsView } from "./views/levelsView.js";
 import { monstersView } from "./views/monstersView.js";
+import { formulasView } from "./views/formulasView.js";
 import { balanceView } from "./views/balanceView.js";
 
-const TABS = ["buildings", "overview", "tracks", "levels", "monsters", "balance", "changes"];
+const TABS = ["buildings", "overview", "tracks", "levels", "monsters", "balance", "formulas", "changes"];
 const view = { tab: "buildings", building: null, category: "all", open: new Set(), drafts: {}, tools: {}, hidden: new Set(), collapsed: new Set(), planErrors: {}, sort: { key: "benefit", direction: "desc" }, errors: [] };
 let store;
 let names = {};
@@ -86,6 +87,7 @@ function body() {
   if (view.tab === "levels") return levelsView(ctx);
   if (view.tab === "monsters") return monstersView(ctx);
   if (view.tab === "balance") return balanceView(ctx);
+  if (view.tab === "formulas") return formulasView(ctx);
   if (view.tab === "changes") return changesView(ctx);
   const entry = ctx.doc.buildings.find((item) => item.id === view.building) ?? ctx.doc.buildings[0];
   view.building = entry.id;

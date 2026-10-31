@@ -4,11 +4,10 @@ const SCHEMA := 1
 const CONTENT_OVERRIDES := "res://data/content_overrides.json"
 const OUTPUT := "res://tools/upgrade_editor/data/game.json"
 const TRANSLATIONS_CSV := "res://i18n/translations.csv"
-const TEXT_PREFIXES: Array[String] = ["BUILDING_", "TRACK_", "BUILD_CATEGORY_", "ENEMY_"]
+const TEXT_PREFIXES: Array[String] = ["BUILDING_", "TRACK_", "TRACKGROUP_", "BUILD_CATEGORY_", "ENEMY_"]
 const OVERRIDES := "res://data/upgrade_overrides.json"
 const VECTOR_STEP := 0.000001
 const SAVED_KINDS: Array[String] = ["cost", "metric"]
-const SAVED_LIMIT := 50
 const SAVED_NAME_LIMIT := 60
 const SAVED_DESCRIPTION_LIMIT := 1000
 const FORMULA_TEXT_LIMIT := 500
@@ -46,6 +45,8 @@ func _initialize() -> void:
 	document["defaults"] = _defaults()
 	_keep_groups(document, previous)
 	_keep_saved_formulas(document, previous)
+	_keep_plan_sources(document, previous)
+	_keep_variables(document, previous)
 	var file := FileAccess.open(OUTPUT, FileAccess.WRITE)
 	file.store_string(JSON.stringify(document, "\t", false))
 	file.close()
@@ -70,6 +71,8 @@ func _building(kind: String) -> Dictionary:
 		"armor": _building_armor(kind, definition),
 		"description_key": "BUILDING_%s_DESC" % kind.to_upper(),
 		"tracks": definition.get("tracks", []).duplicate(),
+		"layout": Formulas.track_layout(kind),
+		"default_layout": GameConfig.default_layout(kind),
 		"curves": definition.get("curves", {}).duplicate(true),
 		"stats": _stats(definition),
 	}
@@ -128,6 +131,30 @@ func _keep_groups(document: Dictionary, previous: Dictionary) -> void:
 	document["groups"] = kept
 
 
+func _keep_variables(document: Dictionary, previous: Dictionary) -> void:
+	var old := {}
+	for entry: Variant in previous.get("buildings", []):
+		if entry is Dictionary and entry.get("variables") is Array:
+			old[entry.get("id")] = entry["variables"]
+	for entry: Dictionary in document["buildings"]:
+		if old.has(entry["id"]):
+			entry["variables"] = old[entry["id"]]
+
+
+func _keep_plan_sources(document: Dictionary, previous: Dictionary) -> void:
+	var old := {}
+	for entry: Variant in previous.get("buildings", []):
+		if entry is Dictionary and entry.get("plans") is Dictionary:
+			old[entry.get("id")] = entry["plans"]
+	for entry: Dictionary in document["buildings"]:
+		var plans: Dictionary = entry.get("plans", {})
+		var before: Dictionary = old.get(entry["id"], {})
+		for track: String in plans:
+			var plan: Variant = before.get(track)
+			if plan is Dictionary and plan.get("source") is Dictionary:
+				plans[track]["source"] = plan["source"]
+
+
 func _keep_saved_formulas(document: Dictionary, previous: Dictionary) -> void:
 	var saved: Variant = previous.get("saved_formulas")
 	if not saved is Dictionary:
@@ -141,7 +168,7 @@ func _keep_saved_formulas(document: Dictionary, previous: Dictionary) -> void:
 		var names := {}
 		for item: Variant in items:
 			var entry := _saved_entry(kind, item)
-			if entry.is_empty() or list.size() >= SAVED_LIMIT:
+			if entry.is_empty():
 				continue
 			var key: String = String(entry["name"]).to_lower()
 			if names.has(key):

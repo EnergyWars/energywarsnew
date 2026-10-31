@@ -37,6 +37,10 @@ Drei Unterbereiche in `web/js/views/monstersView.js` (Zustand `view.monsterUi`, 
 - **Panzerung:** `armor.js` spiegelt `Formulas.armor_reduction`/`mitigate`; Konstante, Obergrenze, Mindestschaden, Beispiel, Kurve und die editierbare Panzerungs-Tabelle (Grundwerte) aller Gebäude (`buildings[*].armor`) und Monster (`enemies[*].armor`).
 - **Wellen & Tageszeiten:** nutzt `waveSettings`/`strengthPanel` aus `views/levelWaves.js` und `waves.js` (um `waveComposition`, `dayComposition`, `extraWavesAt` erweitert). Zusatz-Monster liegen am Level als optionales `extra_waves: [{day, night, kind, count}]` (Backend `content_model.py` Fehler `EXTRA_WAVE`, Spiel `Formulas.extra_waves`, `SpawnDirector.send_extras`, `ContentOverrides._extra_waves`).
 
+## Upgrade-Reihenfolge je Gebäude (`layout`)
+
+Jedes Gebäude hat `layout = [{title, tracks}]` (`entry.tracks` ist die Aneinanderreihung) und `default_layout` (nur lesend, Standard nach Anwendungsfall). Im Gebäude-Panel lassen sich Upgrades per Drag & Drop oder ↑/↓ verschieben, Zwischenüberschriften hinzufügen, benennen, verschieben und löschen. Abweichungen vom Standard landen beim Übernehmen als `layouts` in `data/upgrade_overrides.json` und erscheinen im Spiel. Prüfung: `model._check_layout` (Fehler `LAYOUT`).
+
 ## Bereiche und Zwischenüberschriften (`groups`)
 
 Nur für den Editor: Upgrades (Schlüssel `Gebäude:Pfad`) lassen sich frei in Bereiche mit beliebig vielen Zwischenüberschriften einsortieren; ein Upgrade darf in beliebig vielen Bereichen und Zwischenüberschriften gleichzeitig stehen. Format im Dokument:

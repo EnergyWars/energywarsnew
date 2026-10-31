@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 from upgrade_editor import model
@@ -80,17 +81,44 @@ def saved(name="A", formula="base * level", description="", **extra):
     return {"name": name, "formula": formula, "description": description, **extra}
 
 
+class VariablesTest(unittest.TestCase):
+    def variables(self, items):
+        return codes(edited(lambda d: building(d, "solar").update(variables=items)))
+
+    def test_valid_variables(self):
+        self.assertEqual(self.variables([]), set())
+        self.assertEqual(self.variables([{"name": "bonus_2", "value": 1.5, "description": ""}, {"name": "_x", "value": -3, "description": "d" * 200}]), set())
+        self.assertEqual(self.variables([{"name": f"v{i}", "value": i, "description": ""} for i in range(50)]), set())
+
+    def test_invalid_variables(self):
+        def item(**changes):
+            return {"name": "ok", "value": 1, "description": "", **changes}
+        cases = ("x", {}, [item(name="")], [item(name="Bonus")], [item(name="1a")], [item(name="a b")], [item(name="n" * 41)], [item(name="level")],
+                 [item(name="min")], [item(name="pi")], [item(), item()], [item(value="1")], [item(value=True)], [item(value=1e16)], [item(description=1)],
+                 [item(description="d" * 201)], [{"name": "ok", "value": 1}], [item(extra=1)], [item(name=1)],
+                 [{"name": f"v{i}", "value": i, "description": ""} for i in range(51)])
+        for value in cases:
+            self.assertIn("VARIABLES", self.variables(value), str(value)[:60])
+
+
 class SavedFormulasTest(unittest.TestCase):
+    def test_any_number_of_saved_formulas_is_valid(self):
+        many = {"cost": [saved(f"n{i}") for i in range(200)]}
+        self.assertEqual(codes(edited(lambda d: d.update(saved_formulas=many))), set())
+
+    def test_saved_formulas_may_use_any_variable_name(self):
+        value = {"cost": [saved("A", "base * bonus")]}
+        self.assertEqual(codes(edited(lambda d: d.update(saved_formulas=value))), set())
+
     def test_valid_saved_formulas(self):
         value = {"cost": [saved(description="lang")], "metric": [saved("B", "level", target="efficiency")]}
         self.assertEqual(codes(edited(lambda d: d.update(saved_formulas=value))), set())
         self.assertEqual(codes(edited(lambda d: None)), set())
 
     def test_invalid_saved_formulas(self):
-        too_many = [saved(f"n{i}") for i in range(51)]
         cases = ([], {"other": []}, {"cost": "x"}, {"cost": ["x"]}, {"cost": [saved(name="  ")]}, {"cost": [saved(name="n" * 61)]},
                  {"cost": [saved(formula="")]}, {"cost": [saved(formula="please read the keys")]}, {"cost": [saved(formula="1" * 501)]},
-                 {"cost": [saved(description="d" * 1001)]}, {"cost": [saved("a"), saved(" A ")]}, {"cost": too_many},
+                 {"cost": [saved(description="d" * 1001)]}, {"cost": [saved("a"), saved(" A ")]},
                  {"cost": [saved(target="value")]}, {"metric": [saved()]}, {"metric": [saved(target="other")]}, {"cost": [{"name": "a", "formula": "1"}]},
                  {"cost": [saved(name=1)]})
         for value in cases:
@@ -113,6 +141,25 @@ class PlansTest(unittest.TestCase):
         table = {"mode": "table", "levels": [{"cost": 5, "gain": 0.5}]}
         self.assertEqual(codes(with_plan(table)), set())
 
+    def test_plan_source_is_validated(self):
+        source = {"max": 2, "cost": "base * level", "target": "efficiency", "formula": "1.2"}
+        table = {"mode": "table", "levels": [{"cost": 5, "gain": 0.5}], "source": source}
+        self.assertEqual(codes(with_plan(table)), set())
+        for broken in ("x", {**source, "max": 0}, {**source, "max": 201}, {**source, "target": "other"}, {**source, "cost": ""},
+                       {**source, "formula": "read the keys"}, {**source, "extra": 1}, {k: v for k, v in source.items() if k != "cost"}, {**source, "max": 1.5}):
+            self.assertIn("PLAN_FORMULA", codes(with_plan({**table, "source": broken})), str(broken))
+
+    def test_own_variables_are_accepted_in_plan_formulas(self):
+        def mutate(d):
+            building(d, "solar").update(variables=[{"name": "bonus", "value": 2, "description": "x"}], plans={"output": formula_plan(cost="base * bonus", effect="bonus + level")})
+        self.assertEqual(codes(edited(mutate)), set())
+        self.assertIn("PLAN_FORMULA", codes(with_plan(formula_plan(cost="base * bonus"))))
+        source = {"max": 1, "cost": "bonus", "target": "value", "formula": "bonus"}
+        table = {"mode": "table", "levels": [{"cost": 5, "gain": 0.5}], "source": source}
+        def with_source(d):
+            building(d, "solar").update(variables=[{"name": "bonus", "value": 2, "description": ""}], plans={"output": table})
+        self.assertEqual(codes(edited(with_source)), set())
+
     def test_plan_needs_a_listed_track(self):
         self.assertIn("PLAN_TRACK", codes(with_plan(formula_plan(), track="crit")))
 
@@ -132,3 +179,34 @@ class PlansTest(unittest.TestCase):
         self.assertIn("PLAN_FORMULA", codes(with_plan(formula_plan(cost=" "))))
         self.assertIn("PLAN_FORMULA", codes(with_plan(formula_plan(effect=3))))
         self.assertIn("PLAN_FORMULA", codes(with_plan(formula_plan(max=5))))
+
+
+class LayoutValidationTest(unittest.TestCase):
+    def setUp(self):
+        self.original = load_game()
+        self.document = copy.deepcopy(self.original)
+        self.entry = next(item for item in self.document["buildings"] if item["id"] == "solar")
+
+    def codes(self):
+        return [error["code"] for error in model.safe_validate(self.document, self.original)]
+
+    def test_default_layout_is_valid(self):
+        self.assertEqual(self.codes(), [])
+
+    def test_custom_order_and_titles_are_valid(self):
+        self.entry["layout"] = [{"title": "Eigene", "tracks": list(reversed(self.entry["tracks"]))}, {"title": "", "tracks": []}]
+        self.assertEqual(self.codes(), [])
+
+    def test_layout_must_match_tracks(self):
+        self.entry["layout"] = [{"title": "x", "tracks": self.entry["tracks"][:-1]}]
+        self.assertIn("LAYOUT", self.codes())
+        self.entry["layout"] = [{"title": "x", "tracks": self.entry["tracks"] + self.entry["tracks"][:1]}]
+        self.assertIn("LAYOUT", self.codes())
+
+    def test_layout_shape_is_checked(self):
+        tracks = self.entry["tracks"]
+        for bad in ([], "x", [{"title": "x" * 61, "tracks": tracks}], [{"title": 1, "tracks": tracks}], [{"title": "x", "tracks": tracks, "extra": 1}], [{"title": "x", "tracks": [1]}], ["x"], [{"title": "g", "tracks": tracks}] + [{"title": "g", "tracks": []}] * 20):
+            with self.subTest(bad=bad):
+                self.entry["layout"] = bad
+                self.assertIn("LAYOUT", self.codes())
+

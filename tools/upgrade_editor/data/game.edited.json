@@ -3,7 +3,7 @@
 	"system": {
 		"track_growth": 1.18,
 		"cell": 56,
-		"armor_unit": 10.0
+		"armor_unit": 10
 	},
 	"tracks": {
 		"rate": {
@@ -91,7 +91,7 @@
 			"cost": 0,
 			"upgrade_base": 120,
 			"hp": 1500,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_CORE_DESC",
 			"tracks": [
 				"rate",
@@ -121,14 +121,195 @@
 					"energy": 3,
 					"range": 220
 				}
-			}
+			},
+			"plans": {
+				"armor": {
+					"mode": "table",
+					"levels": [
+						{
+							"cost": 1,
+							"gain": 0.1
+						},
+						{
+							"cost": 1,
+							"gain": 0.1
+						},
+						{
+							"cost": 1,
+							"gain": 0.1
+						},
+						{
+							"cost": 1,
+							"gain": 0.1
+						},
+						{
+							"cost": 1,
+							"gain": 0.1
+						},
+						{
+							"cost": 1,
+							"gain": 0.1
+						}
+					]
+				},
+				"hull": {
+					"mode": "table",
+					"levels": [
+						{
+							"cost": 5,
+							"gain": 0.15
+						},
+						{
+							"cost": 6,
+							"gain": 0.15
+						},
+						{
+							"cost": 8,
+							"gain": 0.15
+						},
+						{
+							"cost": 10,
+							"gain": 0.15
+						},
+						{
+							"cost": 12,
+							"gain": 0.15
+						},
+						{
+							"cost": 15,
+							"gain": 0.15
+						},
+						{
+							"cost": 19,
+							"gain": 0.15
+						},
+						{
+							"cost": 24,
+							"gain": 0.15
+						},
+						{
+							"cost": 30,
+							"gain": 0.15
+						},
+						{
+							"cost": 37,
+							"gain": 0.15
+						},
+						{
+							"cost": 47,
+							"gain": 0.15
+						},
+						{
+							"cost": 58,
+							"gain": 0.15
+						},
+						{
+							"cost": 73,
+							"gain": 0.15
+						},
+						{
+							"cost": 91,
+							"gain": 0.15
+						}
+					]
+				},
+				"rate": {
+					"mode": "table",
+					"levels": [
+						{
+							"cost": 15,
+							"gain": 0.025
+						},
+						{
+							"cost": 19,
+							"gain": 0.05
+						},
+						{
+							"cost": 23,
+							"gain": 0.075
+						},
+						{
+							"cost": 29,
+							"gain": 0.1
+						},
+						{
+							"cost": 37,
+							"gain": 0.125
+						}
+					]
+				}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "bulwark",
 			"cost": 4,
 			"upgrade_base": 40,
 			"hp": 1600,
-			"armor": 3.0,
+			"armor": 3,
 			"description_key": "BUILDING_BULWARK_DESC",
 			"tracks": [
 				"hull",
@@ -209,15 +390,86 @@
 							"gain": 4915.2
 						}
 					]
+				},
+				"armor": {
+					"mode": "table",
+					"levels": [
+						{
+							"cost": 8,
+							"gain": 0.1
+						},
+						{
+							"cost": 16,
+							"gain": 0.1
+						},
+						{
+							"cost": 32,
+							"gain": 0.1
+						},
+						{
+							"cost": 64,
+							"gain": 0.1
+						},
+						{
+							"cost": 128,
+							"gain": 0.1
+						},
+						{
+							"cost": 256,
+							"gain": 0.1
+						},
+						{
+							"cost": 512,
+							"gain": 0.1
+						},
+						{
+							"cost": 1024,
+							"gain": 0.1
+						},
+						{
+							"cost": 2048,
+							"gain": 0.1
+						},
+						{
+							"cost": 4096,
+							"gain": 0.1
+						},
+						{
+							"cost": 8192,
+							"gain": 0.1
+						},
+						{
+							"cost": 16384,
+							"gain": 0.1
+						}
+					]
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "solar",
 			"cost": 40,
 			"upgrade_base": 40,
 			"hp": 70,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_SOLAR_DESC",
 			"tracks": [
 				"output",
@@ -236,14 +488,62 @@
 				"links": 1,
 				"range": 240,
 				"build_radius": 240
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "water",
 			"cost": 50,
 			"upgrade_base": 50,
 			"hp": 90,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_WATER_DESC",
 			"tracks": [
 				"output",
@@ -262,14 +562,62 @@
 				"links": 1,
 				"range": 240,
 				"build_radius": 240
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "fire",
 			"cost": 15,
 			"upgrade_base": 15,
 			"hp": 60,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_FIRE_DESC",
 			"tracks": [
 				"output",
@@ -288,14 +636,62 @@
 				"links": 1,
 				"range": 240,
 				"build_radius": 200
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"output",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "relay",
 			"cost": 30,
 			"upgrade_base": 30,
 			"hp": 90,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_RELAY_DESC",
 			"tracks": [
 				"rate",
@@ -315,14 +711,62 @@
 				"rate": 30,
 				"build_radius": 320,
 				"vision": 320
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "battery",
 			"cost": 80,
 			"upgrade_base": 80,
 			"hp": 140,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_BATTERY_DESC",
 			"tracks": [
 				"capacity",
@@ -341,14 +785,62 @@
 				"range": 220,
 				"rate": 30,
 				"build_radius": 220
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"links",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "exporter",
 			"cost": 120,
 			"upgrade_base": 120,
 			"hp": 80,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_EXPORTER_DESC",
 			"tracks": [
 				"rate",
@@ -364,14 +856,48 @@
 				"links": 0,
 				"build_radius": 160,
 				"export": 8
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"rate",
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "lamp",
 			"cost": 25,
 			"upgrade_base": 25,
 			"hp": 60,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_LAMP_DESC",
 			"tracks": [
 				"efficiency",
@@ -386,14 +912,48 @@
 				"capacity": 40,
 				"links": 0,
 				"build_radius": 160
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "zapper",
 			"cost": 70,
 			"upgrade_base": 70,
 			"hp": 90,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_ZAPPER_DESC",
 			"tracks": [
 				"power",
@@ -419,14 +979,78 @@
 					"energy": 4,
 					"range": 230
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "laser",
 			"cost": 120,
 			"upgrade_base": 120,
 			"hp": 110,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_LASER_DESC",
 			"tracks": [
 				"power",
@@ -449,14 +1073,72 @@
 					"energy": 10,
 					"range": 270
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "healer",
 			"cost": 110,
 			"upgrade_base": 110,
 			"hp": 90,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_HEALER_DESC",
 			"tracks": [
 				"power",
@@ -480,14 +1162,74 @@
 					"energy": 6,
 					"range": 230
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "bastion",
 			"cost": 130,
 			"upgrade_base": 130,
 			"hp": 900,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_BASTION_DESC",
 			"tracks": [
 				"power",
@@ -512,14 +1254,76 @@
 					"energy": 3,
 					"range": 240
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "rover",
 			"cost": 150,
 			"upgrade_base": 150,
 			"hp": 160,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_ROVER_DESC",
 			"tracks": [
 				"power",
@@ -549,14 +1353,78 @@
 					"energy": 3,
 					"range": 210
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "tesla",
 			"cost": 160,
 			"upgrade_base": 160,
 			"hp": 120,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_TESLA_DESC",
 			"tracks": [
 				"power",
@@ -584,14 +1452,80 @@
 					"range": 220,
 					"chain": 5
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"chain"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"chain"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "plasma",
 			"cost": 200,
 			"upgrade_base": 200,
 			"hp": 110,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_PLASMA_DESC",
 			"tracks": [
 				"power",
@@ -620,14 +1554,80 @@
 					"min_range": 90,
 					"splash": 85
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"splash"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power",
+						"speed",
+						"overclock",
+						"crit",
+						"splash"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"efficiency",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		},
 		{
 			"id": "shield",
 			"cost": 140,
 			"upgrade_base": 140,
 			"hp": 100,
-			"armor": 0.0,
+			"armor": 0,
 			"description_key": "BUILDING_SHIELD_DESC",
 			"tracks": [
 				"power",
@@ -646,7 +1646,63 @@
 				"shield": {
 					"radius": 210
 				}
-			}
+			},
+			"layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			],
+			"default_layout": [
+				{
+					"title": "TRACKGROUP_ATTACK",
+					"tracks": [
+						"power"
+					]
+				},
+				{
+					"title": "TRACKGROUP_RANGE",
+					"tracks": [
+						"range"
+					]
+				},
+				{
+					"title": "TRACKGROUP_ENERGY",
+					"tracks": [
+						"capacity",
+						"transfer"
+					]
+				},
+				{
+					"title": "TRACKGROUP_DEFENSE",
+					"tracks": [
+						"hull",
+						"armor"
+					]
+				}
+			]
 		}
 	],
 	"categories": [
@@ -1348,6 +2404,22 @@
 		"ENEMY_PHANTOM_DESC": {
 			"en": "A night drone with a glowing core. It shoots from a distance and burns at dawn.",
 			"de": "Eine Nachtdrohne mit leuchtendem Kern. Sie schießt aus der Distanz und verbrennt bei Tagesanbruch."
+		},
+		"TRACKGROUP_ATTACK": {
+			"en": "Attack",
+			"de": "Angriff"
+		},
+		"TRACKGROUP_RANGE": {
+			"en": "Range",
+			"de": "Reichweite"
+		},
+		"TRACKGROUP_ENERGY": {
+			"en": "Energy",
+			"de": "Energie"
+		},
+		"TRACKGROUP_DEFENSE": {
+			"en": "Defense",
+			"de": "Verteidigung"
 		}
 	},
 	"check": {
@@ -7934,6 +9006,23 @@
 			"70 + abs(floor( abs( 6.5 - level ) ) ) * 10",
 			"abs(floor( abs( 6.5 - level ) ))",
 			"level +1"
+		]
+	},
+	"saved_formulas": {
+		"metric": [
+			{
+				"name": "12er mid dip",
+				"formula": "( 70 + abs(floor( abs( 6.5 - level ) ) ) * 10) / 100",
+				"description": "Optimiert für 12 Stufen, dip in der mitte, peak am Anfang und Ende",
+				"target": "efficiency"
+			}
+		],
+		"cost": [
+			{
+				"name": "Doppelt je level",
+				"formula": "build * 2 ^ level",
+				"description": "Kosten verdoppeln sich je upgrade, ausgehend vom Kaufpreis des Gebäudes"
+			}
 		]
 	}
 }

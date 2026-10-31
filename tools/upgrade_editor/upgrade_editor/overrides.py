@@ -26,7 +26,20 @@ def build_overrides(document):
             entry_plans[track] = exported
         if entry_plans:
             plans[entry["id"]] = entry_plans
-    return {"schema": SCHEMA, "plans": plans}
+    result = {"schema": SCHEMA, "plans": plans}
+    layouts = _layouts(document)
+    if layouts:
+        result["layouts"] = layouts
+    return result
+
+
+def _layouts(document):
+    layouts = {}
+    for entry in document["buildings"]:
+        layout = entry.get("layout")
+        if layout and "default_layout" in entry and layout != entry["default_layout"]:
+            layouts[entry["id"]] = layout
+    return layouts
 
 
 def _different(document, baseline, key):

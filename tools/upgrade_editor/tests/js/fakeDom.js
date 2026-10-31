@@ -54,6 +54,12 @@ class FakeNode {
     return payload;
   }
 
+  remove() {
+    if (!this.parentNode) return;
+    this.parentNode.children = this.parentNode.children.filter((child) => child !== this);
+    this.parentNode = null;
+  }
+
   contains(node) {
     for (let current = node; current; current = current.parentNode) if (current === this) return true;
     return false;
@@ -88,5 +94,9 @@ export function installFakeDom() {
     createElement: (tag) => new FakeNode(tag),
     createTextNode: (data) => ({ nodeType: 3, data: String(data), text: () => String(data) }),
     createElementNS: (_, tag) => new FakeNode(tag),
+    body: new FakeNode("body"),
+    activeElement: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
   };
 }

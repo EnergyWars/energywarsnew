@@ -441,8 +441,12 @@ func _rebuild(building: Building) -> void:
 	_status.visible = _status_shown and not minimized
 	_status_grid.visible = not _status_values.is_empty()
 	var tracks: Array = building.definition().get("tracks", []) if building.is_player() else []
-	for track: String in tracks:
-		_tracks.add_child(_track_row(building, track))
+	if not tracks.is_empty():
+		for group: Dictionary in Formulas.track_layout(building.kind):
+			if not str(group.title).is_empty():
+				_tracks.add_child(UiKit.label(Texts.t(str(group.title)), "Caption"))
+			for track: String in group.tracks:
+				_tracks.add_child(_track_row(building, track))
 	_tracks.visible = not tracks.is_empty()
 	_scroll.scroll_vertical = 0
 	_rebuild_links(building)

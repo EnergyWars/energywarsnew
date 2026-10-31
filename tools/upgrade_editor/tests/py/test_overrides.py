@@ -25,6 +25,12 @@ class OverridesTest(unittest.TestCase):
         result = build_overrides(document)["plans"]["zapper"]["power"]
         self.assertEqual((result["cost"], result["effect"], result["max"]), ("base", "1 + level", 1))
 
+    def test_editor_only_formula_source_is_not_exported(self):
+        source = {"max": 1, "cost": "base", "target": "value", "formula": "start"}
+        plan = {"mode": "table", "levels": [{"cost": 40, "gain": 1.0}], "source": source}
+        document = edited(lambda d: building(d, "solar").update(plans={"output": plan}))
+        self.assertNotIn("source", build_overrides(document)["plans"]["solar"]["output"])
+
     def test_float_noise_is_rounded(self):
         plan = {"mode": "table", "levels": [{"cost": 1, "gain": 0.1}, {"cost": 1, "gain": 0.2}]}
         document = edited(lambda d: building(d, "solar").update(plans={"output": plan}))
@@ -94,3 +100,15 @@ class ContentOverridesTest(unittest.TestCase):
             self.assertFalse(write_content_overrides(path, {}))
             self.assertFalse(path.exists())
             self.assertFalse(write_content_overrides(path, {}))
+
+
+class LayoutOverridesTest(unittest.TestCase):
+    def test_default_layout_is_not_exported(self):
+        self.assertNotIn("layouts", build_overrides(load_game()))
+
+    def test_changed_layout_is_exported_for_that_building_only(self):
+        document = copy.deepcopy(load_game())
+        solar = next(entry for entry in document["buildings"] if entry["id"] == "solar")
+        solar["layout"] = [{"title": "Eigene", "tracks": list(reversed(solar["tracks"]))}]
+        self.assertEqual(build_overrides(document)["layouts"], {"solar": solar["layout"]})
+

@@ -2435,3 +2435,26 @@ func test_building_panel_shows_description_in_collapsible_info() -> void:
 	_frames(screen, 1)
 	assert_false(panel._desc_toggle.visible)
 	assert_false(panel._desc.visible)
+
+
+func test_upgrade_list_shows_the_group_headings_in_layout_order() -> void:
+	var screen := _deployed()
+	var core := screen.battle.state.core()
+	screen.view.select(core.id)
+	_frames(screen, 2)
+	var layout := Formulas.track_layout(core.kind)
+	var headings := 0
+	for group: Dictionary in layout:
+		if not str(group.title).is_empty():
+			headings += 1
+	assert_gt(headings, 0)
+	assert_eq(screen.panel._tracks.get_child_count(), headings + core.definition().tracks.size())
+	var first: Label = screen.panel._tracks.get_child(0)
+	assert_eq(first.text, Texts.t(str(layout[0].title)))
+	UpgradeOverrides.set_layouts({core.kind: [{"title": "Eigene Gruppe", "tracks": [GameConfig.TRACK_HULL]}]})
+	screen.view.select(-1)
+	screen.view.select(core.id)
+	_frames(screen, 2)
+	var custom: Label = screen.panel._tracks.get_child(0)
+	assert_eq(custom.text, "Eigene Gruppe")
+	UpgradeOverrides.reset()

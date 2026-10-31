@@ -196,6 +196,14 @@ const ENEMIES := {
 	"gunship": {"class": CLASS_AIR, "faction": CAMP, "look": "gunship", "armor": 35.0, "hp": 1000.0, "speed": 50.0, "damage": 30.0, "cooldown": 1.0, "reach": 150.0, "radius": 24.0, "bounty": 120, "boss": true, "nocturnal": true, "buffs": BUFFS_BOSS},
 }
 
+const TRACK_GROUPS := {
+	"TRACKGROUP_ATTACK": [TRACK_POWER, TRACK_SPEED, TRACK_OVERCLOCK, TRACK_CRIT, TRACK_CHAIN, TRACK_SPLASH],
+	"TRACKGROUP_RANGE": [TRACK_RANGE],
+	"TRACKGROUP_ENERGY": [TRACK_OUTPUT, TRACK_RATE, TRACK_LINKS, TRACK_CAPACITY, TRACK_EFFICIENCY, TRACK_TRANSFER],
+	"TRACKGROUP_DEFENSE": [TRACK_HULL, TRACK_ARMOR],
+}
+const TRACK_GROUP_ORDER_ARMED: Array[String] = ["TRACKGROUP_ATTACK", "TRACKGROUP_RANGE", "TRACKGROUP_ENERGY", "TRACKGROUP_DEFENSE"]
+const TRACK_GROUP_ORDER_SUPPORT: Array[String] = ["TRACKGROUP_ENERGY", "TRACKGROUP_RANGE", "TRACKGROUP_DEFENSE"]
 const ARMOR_UNIT := 10.0
 const ARMOR := {"constant": 100.0, "max_reduction": 0.9, "min_damage": 1.0}
 const ROUND_HP_GROWTH := 1.22
@@ -460,6 +468,28 @@ static func level_index(id: String) -> int:
 
 static func tech(id: String) -> Dictionary:
 	return TECHS.get(id, EMPTY)
+
+
+static func default_layout(kind: String) -> Array:
+	var tracks: Array = building(kind).get("tracks", [])
+	var order := TRACK_GROUP_ORDER_ARMED if tracks.has(TRACK_POWER) else TRACK_GROUP_ORDER_SUPPORT
+	var placed := {}
+	var result := []
+	for title: String in order:
+		var members := []
+		for track: String in TRACK_GROUPS[title]:
+			if tracks.has(track):
+				members.append(track)
+				placed[track] = true
+		if not members.is_empty():
+			result.append({"title": title, "tracks": members})
+	var rest := []
+	for track: String in tracks:
+		if not placed.has(track):
+			rest.append(track)
+	if not rest.is_empty():
+		result.append({"title": "", "tracks": rest})
+	return result
 
 
 static func building(kind: String) -> Dictionary:

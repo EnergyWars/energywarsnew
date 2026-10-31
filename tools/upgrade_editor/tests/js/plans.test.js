@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { game, fresh, find } from "./data.js";
-import { effectAt, maxLevel, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf, startValue } from "../../web/js/formulas.js";
-import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, toolOf, savedFormulas, saveFormula, deleteSavedFormula, SAVED_LIMIT, SAVED_NAME_LIMIT, SAVED_DESCRIPTION_LIMIT, TIP_VARIABLES, variableTip } from "../../web/js/views/planEditor.js";
+import { addVariable, updateVariable, deleteVariable, variablesCard, VARIABLE_LIMIT, VARIABLE_NAME_LIMIT, VARIABLE_DESCRIPTION_LIMIT } from "../../web/js/views/variablesPanel.js";
+import { storedFormula, formulaState, writeLevels, effectAt, maxLevel, levelCost, costs, totalCost, benefitTotal, benefitOfLevel, buildFormulaLevels, snapshotLevels, planOf, startValue } from "../../web/js/formulas.js";
+import { defaultFormulas, describeError, formulaDefaults, paramDefaults, paramKeys, paramLevels, formulaInputs, paramInputs, fillFromFormula, fillFromParams, formulaDraftChanged, toolOf, savedFormulas, saveFormula, updateSavedFormula, deleteSavedFormula, SAVED_NAME_LIMIT, SAVED_DESCRIPTION_LIMIT, TIP_VARIABLES, variableTip } from "../../web/js/views/planEditor.js";
 import { draftKey, pendingLevels, applyLevels } from "../../web/js/views/valueTable.js";
 import { COST_VARIABLES, TARGET_VARIABLES } from "../../web/js/formulas.js";
 import { ExpressionError } from "../../web/js/expr.js";
@@ -148,12 +149,118 @@ test("formula defaults carry the stored limits and a value target", () => {
   assert.equal(defaults.max, maxLevel(doc, solar, "output"));
 });
 
+test("own variables of a building are usable in both formulas and listed in the tooltip", () => {
+  const ctx = context();
+  let added = false;
+  ctx.store.update((doc) => {
+    added = addVariable(doc, "solar", { name: "Bonus", value: "2.5", description: "Zusatz" });
+    addVariable(doc, "solar", { name: "faktor", value: 3 });
+  });
+  assert.equal(added, true);
+  const solar = find(ctx.doc, "solar");
+  assert.deepEqual(solar.variables, [{ name: "bonus", value: 2.5, description: "Zusatz" }, { name: "faktor", value: 3, description: "" }]);
+  const levels = buildFormulaLevels(ctx.doc, solar, { max: 2, cost: "base * faktor", target: "value", formula: "start * bonus" }, "output");
+  assert.equal(levels[0].cost, solar.upgrade_base * 3);
+  assert.equal(levels[0].gain, 2.5);
+  assert.throws(() => buildFormulaLevels(ctx.doc, find(ctx.doc, "relay"), { max: 1, cost: "bonus", target: "value", formula: "1" }, "output"), ExpressionError);
+  assert.ok(variableTip(solar).includes("bonus = 2.5 – Zusatz"));
+  assert.ok(variableTip(solar).includes("faktor = 3 – plan.var.custom"));
+  assert.ok(!variableTip().includes("bonus"));
+});
+
+test("own variables are validated, updatable and deletable", () => {
+  const doc = fresh();
+  const bad = [{ name: "" }, { name: "level" }, { name: "min" }, { name: "pi" }, { name: "1a" }, { name: "a b" }, { name: "ä" }, { name: "n".repeat(VARIABLE_NAME_LIMIT + 1) }, { name: "ok", value: "" }, { name: "ok", value: "abc" }, { name: "ok", value: Infinity }, { name: "ok", value: 1e16 }];
+  for (const item of bad) assert.equal(addVariable(doc, "solar", { value: 1, ...item }), false, JSON.stringify(item));
+  assert.equal(addVariable(doc, "missing", { name: "ok", value: 1 }), false);
+  assert.equal(addVariable(doc, "solar", { name: "ok_1", value: 1, description: "d".repeat(VARIABLE_DESCRIPTION_LIMIT + 5) }), true);
+  assert.equal(find(doc, "solar").variables[0].description.length, VARIABLE_DESCRIPTION_LIMIT);
+  assert.equal(addVariable(doc, "solar", { name: "OK_1", value: 2 }), false);
+  assert.equal(updateVariable(doc, "solar", "ok_1", { value: "4", description: " neu " }), true);
+  assert.deepEqual(find(doc, "solar").variables[0], { name: "ok_1", value: 4, description: "neu" });
+  assert.equal(updateVariable(doc, "solar", "ok_1", { value: "x" }), false);
+  assert.equal(updateVariable(doc, "solar", "none", { value: 1 }), false);
+  assert.equal(updateVariable(doc, "none", "ok_1", { value: 1 }), false);
+  for (let index = 1; index < VARIABLE_LIMIT; index += 1) assert.equal(addVariable(doc, "solar", { name: `v${index}`, value: index }), true);
+  assert.equal(addVariable(doc, "solar", { name: "extra", value: 1 }), false);
+  deleteVariable(doc, "solar", "ok_1");
+  assert.equal(find(doc, "solar").variables.length, VARIABLE_LIMIT - 1);
+  const single = fresh();
+  addVariable(single, "relay", { name: "x", value: 1 });
+  deleteVariable(single, "relay", "x");
+  assert.equal("variables" in find(single, "relay"), false);
+  deleteVariable(single, "relay", "x");
+  deleteVariable(single, "none", "x");
+});
+
+test("the variables card lists, adds, edits and removes variables", () => {
+  const ctx = context();
+  const entry = () => find(ctx.doc, "solar");
+  ctx.view.collapsed = new Set();
+  const press = (root, label, index = 0) => root.findAll((node) => node.tagName === "button" && node.text() === label)[index].dispatch("click");
+  let root = variablesCard(ctx, entry());
+  assert.ok(root.text().includes("variables.none"));
+  root.find((node) => node.attributes["aria-label"] === "variables.name").value = "Bonus";
+  root.find((node) => node.attributes["aria-label"] === "variables.value").value = "7";
+  press(root, "variables.add");
+  assert.equal(entry().variables[0].value, 7);
+  root = variablesCard(ctx, entry());
+  assert.ok(root.text().includes("bonus"));
+  root.find((node) => node.attributes["aria-label"] === "variables.name").value = "level";
+  root.find((node) => node.attributes["aria-label"] === "variables.value").value = "1";
+  press(root, "variables.add");
+  assert.ok(root.findAll((node) => node.className === "field-error").some((node) => node.textContent === "variables.invalid"));
+  const description = root.find((node) => node.attributes["aria-label"] === "variables.description" && node.value === "");
+  description.value = "Info";
+  description.dispatch("change");
+  assert.equal(entry().variables[0].description, "Info");
+  press(variablesCard(ctx, entry()), "variables.delete");
+  assert.equal("variables" in entry(), false);
+});
+
+test("the last applied formula is stored per track, prefills the fields and reports the table state", () => {
+  const ctx = context();
+  const solar = () => find(ctx.doc, "solar");
+  assert.equal(storedFormula(solar(), "output"), null);
+  assert.equal(formulaState(ctx.doc, solar(), "output"), null);
+  assert.equal(formulaDraftChanged(ctx, solar(), "output"), false);
+  ctx.view.drafts["solar:output:f:cost"] = "base * 3";
+  ctx.view.drafts["solar:output:f:formula"] = "start / 2";
+  ctx.view.drafts["solar:output:f:target"] = "efficiency";
+  ctx.view.drafts["solar:output:max"] = 3;
+  fillFromFormula(ctx, solar(), "output");
+  const stored = { max: 3, cost: "base * 3", target: "efficiency", formula: "start / 2" };
+  assert.deepEqual(storedFormula(solar(), "output"), stored);
+  assert.equal(formulaState(ctx.doc, solar(), "output"), "synced");
+  assert.equal(formulaDraftChanged(ctx, solar(), "output"), false);
+  ctx.view.drafts["solar:output:f:cost"] = "base * 4";
+  assert.equal(formulaDraftChanged(ctx, solar(), "output"), true);
+  const fresher = { ...ctx, view: { ...ctx.view, drafts: {} } };
+  assert.deepEqual(formulaDefaults(ctx.doc, solar(), "output"), { max: 3, cost: "base * 3", formula: "start / 2", target: "efficiency" });
+  assert.deepEqual(formulaInputs(fresher, solar(), "output"), { max: 3, cost: "base * 3", formula: "start / 2", target: "efficiency" });
+  ctx.store.update((doc) => {
+    const plan = planOf(find(doc, "solar"), "output");
+    writeLevels(find(doc, "solar"), "output", plan.levels.map((level, index) => (index === 0 ? { ...level, cost: level.cost + 1 } : level)));
+  });
+  assert.deepEqual(storedFormula(solar(), "output"), stored);
+  assert.equal(formulaState(ctx.doc, solar(), "output"), "modified");
+  ctx.store.update((doc) => { find(doc, "solar").upgrade_base += 1; });
+  ctx.view.drafts = {};
+  ctx.view.drafts["solar:output:f:cost"] = "base * 3";
+  ctx.view.drafts["solar:output:f:formula"] = "start / 2";
+  ctx.view.drafts["solar:output:f:target"] = "efficiency";
+  ctx.view.drafts["solar:output:max"] = 3;
+  fillFromFormula(ctx, solar(), "output");
+  ctx.store.update((doc) => { find(doc, "solar").plans.output.source.cost = "nonsense ("; });
+  assert.equal(formulaState(ctx.doc, solar(), "output"), "modified");
+});
+
 test("the formula tool fills the table and applies it at once in one undo step", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
   ctx.view.drafts["solar:output:f:cost"] = "base * 3";
   ctx.view.drafts["solar:output:f:formula"] = "start";
-  ctx.view.drafts["solar:output:f:max"] = 4;
+  ctx.view.drafts["solar:output:max"] = 4;
   fillFromFormula(ctx, solar, "output");
   assert.equal(pendingLevels(ctx, solar, "output"), null);
   const plan = planOf(find(ctx.doc, "solar"), "output");
@@ -169,7 +276,7 @@ test("filling replaces a pending table draft instead of keeping it", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
   ctx.view.drafts[draftKey(solar, "output")] = { base: "stale", levels: [{ cost: 1, gain: 9 }] };
-  ctx.view.drafts["solar:output:p:max"] = 2;
+  ctx.view.drafts["solar:output:max"] = 2;
   fillFromParams(ctx, solar, "output");
   assert.equal(ctx.view.drafts[draftKey(solar, "output")], undefined);
   assert.equal(planOf(find(ctx.doc, "solar"), "output").levels.length, 2);
@@ -178,7 +285,7 @@ test("filling replaces a pending table draft instead of keeping it", () => {
 test("the parameter tool fills the table from its own inputs and applies it", () => {
   const ctx = context();
   const solar = find(ctx.doc, "solar");
-  ctx.view.drafts["solar:output:p:max"] = 3;
+  ctx.view.drafts["solar:output:max"] = 3;
   ctx.view.drafts["solar:output:p:step"] = 0.5;
   ctx.view.drafts["solar:output:p:price"] = 1;
   ctx.view.drafts["solar:output:p:growth"] = 2;
@@ -246,12 +353,27 @@ test("named formulas are saved with description and target, replaced by name and
   assert.equal(savedFormulas(doc, "cost").length, 1);
 });
 
-test("saved formulas are limited in number, name and description", () => {
+test("saved formulas can be updated in place, renamed and are validated", () => {
   const doc = fresh();
-  for (let index = 0; index < SAVED_LIMIT; index += 1) assert.equal(saveFormula(doc, "cost", { name: `f${index}`, formula: "1" }), true);
-  assert.equal(saveFormula(doc, "cost", { name: "one too many", formula: "1" }), false);
+  saveFormula(doc, "cost", { name: "A", formula: "base", description: "" });
+  saveFormula(doc, "cost", { name: "B", formula: "base * 2", description: "" });
+  assert.equal(updateSavedFormula(doc, "cost", "A", { name: "C", formula: "base * 3", description: "neu" }), true);
+  assert.deepEqual(savedFormulas(doc, "cost").map((item) => item.name), ["C", "B"]);
+  assert.equal(updateSavedFormula(doc, "cost", "C", { name: "b", formula: "1" }), false);
+  assert.equal(updateSavedFormula(doc, "cost", "C", { name: "C", formula: "1 +" }), false);
+  assert.equal(updateSavedFormula(doc, "cost", "missing", { name: "Z", formula: "1" }), false);
+  assert.equal(updateSavedFormula(doc, "cost", "B", { name: "B", formula: "base * 2", description: "x" }), true);
+  assert.equal(saveFormula(doc, "cost", { name: "D", formula: "(" }), false);
+  assert.equal(saveFormula(doc, "metric", { name: "E", formula: "1", target: "nonsense" }), false);
+  assert.equal(saveFormula(doc, "metric", { name: "E", formula: "1", target: "factor" }), true);
+});
+
+test("any number of formulas can be saved while name and description are capped", () => {
+  const doc = fresh();
+  for (let index = 0; index < 200; index += 1) assert.equal(saveFormula(doc, "cost", { name: `f${index}`, formula: "1" }), true);
+  assert.equal(savedFormulas(doc, "cost").length, 200);
   assert.equal(saveFormula(doc, "cost", { name: "f0", formula: "2" }), true);
-  assert.equal(savedFormulas(doc, "cost").length, SAVED_LIMIT);
+  assert.equal(savedFormulas(doc, "cost").length, 200);
   const other = fresh();
   saveFormula(other, "cost", { name: "n".repeat(SAVED_NAME_LIMIT + 20), formula: "1", description: "d".repeat(SAVED_DESCRIPTION_LIMIT + 20) });
   assert.equal(savedFormulas(other, "cost")[0].name.length, SAVED_NAME_LIMIT);

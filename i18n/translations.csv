@@ -207,6 +207,10 @@ TOAST_PLACE,Tap the map to place: %s,Tippe auf die Karte: %s platzieren
 BUILDING_CORE_SHORT,Base,Basis
 TRACK_HULL,Health,Leben
 TRACK_ARMOR,Armour,Panzerung
+TRACKGROUP_ATTACK,Attack,Angriff
+TRACKGROUP_RANGE,Range,Reichweite
+TRACKGROUP_ENERGY,Energy,Energie
+TRACKGROUP_DEFENSE,Defense,Verteidigung
 STAT_HIGH_GROUND,High ground,Hochebene
 ENEMY_SPITTER,Spitter,Speier
 ENEMY_DRONE,Drone,Drohne

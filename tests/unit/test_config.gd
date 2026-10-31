@@ -298,3 +298,27 @@ func test_water_wheel_lamp_and_fire_pit_definitions() -> void:
 	assert_gt(GameConfig.FIRE_BURN_TIME, 0.0)
 	assert_lt(GameConfig.CLEAR_REACH * GameConfig.CELL, GameConfig.CELL * 3.0)
 	assert_gt(GameConfig.CLEAR_REACH * GameConfig.CELL, Vector2(2, 2).length() * GameConfig.CELL)
+
+
+func test_default_layout_groups_every_track_exactly_once() -> void:
+	for kind: String in GameConfig.BUILDINGS:
+		var tracks: Array = GameConfig.building(kind).get("tracks", [])
+		var seen := []
+		for group: Dictionary in GameConfig.default_layout(kind):
+			assert_false((group.tracks as Array).is_empty(), kind)
+			seen.append_array(group.tracks)
+		seen.sort()
+		var expected := tracks.duplicate()
+		expected.sort()
+		assert_eq(seen, expected, kind)
+
+
+func test_default_layout_orders_by_use_case() -> void:
+	var zapper := GameConfig.default_layout(GameConfig.ZAPPER)
+	assert_eq(zapper.map(func(group: Dictionary) -> String: return group.title), ["TRACKGROUP_ATTACK", "TRACKGROUP_RANGE", "TRACKGROUP_ENERGY", "TRACKGROUP_DEFENSE"])
+	assert_eq(zapper[0].tracks, [GameConfig.TRACK_POWER, GameConfig.TRACK_SPEED, GameConfig.TRACK_OVERCLOCK, GameConfig.TRACK_CRIT])
+	assert_eq(zapper[3].tracks, [GameConfig.TRACK_HULL, GameConfig.TRACK_ARMOR])
+	var solar := GameConfig.default_layout(GameConfig.SOLAR)
+	assert_eq(solar.map(func(group: Dictionary) -> String: return group.title), ["TRACKGROUP_ENERGY", "TRACKGROUP_RANGE", "TRACKGROUP_DEFENSE"])
+	assert_eq(solar[0].tracks, [GameConfig.TRACK_OUTPUT, GameConfig.TRACK_LINKS, GameConfig.TRACK_CAPACITY, GameConfig.TRACK_TRANSFER])
+	assert_eq(GameConfig.default_layout(GameConfig.BULWARK), [{"title": "TRACKGROUP_DEFENSE", "tracks": [GameConfig.TRACK_HULL, GameConfig.TRACK_ARMOR]}])

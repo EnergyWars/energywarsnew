@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { game, fresh, find } from "./data.js";
-import { deriveRows, deriveRowsFromBase, baseRow, editLevel, writeLevels, EDITABLE_FIELDS, gainBase, referenceCost, startValue, gainFor, snapshotLevels, planOf } from "../../web/js/formulas.js";
-import { pendingLevels, applyLevels, discardLevels, draftKey } from "../../web/js/views/valueTable.js";
+import { deriveRows, deriveRowsFromBase, baseRow, editLevel, writeLevels, EDITABLE_FIELDS, gainBase, baseValue, referenceCost, startValue, gainFor, snapshotLevels, planOf, roundTo } from "../../web/js/formulas.js";
+import { roundColumn, pendingLevels, applyLevels, discardLevels, draftKey } from "../../web/js/views/valueTable.js";
 import { detailPairs, toggleSeries, chartSeries } from "../../web/js/views/buildingView.js";
 import { METRICS, METRIC_KEYS, CHART_METRICS } from "../../web/js/views/metrics.js";
 import { COLUMNS, OPTIONAL_COLUMNS, PINNED_COLUMNS, visibleColumns } from "../../web/js/views/valueTable.js";
@@ -189,8 +189,8 @@ test("total cost includes the original purchase price", () => {
 const SAMPLE = [{ cost: 20, gain: 0.5 }, { cost: 35, gain: 0.4 }, { cost: 60, gain: 0.3 }, { cost: 100, gain: 0.2 }];
 const OWNER = { id: "x", cost: 50, upgrade_base: 8 };
 
-test("the chart draws exactly the five values of the table", () => {
-  assert.deepEqual(METRIC_KEYS, ["cost", "value", "efficiency", "totalEfficiency", "factor"]);
+test("the chart draws exactly the six values of the table", () => {
+  assert.deepEqual(METRIC_KEYS, ["cost", "spent", "value", "totalValue", "efficiency", "totalEfficiency", "factor"]);
   assert.deepEqual(CHART_METRICS.map((metric) => metric.key), METRIC_KEYS);
 });
 
@@ -439,8 +439,8 @@ test("toggleSeries passes the solo keys on and keeps the other columns", () => {
   assert.equal(ctx.view.hidden.size, 0);
 });
 
-test("only efficiency, total efficiency and factor can be hidden from the table", () => {
-  assert.deepEqual(OPTIONAL_COLUMNS, ["efficiency", "totalEfficiency", "factor"]);
+test("only total value, efficiency, total efficiency and factor can be hidden from the table", () => {
+  assert.deepEqual(OPTIONAL_COLUMNS, ["spent", "totalValue", "efficiency", "totalEfficiency", "factor"]);
   const columns = visibleColumns(new Set(OPTIONAL_COLUMNS)).map((column) => column.key);
   for (const key of OPTIONAL_COLUMNS) assert.ok(!columns.includes(key));
   assert.ok(["level", "cost", "value"].every((key) => columns.includes(key)));
@@ -462,9 +462,45 @@ test("the five values follow from the levels with the start value and the build 
   assert.equal(baseRow({ id: "x", cost: 0, upgrade_base: 8 }, 10).totalEfficiency, null);
 });
 
-test("editing one of the five values sets the gain of that upgrade", () => {
+test("a typed value comes back exactly instead of drifting through float rounding", () => {
+  for (const start of [3, 7, 30, 1600, 37.5, 0.3]) {
+    for (const typed of [1, 1.5, 2, 0.1, 10]) {
+      const edited = editLevel(OWNER, SAMPLE, 0, "value", typed, start);
+      const shown = deriveRows(OWNER, edited, start)[0].value;
+      assert.equal(Number(shown.toFixed(6)), typed, `start ${start} typed ${typed}`);
+    }
+  }
+});
+
+test("the total value is the start value plus all values up to the level", () => {
+  const rows = deriveRows(OWNER, SAMPLE, 100);
+  near(rows[0].totalValue, 100 + 0.5 * 100);
+  near(rows[3].totalValue, 100 + (0.5 + 0.4 + 0.3 + 0.2) * 100);
+  near(rows[3].totalValue, 100 + rows.reduce((sum, row) => sum + row.value, 0));
+  near(baseRow(OWNER, 100).totalValue, 100);
+  near(deriveRows(OWNER, SAMPLE, 10, 3)[1].totalValue, 3 + (0.5 + 0.4) * 10);
+  near(baseRow(OWNER, 10, 3).totalValue, 3);
+  near(deriveRowsFromBase(OWNER, SAMPLE, 10, 3)[0].totalValue, 3);
+  const edited = editLevel(OWNER, SAMPLE, 1, "totalValue", 3 + 0.5 * 10 + 7, 10, 3);
+  near(edited[1].gain, 0.7);
+  near(deriveRows(OWNER, edited, 10, 3)[1].totalValue, 15);
+});
+
+test("the armour total value starts at the building armour and not at the gain unit", () => {
+  const solar = { id: "solar", armor: 3, stats: {} };
+  const doc = { system: { armor_unit: 10, cell: 56 } };
+  assert.equal(baseValue(doc, solar, "armor"), 3);
+  assert.equal(startValue(doc, solar, "armor"), 10);
+  assert.equal(baseValue(doc, { id: "x", armor: 0, stats: {} }, "armor"), 0);
+  assert.equal(baseValue(doc, { id: "x", stats: {} }, "armor"), 0);
+  assert.equal(baseValue(doc, { id: "x", hp: 90, stats: {} }, "hull"), 90);
+  const rows = deriveRowsFromBase(OWNER, [{ cost: 5, gain: 0.15 }], 10, 3);
+  near(rows[1].totalValue, 4.5);
+});
+
+test("editing one of the six values sets the gain of that upgrade", () => {
   const start = 100;
-  for (const field of ["value", "efficiency", "totalEfficiency", "factor"]) {
+  for (const field of ["value", "totalValue", "efficiency", "totalEfficiency", "factor"]) {
     for (let index = 0; index < SAMPLE.length; index += 1) {
       const target = deriveRows(OWNER, SAMPLE, start)[index][field] * 1.25;
       const edited = editLevel(OWNER, SAMPLE, index, field, target, start);
@@ -483,4 +519,13 @@ test("the start value of a track is its base value or one", () => {
   assert.equal(startValue(game, find(game, "solar"), "links"), 1);
   assert.equal(startValue(game, find(game, "solar"), null), 1);
   assert.throws(() => gainFor("nothing", 1, { start: 1, cost: 1, effectBefore: 1, spent: 1 }), (error) => error.code === "TARGET");
+});
+
+test("floor, round and ceil change every value of one column", () => {
+  const levels = [{ cost: 10, gain: 0.123 }, { cost: 20, gain: 0.456 }, { cost: 30, gain: 0.789 }];
+  const values = (mode) => deriveRows(OWNER, roundColumn(OWNER, levels, "value", mode, 10), 10).slice(1).map((row) => Math.round(row.value * 1e6) / 1e6);
+  assert.deepEqual(values("floor"), [1, 4, 7]);
+  assert.deepEqual(values("round"), [1, 5, 8]);
+  assert.deepEqual(values("ceil"), [2, 5, 8]);
+  assert.deepEqual(roundColumn(OWNER, levels, "cost", "ceil", 10).map((level) => level.cost), [10, 20, 30]);
 });

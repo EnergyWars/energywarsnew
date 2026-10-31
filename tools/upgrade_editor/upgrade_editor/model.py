@@ -1,20 +1,30 @@
 from .content_model import check_building_armor, validate_content
-from .expr import is_formula
+import re
+
+from .expr import is_formula, SCOPE, FUNCTIONS, CONSTANTS
 
 SCHEMA = 1
 MAX_LEVELS = 200
 PLAN_MODES = ("formula", "table")
 SAVED_KINDS = ("cost", "metric")
-SAVED_LIMIT = 50
 SAVED_NAME_LIMIT = 60
 SAVED_DESCRIPTION_LIMIT = 1000
 FORMULA_TEXT_LIMIT = 500
 FORMULA_TARGETS = ("value", "efficiency", "totalEfficiency", "factor")
 TRACK_KEYS = ("max", "step", "price", "growth", "energy")
 CURVE_KEYS = ("max", "gain", "gain_growth", "price", "growth")
-PLAN_KEYS = ("mode", "levels", "max", "cost", "effect")
-BUILDING_EXTRA_KEYS = ("plans", "curves", "armor")
-READONLY_BUILDING_KEYS = ("description_key", "cost_every")
+PLAN_KEYS = ("mode", "levels", "max", "cost", "effect", "source")
+SOURCE_KEYS = ("max", "cost", "target", "formula")
+BUILDING_EXTRA_KEYS = ("plans", "curves", "armor", "variables")
+VARIABLE_KEYS = ("name", "value", "description")
+VARIABLE_LIMIT = 50
+VARIABLE_NAME_LIMIT = 40
+VARIABLE_DESCRIPTION_LIMIT = 200
+VARIABLE_NAME = re.compile(r"[a-z_][a-z0-9_]*")
+RESERVED_NAMES = SCOPE | FUNCTIONS | CONSTANTS
+READONLY_BUILDING_KEYS = ("description_key", "cost_every", "default_layout")
+LAYOUT_LIMIT = 20
+LAYOUT_TITLE_LIMIT = 60
 MAX_NUMBER = 1e15
 GROUP_NAME_LIMIT = 60
 GROUP_AREA_LIMIT = 50
@@ -171,7 +181,7 @@ def _check_saved_formulas(saved, errors):
 
 
 def _valid_saved_list(kind, items):
-    if not isinstance(items, list) or len(items) > SAVED_LIMIT:
+    if not isinstance(items, list):
         return False
     names = set()
     for item in items:
@@ -193,7 +203,7 @@ def _valid_saved_formula(kind, item):
     return (
         texts
         and 0 < len(name.strip()) and len(name) <= SAVED_NAME_LIMIT
-        and 0 < len(formula) <= FORMULA_TEXT_LIMIT and is_formula(formula)
+        and 0 < len(formula) <= FORMULA_TEXT_LIMIT and is_formula(formula, any_names=True)
         and len(description) <= SAVED_DESCRIPTION_LIMIT
         and (kind == "cost" or item["target"] in FORMULA_TARGETS)
     )
@@ -218,7 +228,10 @@ def _check_building(entry, source, tracks, errors):
         errors.append(_error("TRACKS", f"{path}.tracks"))
         listed = []
     _check_stats(entry.get("stats"), source.get("stats", {}), f"{path}.stats", errors)
-    _check_plans(entry.get("plans", {}), listed, f"{path}.plans", errors)
+    if "layout" in entry:
+        _check_layout(entry["layout"], listed, f"{path}.layout", errors)
+    names = _check_variables(entry.get("variables", []), f"{path}.variables", errors)
+    _check_plans(entry.get("plans", {}), listed, f"{path}.plans", errors, names)
     curves = entry.get("curves", {})
     if not isinstance(curves, dict) or set(curves) != set(source.get("curves", {})):
         errors.append(_error("CURVE_SET", f"{path}.curves"))
@@ -241,7 +254,52 @@ def _check_stats(stats, source, path, errors):
             errors.append(_error("STAT", f"{path}.{key}"))
 
 
-def _check_plans(plans, listed, path, errors):
+def _check_layout(layout, listed, path, errors):
+    if not isinstance(layout, list) or not 1 <= len(layout) <= LAYOUT_LIMIT:
+        errors.append(_error("LAYOUT", path))
+        return
+    seen = []
+    for index, group in enumerate(layout):
+        valid = (
+            isinstance(group, dict) and set(group) == {"title", "tracks"}
+            and isinstance(group["title"], str) and len(group["title"]) <= LAYOUT_TITLE_LIMIT
+            and isinstance(group["tracks"], list) and all(isinstance(track, str) for track in group["tracks"])
+        )
+        if not valid:
+            errors.append(_error("LAYOUT", f"{path}.{index}"))
+            return
+        seen.extend(group["tracks"])
+    if sorted(seen) != sorted(listed):
+        errors.append(_error("LAYOUT", path))
+
+
+def _check_variables(items, path, errors):
+    if not isinstance(items, list) or len(items) > VARIABLE_LIMIT:
+        errors.append(_error("VARIABLES", path))
+        return frozenset()
+    names = set()
+    for index, item in enumerate(items):
+        if not _valid_variable(item, names):
+            errors.append(_error("VARIABLES", f"{path}.{index}"))
+    return frozenset(names)
+
+
+def _valid_variable(item, names):
+    if not isinstance(item, dict) or set(item) != set(VARIABLE_KEYS):
+        return False
+    name, value, description = item["name"], item["value"], item["description"]
+    valid = (
+        isinstance(name, str) and len(name) <= VARIABLE_NAME_LIMIT and VARIABLE_NAME.fullmatch(name) is not None
+        and name not in RESERVED_NAMES and name not in names
+        and _is_number(value)
+        and isinstance(description, str) and len(description) <= VARIABLE_DESCRIPTION_LIMIT
+    )
+    if valid:
+        names.add(name)
+    return valid
+
+
+def _check_plans(plans, listed, path, errors, names=frozenset()):
     if not isinstance(plans, dict):
         errors.append(_error("PLAN", path))
         return
@@ -264,12 +322,24 @@ def _check_plans(plans, listed, path, errors):
             valid = isinstance(level, dict) and _is_integer(level.get("cost")) and level["cost"] >= 1 and _is_number(level.get("gain"))
             if not valid:
                 errors.append(_error("PLAN_LEVELS", f"{where}.levels.{index}"))
+        if "source" in plan and not _valid_source(plan["source"], names):
+            errors.append(_error("PLAN_FORMULA", f"{where}.source"))
         if plan["mode"] == "formula":
             for key in ("cost", "effect"):
-                if not isinstance(plan.get(key), str) or len(plan[key]) > FORMULA_TEXT_LIMIT or not is_formula(plan[key]):
+                if not isinstance(plan.get(key), str) or len(plan[key]) > FORMULA_TEXT_LIMIT or not is_formula(plan[key], names):
                     errors.append(_error("PLAN_FORMULA", f"{where}.{key}"))
             if plan.get("max") != len(levels):
                 errors.append(_error("PLAN_FORMULA", f"{where}.max"))
+
+
+def _valid_source(source, names=frozenset()):
+    return (
+        isinstance(source, dict)
+        and set(source) == set(SOURCE_KEYS)
+        and _is_integer(source["max"]) and 1 <= source["max"] <= MAX_LEVELS
+        and source["target"] in FORMULA_TARGETS
+        and all(isinstance(source[key], str) and 0 < len(source[key]) <= FORMULA_TEXT_LIMIT and is_formula(source[key], names) for key in ("cost", "formula"))
+    )
 
 
 MALFORMED = (AttributeError, TypeError, KeyError, IndexError, ValueError, OverflowError, RecursionError)

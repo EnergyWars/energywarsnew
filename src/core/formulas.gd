@@ -31,6 +31,11 @@ static func compute_stats(building: Building) -> PackedFloat64Array:
 	return stats
 
 
+static func track_layout(kind: String) -> Array:
+	var custom := UpgradeOverrides.layout(kind)
+	return custom if not custom.is_empty() else GameConfig.default_layout(kind)
+
+
 static func track_config(building: Building, track: String) -> Dictionary:
 	var table := UpgradeOverrides.table(building.kind, track)
 	if not table.is_empty():
